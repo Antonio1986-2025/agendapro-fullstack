@@ -61,7 +61,14 @@ app.use('/api/whatsapp', whatsappRoutes);
 app.use('/api/publico', publicoRoutes);
 
 // ---------- FRONTEND ESTATICO ----------
-app.use(express.static(PUBLIC_DIR));
+// no-cache durante desenvolvimento: garante que o navegador sempre pegue a versao nova
+app.use(express.static(PUBLIC_DIR, {
+  etag: true,
+  lastModified: true,
+  setHeaders: (res, filePath) => {
+    res.setHeader('Cache-Control', 'no-cache, must-revalidate');
+  },
+}));
 
 // Fallback: qualquer rota nao-API serve o index (navegacao do front)
 app.get(/^\/(?!api\/).*/, (req, res) => {
