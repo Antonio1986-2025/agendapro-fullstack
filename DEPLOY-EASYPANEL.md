@@ -44,13 +44,8 @@ Na aba **Environment** do app, adicione:
 | `SUPABASE_URL` | `https://yavvktjanvbejsrramnc.supabase.co` |
 | `SUPABASE_ANON_KEY` | (anon key do Supabase) |
 | `SUPABASE_SERVICE_KEY` | (service role key do Supabase) |
-| `SUPABASE_DB_HOST` | `db.yavvktjanvbejsrramnc.supabase.co` |
-| `SUPABASE_DB_PORT` | `5432` |
-| `SUPABASE_DB_USER` | `postgres` |
-| `SUPABASE_DB_PASSWORD` | `"Aaa30269041#"` (com aspas para preservar o #) |
-| `SUPABASE_DB_NAME` | `postgres` |
-| `SUPABASE_DB_SSL` | `true` |
-| `NODE_OPTIONS` | `--dns-result-order=ipv4first` |
+| `DATABASE_URL` | `postgresql://postgres.yavvktjanvbejsrramnc:Aaa30269041%23@aws-1-us-east-1.pooler.supabase.com:6543/postgres` |
+| `DB_SSL` | `true` |
 | `JWT_SECRET` | um texto aleatorio longo (ex: gere em https://generate-secret.vercel.app/48) |
 | `NODE_ENV` | `production` |
 | `PORT` | `3000` |
