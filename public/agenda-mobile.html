@@ -52,6 +52,36 @@
     .nav-item.active { color: var(--primary); background: var(--primary-light); }
     .nav-icon { font-size: var(--text-lg); margin-bottom: var(--space-xs); }
     .nav-label { font-size: var(--text-xs); font-weight: var(--font-medium); }
+
+  /* AGENDA GRADE DESKTOP */
+  .agenda-header-desktop { display: flex; justify-content: space-between; align-items: center; padding: var(--space-xl) var(--space-2xl); background: var(--bg-card); border-bottom: 1px solid var(--border-color); }
+  .agenda-nav-desktop { display: flex; align-items: center; gap: var(--space-sm); background: var(--bg-secondary); border-radius: var(--radius-lg); padding: var(--space-xs); }
+  .agenda-nav-btn { background: none; border: none; padding: var(--space-sm) var(--space-md); border-radius: var(--radius-md); cursor: pointer; color: var(--text-secondary); font-weight: var(--font-medium); transition: all var(--transition-fast); }
+  .agenda-nav-btn:hover { background: var(--bg-card); color: var(--text-primary); }
+  .agenda-nav-hoje { color: var(--primary); font-weight: var(--font-bold); }
+  .agenda-nav-data { font-weight: var(--font-semibold); color: var(--text-primary); padding: 0 var(--space-sm); }
+
+  .agenda-grade-wrap { overflow-x: auto; margin: var(--space-lg); border-radius: var(--radius-lg); border: 1px solid var(--border-color); }
+  .agenda-grade { width: 100%; border-collapse: collapse; background: var(--bg-card); min-width: 600px; }
+  .agenda-grade th { background: var(--bg-secondary); padding: var(--space-md) var(--space-sm); text-align: center; font-weight: var(--font-semibold); color: var(--text-primary); border-bottom: 2px solid var(--border-color); white-space: nowrap; }
+  .agenda-grade th:first-child { text-align: center; width: 70px; }
+  .agenda-grade td { padding: var(--space-sm); text-align: center; border-bottom: 1px solid var(--border-color); border-right: 1px solid var(--border-color); height: 52px; vertical-align: middle; cursor: pointer; transition: background var(--transition-fast); }
+  .agenda-grade td:last-child { border-right: none; }
+  .agenda-grade td:hover { background: var(--bg-secondary); }
+  .agenda-grade td:first-child { font-weight: var(--font-semibold); color: var(--text-secondary); background: var(--bg-secondary); cursor: default; border-right: 2px solid var(--border-color); }
+  .agenda-grade td:first-child:hover { background: var(--bg-secondary); }
+  .cell-livre { color: var(--text-muted); font-size: var(--text-xs); }
+  .cell-ag { display: inline-flex; flex-direction: column; align-items: center; justify-content: center; background: var(--primary-light); border-radius: var(--radius-md); padding: 2px 8px; max-width: 100%; overflow: hidden; }
+  .cell-ag .ag-cliente { font-weight: var(--font-semibold); color: var(--text-primary); font-size: var(--text-xs); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 100%; }
+  .cell-ag .ag-servico { font-size: 10px; color: var(--text-secondary); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 100%; }
+  .cell-ag .ag-preco { font-size: 10px; color: var(--primary); font-weight: var(--font-bold); }
+  .prof-avatar-td { width: 28px; height: 28px; border-radius: 50%; display: inline-flex; align-items: center; justify-content: center; font-size: 10px; font-weight: var(--font-bold); color: white; margin-right: var(--space-xs); vertical-align: middle; }
+  .prof-cor-0 { background: #E67E22; }
+  .prof-cor-1 { background: #3498DB; }
+  .prof-cor-2 { background: #E74C3C; }
+  .prof-cor-3 { background: #2ECC71; }
+  .prof-cor-4 { background: #9B59B6; }
+  .prof-cor-5 { background: #1ABC9C; }
   </style>
 </head>
 <body>
@@ -92,16 +122,23 @@
     <div class="desktop-content">
       <!-- HEADER DESKTOP -->
       <div class="desktop-header desktop-only">
-        <div>
-          <h1 class="page-title">Agenda</h1>
-          <p class="page-subtitle">Gerencie os agendamentos do dia</p>
-        </div>
-        <div class="header-actions">
-          <button class="theme-toggle" onclick="toggleTheme()" style="background: var(--bg-card); border: 1px solid var(--border-color); padding: var(--space-sm) var(--space-md); border-radius: var(--radius-md); cursor: pointer; color: var(--text-secondary);">
-            <i class="fas fa-moon" id="theme-icon-desk"></i>
-          </button>
+        <div class="agenda-header-desktop">
+          <div>
+            <h1 style="font-size: 1.75rem; font-weight: 800; letter-spacing: 2px; text-transform: uppercase; margin:0; color: var(--text-primary);">AGENDA</h1>
+            <p style="font-size: var(--text-sm); color: var(--text-secondary); margin: var(--space-xs) 0 0 0; text-transform: uppercase; letter-spacing: 1px;">Visão diária por profissional</p>
+          </div>
+          <div class="agenda-nav-desktop">
+            <button class="agenda-nav-btn" onclick="mudarDia(-1)"><i class="fas fa-chevron-left"></i></button>
+            <button class="agenda-nav-btn agenda-nav-hoje" onclick="irHoje()">HOJE</button>
+            <span class="agenda-nav-data" id="data-label-desktop">--</span>
+            <button class="agenda-nav-btn" onclick="irHoje()"><i class="fas fa-calendar-alt"></i></button>
+            <button class="agenda-nav-btn" onclick="mudarDia(1)"><i class="fas fa-chevron-right"></i></button>
+            <button class="agenda-nav-btn" onclick="toggleTheme()"><i class="fas fa-moon" id="theme-icon-desk"></i></button>
+          </div>
         </div>
       </div>
+
+      <div id="lista-tabela" class="desktop-only"></div>
 
       <div class="mobile-app">
     <header class="header">
@@ -124,8 +161,6 @@
 
     <main class="main-content">
       <div id="lista"><div class="empty"><i class="fas fa-spinner fa-spin"></i> Carregando...</div></div>
-      <!-- Tabela desktop (escondida no mobile) -->
-      <div id="lista-tabela" class="desktop-only" style="margin-top: var(--space-md);"></div>
     </main>
 
     <button class="fab" onclick="abrirModal()" title="Novo agendamento"><i class="fas fa-plus"></i></button>
@@ -259,55 +294,60 @@
           </div>`;
         }).join('');
       }
-      // Tabela desktop
-      renderTabela(ags);
+      // Grade desktop
+      renderGrade(ags);
     }
 
-    function renderTabela(ags) {
+    const profCores = ['#E67E22','#3498DB','#E74C3C','#2ECC71','#9B59B6','#1ABC9C'];
+
+    function renderGrade(ags) {
       const cont = document.getElementById('lista-tabela');
-      if (!ags.length) { cont.innerHTML = ''; return; }
-      const statusClass = { agendado: 'badge-agendado', confirmado: 'badge-confirmado', concluido: 'badge-concluido', cancelado: 'badge-cancelado' };
-      cont.innerHTML = `
-      <div class="section-card">
-        <div class="section-card-header">
-          <div class="section-card-title">Agendamentos do dia</div>
-          <button class="btn btn-primary btn-sm" onclick="abrirModal()"><i class="fas fa-plus"></i> Novo</button>
-        </div>
-        <div class="section-card-body" style="padding:0;">
-          <table class="data-table">
-            <thead>
-              <tr>
-                <th>Horário</th>
-                <th>Cliente</th>
-                <th>Serviço</th>
-                <th>Profissional</th>
-                <th>Valor</th>
-                <th>Status</th>
-                <th style="text-align:right;">Ações</th>
-              </tr>
-            </thead>
-            <tbody>
-              ${ags.map(a => {
-                const hora = new Date(a.data_hora).toLocaleTimeString('pt-BR', { hour:'2-digit', minute:'2-digit' });
-                return `<tr>
-                  <td><strong>${hora}</strong></td>
-                  <td>${a.cliente_nome || 'Cliente'} ${a.is_especial ? '<span class="badge-tag" style="background:var(--warning-light);color:var(--warning);font-size:10px;">+50%</span>' : ''}</td>
-                  <td>${a.servico_nome || 'Atendimento'}</td>
-                  <td>${a.profissional_nome || '-'}</td>
-                  <td><strong>R$ ${Number(a.preco).toFixed(2)}</strong></td>
-                  <td><span class="badge-tag ${statusClass[a.status] || 'badge-agendado'}">${statusLabel(a.status)}</span></td>
-                  <td class="cell-actions">
-                    ${a.status !== 'confirmado' ? `<button class="icon-btn" onclick="setStatus('${a.id}','confirmado')" title="Confirmar"><i class="fas fa-check" style="color:var(--success)"></i></button>` : ''}
-                    ${a.status !== 'concluido' ? `<button class="icon-btn" onclick="setStatus('${a.id}','concluido')" title="Concluir"><i class="fas fa-flag-checkered" style="color:var(--primary)"></i></button>` : ''}
-                    ${a.status !== 'cancelado' ? `<button class="icon-btn" onclick="setStatus('${a.id}','cancelado')" title="Cancelar"><i class="fas fa-ban" style="color:var(--warning)"></i></button>` : ''}
-                    <button class="icon-btn danger" onclick="excluir('${a.id}')" title="Excluir"><i class="fas fa-trash"></i></button>
-                  </td>
-                </tr>`;
-              }).join('')}
-            </tbody>
-          </table>
-        </div>
-      </div>`;
+      if (!profissionais.length) { cont.innerHTML = ''; return; }
+
+      const dataLabel = document.getElementById('data-label-desktop');
+      if (dataLabel) dataLabel.textContent = dataAtual.toLocaleDateString('pt-BR', { day:'2-digit', month:'2-digit', year:'numeric' });
+
+      const horarios = [];
+      for (let h = 7; h <= 21; h++) {
+        horarios.push(`${String(h).padStart(2,'0')}:00`);
+        if (h < 21) horarios.push(`${String(h).padStart(2,'0')}:30`);
+      }
+
+      const mapa = {};
+      ags.forEach(a => {
+        const h = new Date(a.data_hora).toLocaleTimeString('pt-BR', { hour:'2-digit', minute:'2-digit' });
+        const pn = a.profissional_nome || 'Sem profissional';
+        if (!mapa[pn]) mapa[pn] = {};
+        mapa[pn][h] = a;
+      });
+
+      let html = '<div class="agenda-grade-wrap"><table class="agenda-grade"><thead><tr>';
+      html += '<th>HORA</th>';
+      profissionais.forEach((p, i) => {
+        const ini = p.nome.split(' ').map(n=>n[0]).join('').substring(0,2).toUpperCase();
+        const cor = profCores[i % profCores.length];
+        html += `<th><span class="prof-avatar-td" style="background:${cor}">${ini}</span> ${p.nome.toUpperCase()}</th>`;
+      });
+      html += '</tr></thead><tbody>';
+
+      horarios.forEach(hora => {
+        html += '<tr>';
+        html += `<td>${hora}</td>`;
+        profissionais.forEach(p => {
+          const ag = mapa[p.nome] && mapa[p.nome][hora];
+          if (ag) {
+            const cli = ag.cliente_nome || 'Cliente';
+            const serv = ag.servico_nome || '';
+            html += `<td onclick="setStatus('${ag.id}','confirmado')"><div class="cell-ag"><span class="ag-cliente">${cli}</span>${serv ? `<span class="ag-servico">${serv}</span>` : ''}<span class="ag-preco">R$ ${Number(ag.preco||0).toFixed(2)}</span></div></td>`;
+          } else {
+            html += `<td onclick="abrirModal()"><span class="cell-livre">+ LIVRE</span></td>`;
+          }
+        });
+        html += '</tr>';
+      });
+
+      html += '</tbody></table></div>';
+      cont.innerHTML = html;
     }
 
     let menuAberto = null;
