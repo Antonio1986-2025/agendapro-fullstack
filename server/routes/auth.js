@@ -128,3 +128,21 @@ router.get('/me', autenticar, async (req, res) => {
 });
 
 export default router;
+
+// GET /api/auth/setup-status  -> quantos itens de setup faltam
+router.get('/setup-status', autenticar, async (req, res) => {
+  const id = req.barbeariaId;
+  const [serv, prof, cli] = await Promise.all([
+    query('SELECT COUNT(*) AS t FROM servicos WHERE barbearia_id = $1', [id]),
+    query('SELECT COUNT(*) AS t FROM profissionais WHERE barbearia_id = $1 AND ativo = true', [id]),
+    query('SELECT COUNT(*) AS t FROM clientes WHERE barbearia_id = $1', [id]),
+  ]);
+  const servicos = parseInt(serv.rows[0].t);
+  const profissionais = parseInt(prof.rows[0].t);
+  const clientes = parseInt(cli.rows[0].t);
+  res.json({
+    servicos, profissionais, clientes,
+    pendente: (servicos ? 0 : 1) + (profissionais ? 0 : 1),
+    completo: servicos > 0 && profissionais > 0,
+  });
+});

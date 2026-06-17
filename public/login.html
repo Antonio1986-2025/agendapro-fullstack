@@ -14,7 +14,7 @@
     .auth-logo h1 { font-size: var(--text-2xl); font-weight: var(--font-bold); color: var(--text-primary); margin-top: var(--space-sm); }
     .auth-logo p { color: var(--text-secondary); font-size: var(--text-sm); }
     .tabs { display: flex; background: var(--bg-secondary); border-radius: var(--radius-md); padding: 3px; margin-bottom: var(--space-lg); }
-    .tab { flex: 1; text-align: center; padding: var(--space-sm); border-radius: var(--radius-sm); cursor: pointer; font-size: var(--text-sm); font-weight: var(--font-medium); color: var(--text-secondary); border: none; background: none; }
+    .tab { flex: 1; text-align: center; padding: var(--space-sm); border-radius: var(--radius-sm); cursor: pointer; font-size: var(--text-sm); font-weight: var(--font-medium); color: var(--text-secondary); border: none; background: none; transition: all var(--transition-fast); }
     .tab.active { background: var(--primary); color: #fff; }
     .field { margin-bottom: var(--space-md); }
     .field label { display: block; font-size: var(--text-sm); font-weight: var(--font-medium); margin-bottom: var(--space-xs); color: var(--text-secondary); }
@@ -23,6 +23,21 @@
     .alert.success { background: var(--success-light); color: var(--success); display: block; }
     .hidden { display: none; }
     .muted { text-align: center; font-size: var(--text-xs); color: var(--text-muted); margin-top: var(--space-md); }
+    .btn:disabled { opacity: 0.6; cursor: not-allowed; }
+    .senha-wrapper { position: relative; }
+    .senha-wrapper .input { padding-right: 40px; }
+    .senha-toggle { position: absolute; right: 10px; top: 50%; transform: translateY(-50%); background: none; border: none; color: var(--text-muted); cursor: pointer; padding: 4px; }
+    .forca { height: 4px; border-radius: 2px; margin-top: 4px; transition: all var(--transition-fast); }
+    .forca.fraca { background: var(--error); width: 33%; }
+    .forca.media { background: var(--warning); width: 66%; }
+    .forca.forte { background: var(--success); width: 100%; }
+    .forca-label { font-size: var(--text-xs); margin-top: 2px; display: block; }
+    .forca-label.fraca { color: var(--error); }
+    .forca-label.media { color: var(--warning); }
+    .forca-label.forte { color: var(--success); }
+    .spinner-btn { display: none; }
+    .btn-loading .spinner-btn { display: inline; }
+    .btn-loading .text-btn { display: none; }
   </style>
 </head>
 <body>
@@ -48,10 +63,14 @@
       </div>
       <div class="field">
         <label>Senha</label>
-        <input class="input" type="password" id="login-senha" required placeholder="••••••">
+        <div class="senha-wrapper">
+          <input class="input" type="password" id="login-senha" required placeholder="Min. 6 caracteres">
+          <button type="button" class="senha-toggle" onclick="toggleSenha('login-senha', this)" tabindex="-1"><i class="fas fa-eye"></i></button>
+        </div>
       </div>
-      <button class="btn btn-primary btn-full btn-lg" type="submit">
-        <i class="fas fa-sign-in-alt"></i> Entrar
+      <button class="btn btn-primary btn-full btn-lg" type="submit" id="btn-login">
+        <i class="fas fa-sign-in-alt text-btn"></i> <span class="text-btn">Entrar</span>
+        <i class="fas fa-spinner fa-spin spinner-btn"></i> Entrando...
       </button>
       <p class="muted">Demo: demo@agendapro.com / 123456</p>
     </form>
@@ -60,11 +79,11 @@
     <form id="form-registro" class="hidden" onsubmit="return fazerRegistro(event)">
       <div class="field">
         <label>Nome da barbearia</label>
-        <input class="input" type="text" id="reg-barbearia" required placeholder="Barbearia do Ze">
+        <input class="input" type="text" id="reg-barbearia" required placeholder="Ex: Barbearia do Zé">
       </div>
       <div class="field">
         <label>Seu nome</label>
-        <input class="input" type="text" id="reg-nome" required placeholder="Jose Silva">
+        <input class="input" type="text" id="reg-nome" required placeholder="Ex: José Silva">
       </div>
       <div class="field">
         <label>Email</label>
@@ -72,21 +91,26 @@
       </div>
       <div class="field">
         <label>Telefone</label>
-        <input class="input" type="text" id="reg-telefone" placeholder="(67) 99999-0000">
+        <input class="input" type="tel" id="reg-telefone" placeholder="(67) 99999-0000" oninput="mascararTel(this)">
       </div>
       <div class="field">
-        <label>Senha (min. 6 caracteres)</label>
-        <input class="input" type="password" id="reg-senha" required minlength="6" placeholder="••••••">
+        <label>Senha</label>
+        <div class="senha-wrapper">
+          <input class="input" type="password" id="reg-senha" required minlength="6" placeholder="Min. 6 caracteres" oninput="avaliarForca(this.value)">
+          <button type="button" class="senha-toggle" onclick="toggleSenha('reg-senha', this)" tabindex="-1"><i class="fas fa-eye"></i></button>
+        </div>
+        <div class="forca" id="forca-barra"></div>
+        <span class="forca-label" id="forca-label"></span>
       </div>
-      <button class="btn btn-primary btn-full btn-lg" type="submit">
-        <i class="fas fa-rocket"></i> Criar minha barbearia
+      <button class="btn btn-primary btn-full btn-lg" type="submit" id="btn-registro">
+        <i class="fas fa-rocket text-btn"></i> <span class="text-btn">Criar minha barbearia</span>
+        <i class="fas fa-spinner fa-spin spinner-btn"></i> Criando conta...
       </button>
     </form>
   </div>
 
   <script src="api.js"></script>
   <script>
-    // Se ja estiver logado, vai pro dashboard
     if (API.getToken()) window.location.href = 'dashboard-mobile.html';
 
     function mostrar(qual) {
@@ -106,18 +130,58 @@
       document.getElementById('alerta').className = 'alert';
     }
 
+    function toggleSenha(id, btn) {
+      const input = document.getElementById(id);
+      const isPass = input.type === 'password';
+      input.type = isPass ? 'text' : 'password';
+      btn.innerHTML = isPass ? '<i class="fas fa-eye-slash"></i>' : '<i class="fas fa-eye"></i>';
+    }
+
+    function mascararTel(el) {
+      let v = el.value.replace(/\D/g, '').slice(0, 11);
+      if (v.length <= 2) el.value = '(' + v;
+      else if (v.length <= 6) el.value = '(' + v.slice(0,2) + ') ' + v.slice(2);
+      else if (v.length <= 10) el.value = '(' + v.slice(0,2) + ') ' + v.slice(2,6) + '-' + v.slice(6);
+      else el.value = '(' + v.slice(0,2) + ') ' + v.slice(2,7) + '-' + v.slice(7);
+    }
+
+    function avaliarForca(senha) {
+      const barra = document.getElementById('forca-barra');
+      const label = document.getElementById('forca-label');
+      if (!senha) { barra.className = 'forca'; label.textContent = ''; return; }
+      let forca = 0;
+      if (senha.length >= 6) forca++;
+      if (senha.length >= 8) forca++;
+      if (/[A-Z]/.test(senha)) forca++;
+      if (/[0-9]/.test(senha)) forca++;
+      if (/[^a-zA-Z0-9]/.test(senha)) forca++;
+      if (forca <= 2) { barra.className = 'forca fraca'; label.className = 'forca-label fraca'; label.textContent = 'Fraca'; }
+      else if (forca <= 3) { barra.className = 'forca media'; label.className = 'forca-label media'; label.textContent = 'Média'; }
+      else { barra.className = 'forca forte'; label.className = 'forca-label forte'; label.textContent = 'Forte'; }
+    }
+
+    function setLoading(btnId, loading) {
+      const btn = document.getElementById(btnId);
+      btn.disabled = loading;
+      btn.classList.toggle('btn-loading', loading);
+    }
+
     async function fazerLogin(e) {
       e.preventDefault();
       esconderAlerta();
+      setLoading('btn-login', true);
       try {
         const r = await API.auth.login(
           document.getElementById('login-email').value.trim(),
           document.getElementById('login-senha').value
         );
         API.setSession(r.token, r.usuario);
-        window.location.href = 'dashboard-mobile.html';
+        const setup = await API.get('/auth/setup-status').catch(() => null);
+        window.location.href = (setup && setup.pendente > 0) ? 'onboarding.html' : 'dashboard-mobile.html';
       } catch (err) {
         mostrarAlerta(err.message);
+      } finally {
+        setLoading('btn-login', false);
       }
       return false;
     }
@@ -125,6 +189,7 @@
     async function fazerRegistro(e) {
       e.preventDefault();
       esconderAlerta();
+      setLoading('btn-registro', true);
       try {
         const r = await API.auth.registrar({
           barbeariaNome: document.getElementById('reg-barbearia').value.trim(),
@@ -134,9 +199,11 @@
           senha: document.getElementById('reg-senha').value,
         });
         API.setSession(r.token, r.usuario);
-        window.location.href = 'dashboard-mobile.html';
+        window.location.href = 'onboarding.html';
       } catch (err) {
         mostrarAlerta(err.message);
+      } finally {
+        setLoading('btn-registro', false);
       }
       return false;
     }
