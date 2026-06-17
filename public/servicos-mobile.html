@@ -7,803 +7,203 @@
   <link rel="stylesheet" href="design-system.css">
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
   <style>
-    /* LAYOUT MOBILE ESPECÍFICO */
-    .mobile-app {
-      max-width: 430px;
-      margin: 0 auto;
-      min-height: 100vh;
-      background: var(--bg-primary);
-      position: relative;
-    }
-    
-    /* HEADER FIXO */
-    .header {
-      position: sticky;
-      top: 0;
-      z-index: var(--z-sticky);
-      background: var(--bg-card);
-      border-bottom: 1px solid var(--border-color);
-      padding: var(--space-md);
-    }
-    
-    .header-content {
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-    }
-    
-    .header-title {
-      display: flex;
-      align-items: center;
-      gap: var(--space-md);
-    }
-    
-    .back-btn {
-      background: none;
-      border: none;
-      padding: var(--space-sm);
-      border-radius: var(--radius-md);
-      cursor: pointer;
-      color: var(--text-secondary);
-      transition: all var(--transition-fast);
-    }
-    
-    .back-btn:hover {
-      background: var(--bg-secondary);
-      color: var(--primary);
-    }
-    
-    .page-title {
-      font-size: var(--text-lg);
-      font-weight: var(--font-semibold);
-      color: var(--text-primary);
-    }
-    
-    .header-actions {
-      display: flex;
-      align-items: center;
-      gap: var(--space-sm);
-    }
-    
-    /* TOGGLE THEME */
-    .theme-toggle {
-      background: none;
-      border: none;
-      padding: var(--space-sm);
-      border-radius: var(--radius-md);
-      cursor: pointer;
-      color: var(--text-secondary);
-      transition: all var(--transition-fast);
-    }
-    
-    .theme-toggle:hover {
-      background: var(--bg-secondary);
-      color: var(--primary);
-    }
-    
-    /* CONTEÚDO PRINCIPAL */
-    .main-content {
-      padding: var(--space-md);
-      padding-bottom: 80px; /* Espaço para bottom nav */
-    }
-    
-    /* BUSCA E FILTROS */
-    .search-section {
-      margin-bottom: var(--space-lg);
-    }
-    
-    .search-bar {
-      position: relative;
-      margin-bottom: var(--space-md);
-    }
-    
-    .search-input {
-      width: 100%;
-      padding: var(--space-sm) var(--space-md);
-      padding-left: 40px;
-      border: 1px solid var(--border-color);
-      border-radius: var(--radius-md);
-      background: var(--bg-card);
-      color: var(--text-primary);
-      font-size: var(--text-base);
-    }
-    
-    .search-icon {
-      position: absolute;
-      left: var(--space-md);
-      top: 50%;
-      transform: translateY(-50%);
-      color: var(--text-muted);
-    }
-    
-    .filter-chips {
-      display: flex;
-      gap: var(--space-sm);
-      overflow-x: auto;
-      padding-bottom: var(--space-xs);
-    }
-    
-    .filter-chip {
-      padding: var(--space-sm) var(--space-md);
-      background: var(--bg-card);
-      border: 1px solid var(--border-color);
-      border-radius: var(--radius-full);
-      font-size: var(--text-sm);
-      font-weight: var(--font-medium);
-      color: var(--text-secondary);
-      cursor: pointer;
-      transition: all var(--transition-fast);
-      white-space: nowrap;
-    }
-    
-    .filter-chip.active {
-      background: var(--primary);
-      color: var(--text-inverse);
-      border-color: var(--primary);
-    }
-    
-    .filter-chip:hover:not(.active) {
-      border-color: var(--primary);
-      color: var(--primary);
-    }
-    
-    /* SEÇÕES DE SERVIÇOS */
-    .services-section {
-      margin-bottom: var(--space-lg);
-    }
-    
-    .section-header {
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      margin-bottom: var(--space-md);
-      padding: var(--space-sm) 0;
-    }
-    
-    .section-title {
-      font-size: var(--text-lg);
-      font-weight: var(--font-semibold);
-      color: var(--text-primary);
-      display: flex;
-      align-items: center;
-      gap: var(--space-sm);
-    }
-    
-    .section-icon {
-      width: 32px;
-      height: 32px;
-      background: var(--primary-light);
-      color: var(--primary);
-      border-radius: var(--radius-md);
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      font-size: var(--text-sm);
-    }
-    
-    .add-service-btn {
-      background: var(--primary);
-      color: var(--text-inverse);
-      border: none;
-      padding: var(--space-sm);
-      border-radius: var(--radius-md);
-      cursor: pointer;
-      font-size: var(--text-sm);
-    }
-    
-    /* CARDS DE SERVIÇOS */
-    .service-card {
-      background: var(--bg-card);
-      border: 1px solid var(--border-color);
-      border-radius: var(--radius-lg);
-      padding: var(--space-md);
-      margin-bottom: var(--space-sm);
-      transition: all var(--transition-fast);
-      position: relative;
-    }
-    
-    .service-card:hover {
-      transform: translateY(-2px);
-      box-shadow: var(--shadow-md);
-      border-color: var(--primary);
-    }
-    
-    .service-header {
-      display: flex;
-      justify-content: space-between;
-      align-items: flex-start;
-      margin-bottom: var(--space-sm);
-    }
-    
-    .service-info {
-      flex: 1;
-    }
-    
-    .service-name {
-      font-weight: var(--font-semibold);
-      color: var(--text-primary);
-      margin-bottom: var(--space-xs);
-      font-size: var(--text-base);
-    }
-    
-    .service-description {
-      color: var(--text-secondary);
-      font-size: var(--text-sm);
-      margin-bottom: var(--space-sm);
-    }
-    
-    .service-details {
-      display: flex;
-      gap: var(--space-lg);
-      margin-bottom: var(--space-sm);
-    }
-    
-    .service-detail {
-      display: flex;
-      align-items: center;
-      gap: var(--space-xs);
-      font-size: var(--text-sm);
-      color: var(--text-secondary);
-    }
-    
-    .service-price {
-      font-size: var(--text-lg);
-      font-weight: var(--font-bold);
-      color: var(--success);
-    }
-    
-    .service-actions {
-      display: flex;
-      gap: var(--space-sm);
-      margin-top: var(--space-sm);
-    }
-    
-    .action-btn-sm {
-      padding: var(--space-xs) var(--space-sm);
-      border: 1px solid var(--border-color);
-      border-radius: var(--radius-md);
-      background: var(--bg-card);
-      color: var(--text-secondary);
-      font-size: var(--text-sm);
-      cursor: pointer;
-      transition: all var(--transition-fast);
-    }
-    
-    .action-btn-sm:hover {
-      border-color: var(--primary);
-      color: var(--primary);
-    }
-    
-    .action-btn-sm.primary {
-      background: var(--primary);
-      color: var(--text-inverse);
-      border-color: var(--primary);
-    }
-    
-    /* STATUS DO SERVIÇO */
-    .service-status {
-      position: absolute;
-      top: var(--space-md);
-      right: var(--space-md);
-      padding: var(--space-xs) var(--space-sm);
-      border-radius: var(--radius-full);
-      font-size: var(--text-xs);
-      font-weight: var(--font-medium);
-    }
-    
-    .status-active {
-      background: var(--success-light);
-      color: var(--success);
-    }
-    
-    .status-inactive {
-      background: var(--gray-200);
-      color: var(--text-muted);
-    }
-    
-    /* FLOATING ACTION BUTTON */
-    .fab {
-      position: fixed;
-      bottom: 90px;
-      right: 20px;
-      width: 56px;
-      height: 56px;
-      background: var(--primary);
-      color: var(--text-inverse);
-      border: none;
-      border-radius: var(--radius-full);
-      font-size: var(--text-lg);
-      cursor: pointer;
-      box-shadow: var(--shadow-lg);
-      transition: all var(--transition-fast);
-      z-index: var(--z-fixed);
-    }
-    
-    .fab:hover {
-      transform: scale(1.1);
-      box-shadow: var(--shadow-xl);
-    }
-    
-    /* BOTTOM NAVIGATION */
-    .bottom-nav {
-      position: fixed;
-      bottom: 0;
-      left: 50%;
-      transform: translateX(-50%);
-      width: 100%;
-      max-width: 430px;
-      background: var(--bg-card);
-      border-top: 1px solid var(--border-color);
-      padding: var(--space-sm) 0;
-      z-index: var(--z-sticky);
-    }
-    
-    .nav-items {
-      display: flex;
-      justify-content: space-around;
-      align-items: center;
-    }
-    
-    .nav-item {
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      padding: var(--space-sm);
-      text-decoration: none;
-      color: var(--text-secondary);
-      transition: all var(--transition-fast);
-      border-radius: var(--radius-md);
-      min-width: 60px;
-    }
-    
-    .nav-item.active {
-      color: var(--primary);
-      background: var(--primary-light);
-    }
-    
-    .nav-icon {
-      font-size: var(--text-lg);
-      margin-bottom: var(--space-xs);
-    }
-    
-    .nav-label {
-      font-size: var(--text-xs);
-      font-weight: var(--font-medium);
-    }
-    
-    /* RESPONSIVO TABLET+ */
-    @media (min-width: 768px) {
-      .mobile-app {
-        max-width: 100%;
-        padding: 0 var(--space-lg);
-      }
-      
-      .bottom-nav {
-        display: none;
-      }
-      
-      .main-content {
-        padding-bottom: var(--space-md);
-      }
-      
-      .fab {
-        bottom: 20px;
-      }
-    }
+    .mobile-app { max-width: 480px; margin: 0 auto; min-height: 100vh; background: var(--bg-primary); position: relative; }
+    .header { position: sticky; top: 0; z-index: var(--z-sticky); background: var(--bg-card); border-bottom: 1px solid var(--border-color); padding: var(--space-md); }
+    .header-content { display: flex; align-items: center; justify-content: space-between; }
+    .header-title { display: flex; align-items: center; gap: var(--space-sm); font-size: var(--text-lg); font-weight: var(--font-bold); color: var(--text-primary); }
+    .back-btn { background: none; border: none; padding: var(--space-sm); border-radius: var(--radius-md); cursor: pointer; color: var(--text-secondary); }
+    .main-content { padding: var(--space-md); padding-bottom: 100px; }
+    .cat-titulo { font-size: var(--text-sm); font-weight: var(--font-semibold); color: var(--text-secondary); text-transform: uppercase; letter-spacing: .05em; margin: var(--space-md) 0 var(--space-sm); }
+    .serv-card { background: var(--bg-card); border: 1px solid var(--border-color); border-radius: var(--radius-lg); padding: var(--space-md); margin-bottom: var(--space-sm); display: flex; align-items: center; gap: var(--space-md); }
+    .serv-icon { width: 44px; height: 44px; background: var(--primary-light); color: var(--primary); border-radius: var(--radius-md); display: flex; align-items: center; justify-content: center; font-size: var(--text-lg); flex-shrink: 0; }
+    .serv-info { flex: 1; min-width: 0; }
+    .serv-nome { font-weight: var(--font-semibold); color: var(--text-primary); }
+    .serv-meta { font-size: var(--text-sm); color: var(--text-secondary); display: flex; align-items: center; gap: var(--space-sm); }
+    .serv-preco { font-weight: var(--font-bold); color: var(--success); white-space: nowrap; }
+    .serv-actions { display: flex; gap: var(--space-xs); }
+    .icon-btn { background: var(--bg-secondary); border: none; width: 36px; height: 36px; border-radius: var(--radius-md); cursor: pointer; color: var(--text-secondary); }
+    .icon-btn:hover { background: var(--primary-light); color: var(--primary); }
+    .icon-btn.danger:hover { background: var(--error-light); color: var(--error); }
+    .empty { text-align: center; padding: var(--space-2xl); color: var(--text-muted); }
+    .empty i { font-size: 2.5rem; margin-bottom: var(--space-md); display: block; opacity: .5; }
+    .fab { position: fixed; bottom: 90px; right: 24px; width: 56px; height: 56px; background: var(--primary); color: #fff; border: none; border-radius: var(--radius-full); box-shadow: var(--shadow-lg); cursor: pointer; font-size: var(--text-xl); z-index: var(--z-fixed); }
+    .modal-overlay { position: fixed; inset: 0; background: var(--bg-overlay); display: none; align-items: flex-end; justify-content: center; z-index: var(--z-modal); }
+    .modal-overlay.open { display: flex; }
+    .modal { background: var(--bg-card); border-radius: var(--radius-xl) var(--radius-xl) 0 0; width: 100%; max-width: 480px; padding: var(--space-lg); max-height: 90vh; overflow-y: auto; }
+    .modal-title { font-size: var(--text-lg); font-weight: var(--font-bold); margin-bottom: var(--space-lg); }
+    .field { margin-bottom: var(--space-md); }
+    .field label { display: block; font-size: var(--text-sm); font-weight: var(--font-medium); margin-bottom: var(--space-xs); color: var(--text-secondary); }
+    .row2 { display: grid; grid-template-columns: 1fr 1fr; gap: var(--space-md); }
+    .alert { padding: var(--space-sm) var(--space-md); border-radius: var(--radius-md); font-size: var(--text-sm); margin-bottom: var(--space-md); display: none; }
+    .alert.error { background: var(--error-light); color: var(--error); display: block; }
+    .bottom-nav { position: fixed; bottom: 0; left: 50%; transform: translateX(-50%); width: 100%; max-width: 480px; background: var(--bg-card); border-top: 1px solid var(--border-color); padding: var(--space-sm) 0; z-index: var(--z-sticky); }
+    .nav-items { display: flex; justify-content: space-around; }
+    .nav-item { display: flex; flex-direction: column; align-items: center; padding: var(--space-sm); text-decoration: none; color: var(--text-secondary); border-radius: var(--radius-md); min-width: 56px; }
+    .nav-item.active { color: var(--primary); background: var(--primary-light); }
+    .nav-icon { font-size: var(--text-lg); margin-bottom: var(--space-xs); }
+    .nav-label { font-size: var(--text-xs); font-weight: var(--font-medium); }
   </style>
 </head>
 <body>
   <div class="mobile-app">
-    <!-- HEADER -->
     <header class="header">
       <div class="header-content">
         <div class="header-title">
-          <button class="back-btn" onclick="history.back()">
-            <i class="fas fa-arrow-left"></i>
-          </button>
-          <h1 class="page-title">Serviços</h1>
+          <button class="back-btn" onclick="location.href='dashboard-mobile.html'"><i class="fas fa-arrow-left"></i></button>
+          <i class="fas fa-cut"></i>
+          <span>Serviços</span>
         </div>
-        
-        <div class="header-actions">
-          <button class="theme-toggle" onclick="toggleTheme()">
-            <i class="fas fa-moon" id="theme-icon"></i>
-          </button>
-        </div>
+        <button class="back-btn" onclick="toggleTheme()"><i class="fas fa-moon" id="theme-icon"></i></button>
       </div>
     </header>
 
-    <!-- CONTEÚDO PRINCIPAL -->
     <main class="main-content">
-      <!-- BUSCA E FILTROS -->
-      <div class="search-section">
-        <div class="search-bar">
-          <i class="fas fa-search search-icon"></i>
-          <input type="text" class="search-input" placeholder="Buscar serviços...">
-        </div>
-        
-        <div class="filter-chips">
-          <div class="filter-chip active">Todos</div>
-          <div class="filter-chip">Cabelo</div>
-          <div class="filter-chip">Barba</div>
-          <div class="filter-chip">Sobrancelha</div>
-          <div class="filter-chip">Tratamentos</div>
-        </div>
-      </div>
-
-      <!-- SERVIÇOS DE CABELO -->
-      <section class="services-section">
-        <div class="section-header">
-          <h2 class="section-title">
-            <div class="section-icon">
-              <i class="fas fa-cut"></i>
-            </div>
-            Serviços de Cabelo
-          </h2>
-          <button class="add-service-btn">
-            <i class="fas fa-plus"></i>
-          </button>
-        </div>
-
-        <div class="service-card">
-          <div class="service-status status-active">Ativo</div>
-          <div class="service-header">
-            <div class="service-info">
-              <h3 class="service-name">Corte Masculino</h3>
-              <p class="service-description">Corte tradicional com máquina e tesoura</p>
-            </div>
-          </div>
-          
-          <div class="service-details">
-            <div class="service-detail">
-              <i class="fas fa-clock"></i>
-              <span>30 min</span>
-            </div>
-            <div class="service-detail">
-              <i class="fas fa-users"></i>
-              <span>Todos</span>
-            </div>
-          </div>
-          
-          <div class="service-price">R$ 25,00</div>
-          
-          <div class="service-actions">
-            <button class="action-btn-sm">
-              <i class="fas fa-edit"></i> Editar
-            </button>
-            <button class="action-btn-sm">
-              <i class="fas fa-chart-line"></i> Estatísticas
-            </button>
-          </div>
-        </div>
-
-        <div class="service-card">
-          <div class="service-status status-active">Ativo</div>
-          <div class="service-header">
-            <div class="service-info">
-              <h3 class="service-name">Corte Feminino</h3>
-              <p class="service-description">Corte, lavagem e finalização</p>
-            </div>
-          </div>
-          
-          <div class="service-details">
-            <div class="service-detail">
-              <i class="fas fa-clock"></i>
-              <span>45 min</span>
-            </div>
-            <div class="service-detail">
-              <i class="fas fa-users"></i>
-              <span>Mulheres</span>
-            </div>
-          </div>
-          
-          <div class="service-price">R$ 35,00</div>
-          
-          <div class="service-actions">
-            <button class="action-btn-sm">
-              <i class="fas fa-edit"></i> Editar
-            </button>
-            <button class="action-btn-sm">
-              <i class="fas fa-chart-line"></i> Estatísticas
-            </button>
-          </div>
-        </div>
-
-        <div class="service-card">
-          <div class="service-status status-active">Ativo</div>
-          <div class="service-header">
-            <div class="service-info">
-              <h3 class="service-name">Corte + Escova</h3>
-              <p class="service-description">Corte feminino com escova modeladora</p>
-            </div>
-          </div>
-          
-          <div class="service-details">
-            <div class="service-detail">
-              <i class="fas fa-clock"></i>
-              <span>60 min</span>
-            </div>
-            <div class="service-detail">
-              <i class="fas fa-users"></i>
-              <span>Mulheres</span>
-            </div>
-          </div>
-          
-          <div class="service-price">R$ 50,00</div>
-          
-          <div class="service-actions">
-            <button class="action-btn-sm">
-              <i class="fas fa-edit"></i> Editar
-            </button>
-            <button class="action-btn-sm">
-              <i class="fas fa-chart-line"></i> Estatísticas
-            </button>
-          </div>
-        </div>
-      </section>
-
-      <!-- SERVIÇOS DE BARBA -->
-      <section class="services-section">
-        <div class="section-header">
-          <h2 class="section-title">
-            <div class="section-icon">
-              <i class="fas fa-user-tie"></i>
-            </div>
-            Serviços de Barba
-          </h2>
-          <button class="add-service-btn">
-            <i class="fas fa-plus"></i>
-          </button>
-        </div>
-
-        <div class="service-card">
-          <div class="service-status status-active">Ativo</div>
-          <div class="service-header">
-            <div class="service-info">
-              <h3 class="service-name">Barba Completa</h3>
-              <p class="service-description">Aparar, modelar e finalizar com produtos</p>
-            </div>
-          </div>
-          
-          <div class="service-details">
-            <div class="service-detail">
-              <i class="fas fa-clock"></i>
-              <span>20 min</span>
-            </div>
-            <div class="service-detail">
-              <i class="fas fa-users"></i>
-              <span>Homens</span>
-            </div>
-          </div>
-          
-          <div class="service-price">R$ 15,00</div>
-          
-          <div class="service-actions">
-            <button class="action-btn-sm">
-              <i class="fas fa-edit"></i> Editar
-            </button>
-            <button class="action-btn-sm">
-              <i class="fas fa-chart-line"></i> Estatísticas
-            </button>
-          </div>
-        </div>
-
-        <div class="service-card">
-          <div class="service-status status-inactive">Inativo</div>
-          <div class="service-header">
-            <div class="service-info">
-              <h3 class="service-name">Bigode</h3>
-              <p class="service-description">Aparar e modelar bigode</p>
-            </div>
-          </div>
-          
-          <div class="service-details">
-            <div class="service-detail">
-              <i class="fas fa-clock"></i>
-              <span>10 min</span>
-            </div>
-            <div class="service-detail">
-              <i class="fas fa-users"></i>
-              <span>Homens</span>
-            </div>
-          </div>
-          
-          <div class="service-price">R$ 8,00</div>
-          
-          <div class="service-actions">
-            <button class="action-btn-sm">
-              <i class="fas fa-edit"></i> Editar
-            </button>
-            <button class="action-btn-sm">
-              <i class="fas fa-toggle-on"></i> Ativar
-            </button>
-          </div>
-        </div>
-      </section>
-
-      <!-- OUTROS SERVIÇOS -->
-      <section class="services-section">
-        <div class="section-header">
-          <h2 class="section-title">
-            <div class="section-icon">
-              <i class="fas fa-spa"></i>
-            </div>
-            Outros Serviços
-          </h2>
-          <button class="add-service-btn">
-            <i class="fas fa-plus"></i>
-          </button>
-        </div>
-
-        <div class="service-card">
-          <div class="service-status status-active">Ativo</div>
-          <div class="service-header">
-            <div class="service-info">
-              <h3 class="service-name">Design de Sobrancelha</h3>
-              <p class="service-description">Modelagem e design personalizado</p>
-            </div>
-          </div>
-          
-          <div class="service-details">
-            <div class="service-detail">
-              <i class="fas fa-clock"></i>
-              <span>25 min</span>
-            </div>
-            <div class="service-detail">
-              <i class="fas fa-users"></i>
-              <span>Todos</span>
-            </div>
-          </div>
-          
-          <div class="service-price">R$ 20,00</div>
-          
-          <div class="service-actions">
-            <button class="action-btn-sm">
-              <i class="fas fa-edit"></i> Editar
-            </button>
-            <button class="action-btn-sm">
-              <i class="fas fa-chart-line"></i> Estatísticas
-            </button>
-          </div>
-        </div>
-      </section>
+      <div id="lista"><div class="empty"><i class="fas fa-spinner fa-spin"></i> Carregando...</div></div>
     </main>
 
-    <!-- FLOATING ACTION BUTTON -->
-    <button class="fab" onclick="addNewService()">
-      <i class="fas fa-plus"></i>
-    </button>
+    <button class="fab" onclick="abrirModal()" title="Adicionar serviço"><i class="fas fa-plus"></i></button>
 
-    <!-- BOTTOM NAVIGATION -->
     <nav class="bottom-nav">
       <div class="nav-items">
-        <a href="dashboard-mobile.html" class="nav-item">
-          <i class="nav-icon fas fa-home"></i>
-          <span class="nav-label">Dashboard</span>
-        </a>
-        
-        <a href="agenda-mobile.html" class="nav-item">
-          <i class="nav-icon fas fa-calendar"></i>
-          <span class="nav-label">Agenda</span>
-        </a>
-        
-        <a href="clientes-mobile.html" class="nav-item">
-          <i class="nav-icon fas fa-users"></i>
-          <span class="nav-label">Clientes</span>
-        </a>
-        
-        <a href="#" class="nav-item active">
-          <i class="nav-icon fas fa-cut"></i>
-          <span class="nav-label">Serviços</span>
-        </a>
-        
-        <a href="configuracoes-mobile.html" class="nav-item">
-          <i class="nav-icon fas fa-cog"></i>
-          <span class="nav-label">Config</span>
-        </a>
+        <a href="dashboard-mobile.html" class="nav-item"><i class="nav-icon fas fa-home"></i><span class="nav-label">Início</span></a>
+        <a href="agenda-mobile.html" class="nav-item"><i class="nav-icon fas fa-calendar"></i><span class="nav-label">Agenda</span></a>
+        <a href="servicos-mobile.html" class="nav-item active"><i class="nav-icon fas fa-cut"></i><span class="nav-label">Serviços</span></a>
+        <a href="profissionais-mobile.html" class="nav-item"><i class="nav-icon fas fa-user-tie"></i><span class="nav-label">Equipe</span></a>
+        <a href="configuracoes-mobile.html" class="nav-item"><i class="nav-icon fas fa-cog"></i><span class="nav-label">Config</span></a>
       </div>
     </nav>
   </div>
 
+  <div class="modal-overlay" id="modal">
+    <div class="modal">
+      <div class="modal-title" id="modal-title">Novo serviço</div>
+      <div id="modal-alerta" class="alert"></div>
+      <input type="hidden" id="f-id">
+      <div class="field">
+        <label>Nome *</label>
+        <input class="input" id="f-nome" placeholder="Ex: Corte Masculino">
+      </div>
+      <div class="field">
+        <label>Categoria</label>
+        <input class="input" id="f-categoria" placeholder="Ex: Cortes" list="categorias">
+        <datalist id="categorias"></datalist>
+      </div>
+      <div class="row2">
+        <div class="field">
+          <label>Duração (min)</label>
+          <input class="input" id="f-duracao" type="number" min="5" step="5" value="30">
+        </div>
+        <div class="field">
+          <label>Preço (R$)</label>
+          <input class="input" id="f-preco" type="number" min="0" step="0.01" value="0">
+        </div>
+      </div>
+      <div style="display:flex; gap: var(--space-sm); margin-top: var(--space-md);">
+        <button class="btn btn-secondary btn-full" onclick="fecharModal()">Cancelar</button>
+        <button class="btn btn-primary btn-full" id="btn-salvar" onclick="salvar()">Salvar</button>
+      </div>
+    </div>
+  </div>
+
+  <script src="api.js"></script>
   <script>
-    // TOGGLE TEMA CLARO/ESCURO
+    API.exigirLogin();
     function toggleTheme() {
-      const html = document.documentElement;
-      const themeIcon = document.getElementById('theme-icon');
-      
-      if (html.getAttribute('data-theme') === 'dark') {
-        html.removeAttribute('data-theme');
-        themeIcon.className = 'fas fa-moon';
-        localStorage.setItem('theme', 'light');
-      } else {
-        html.setAttribute('data-theme', 'dark');
-        themeIcon.className = 'fas fa-sun';
-        localStorage.setItem('theme', 'dark');
-      }
+      const html = document.documentElement, icon = document.getElementById('theme-icon');
+      if (html.getAttribute('data-theme') === 'dark') { html.removeAttribute('data-theme'); icon.className='fas fa-moon'; localStorage.setItem('theme','light'); }
+      else { html.setAttribute('data-theme','dark'); icon.className='fas fa-sun'; localStorage.setItem('theme','dark'); }
+    }
+    if (localStorage.getItem('theme') === 'dark') document.documentElement.setAttribute('data-theme','dark');
+
+    let servicos = [];
+
+    async function carregar() {
+      try { servicos = await API.get('/servicos'); render(); }
+      catch (e) { document.getElementById('lista').innerHTML = `<div class="empty"><i class="fas fa-triangle-exclamation"></i> Erro: ${e.message}</div>`; }
     }
 
-    // CARREGA TEMA SALVO
-    document.addEventListener('DOMContentLoaded', function() {
-      const savedTheme = localStorage.getItem('theme');
-      const themeIcon = document.getElementById('theme-icon');
-      
-      if (savedTheme === 'dark') {
-        document.documentElement.setAttribute('data-theme', 'dark');
-        themeIcon.className = 'fas fa-sun';
+    function render() {
+      const cont = document.getElementById('lista');
+      if (!servicos.length) {
+        cont.innerHTML = `<div class="empty"><i class="fas fa-cut"></i>Nenhum serviço cadastrado.<br>Toque no + para adicionar.</div>`;
+        atualizarCategorias(); return;
       }
-    });
-
-    // FILTROS DE SERVIÇOS
-    document.addEventListener('DOMContentLoaded', function() {
-      const filterChips = document.querySelectorAll('.filter-chip');
-      
-      filterChips.forEach(chip => {
-        chip.addEventListener('click', function() {
-          filterChips.forEach(c => c.classList.remove('active'));
-          this.classList.add('active');
-          
-          // Implementar lógica de filtro aqui
-          const category = this.textContent.toLowerCase();
-          filterServices(category);
-        });
-      });
-    });
-    
-    // FUNÇÃO DE BUSCA
-    const searchInput = document.querySelector('.search-input');
-    searchInput.addEventListener('input', function(e) {
-      const searchTerm = e.target.value.toLowerCase();
-      const serviceCards = document.querySelectorAll('.service-card');
-      
-      serviceCards.forEach(card => {
-        const serviceName = card.querySelector('.service-name').textContent.toLowerCase();
-        const serviceDesc = card.querySelector('.service-description').textContent.toLowerCase();
-        
-        if (serviceName.includes(searchTerm) || serviceDesc.includes(searchTerm)) {
-          card.style.display = 'block';
-        } else {
-          card.style.display = 'none';
-        }
-      });
-    });
-    
-    // FUNÇÃO ADICIONAR SERVIÇO
-    function addNewService() {
-      // Implementar modal ou navegação para adicionar serviço
-      alert('Funcionalidade de adicionar serviço será implementada');
-    }
-    
-    // FUNÇÃO FILTRAR SERVIÇOS
-    function filterServices(category) {
-      const sections = document.querySelectorAll('.services-section');
-      
-      if (category === 'todos') {
-        sections.forEach(section => section.style.display = 'block');
-      } else {
-        sections.forEach(section => {
-          const title = section.querySelector('.section-title').textContent.toLowerCase();
-          if (title.includes(category) || category === 'todos') {
-            section.style.display = 'block';
-          } else {
-            section.style.display = 'none';
-          }
-        });
-      }
+      // agrupa por categoria
+      const grupos = {};
+      servicos.forEach(s => { const c = s.categoria || 'Geral'; (grupos[c] = grupos[c] || []).push(s); });
+      cont.innerHTML = Object.keys(grupos).sort().map(cat => `
+        <div class="cat-titulo">${cat}</div>
+        ${grupos[cat].map(s => `
+          <div class="serv-card">
+            <div class="serv-icon"><i class="fas fa-scissors"></i></div>
+            <div class="serv-info">
+              <div class="serv-nome">${s.nome}</div>
+              <div class="serv-meta"><i class="fas fa-clock"></i> ${s.duracao_minutos} min</div>
+            </div>
+            <div class="serv-preco">R$ ${Number(s.preco).toFixed(2)}</div>
+            <div class="serv-actions">
+              <button class="icon-btn" onclick='editar(${JSON.stringify(s)})'><i class="fas fa-pen"></i></button>
+              <button class="icon-btn danger" onclick="excluir('${s.id}','${s.nome.replace(/'/g,"")}')"><i class="fas fa-trash"></i></button>
+            </div>
+          </div>`).join('')}
+      `).join('');
+      atualizarCategorias();
     }
 
-    // ANIMAÇÕES DE ENTRADA
-    document.addEventListener('DOMContentLoaded', function() {
-      const cards = document.querySelectorAll('.service-card');
-      cards.forEach((card, index) => {
-        card.style.opacity = '0';
-        card.style.transform = 'translateY(20px)';
-        
-        setTimeout(() => {
-          card.style.transition = 'all 0.3s ease-out';
-          card.style.opacity = '1';
-          card.style.transform = 'translateY(0)';
-        }, index * 100);
-      });
-    });
+    function atualizarCategorias() {
+      const cats = [...new Set(servicos.map(s => s.categoria).filter(Boolean))];
+      document.getElementById('categorias').innerHTML = cats.map(c => `<option value="${c}">`).join('');
+    }
+
+    function abrirModal() {
+      document.getElementById('modal-title').textContent = 'Novo serviço';
+      document.getElementById('f-id').value = '';
+      document.getElementById('f-nome').value = '';
+      document.getElementById('f-categoria').value = '';
+      document.getElementById('f-duracao').value = '30';
+      document.getElementById('f-preco').value = '0';
+      document.getElementById('modal-alerta').className = 'alert';
+      document.getElementById('modal').classList.add('open');
+    }
+    function editar(s) {
+      document.getElementById('modal-title').textContent = 'Editar serviço';
+      document.getElementById('f-id').value = s.id;
+      document.getElementById('f-nome').value = s.nome;
+      document.getElementById('f-categoria').value = s.categoria || '';
+      document.getElementById('f-duracao').value = s.duracao_minutos;
+      document.getElementById('f-preco').value = Number(s.preco).toFixed(2);
+      document.getElementById('modal-alerta').className = 'alert';
+      document.getElementById('modal').classList.add('open');
+    }
+    function fecharModal() { document.getElementById('modal').classList.remove('open'); }
+
+    async function salvar() {
+      const id = document.getElementById('f-id').value;
+      const dados = {
+        nome: document.getElementById('f-nome').value.trim(),
+        categoria: document.getElementById('f-categoria').value.trim() || 'Geral',
+        duracao_minutos: parseInt(document.getElementById('f-duracao').value, 10) || 30,
+        preco: parseFloat(document.getElementById('f-preco').value) || 0,
+      };
+      if (!dados.nome) { const a = document.getElementById('modal-alerta'); a.textContent='Informe o nome'; a.className='alert error'; return; }
+      const btn = document.getElementById('btn-salvar');
+      btn.disabled = true; btn.textContent = 'Salvando...';
+      try {
+        if (id) await API.put('/servicos/' + id, dados);
+        else await API.post('/servicos', dados);
+        fecharModal(); await carregar();
+      } catch (e) {
+        const a = document.getElementById('modal-alerta'); a.textContent = e.message; a.className = 'alert error';
+      } finally { btn.disabled = false; btn.textContent = 'Salvar'; }
+    }
+
+    async function excluir(id, nome) {
+      if (!confirm(`Excluir o serviço "${nome}"?`)) return;
+      try { await API.del('/servicos/' + id); await carregar(); }
+      catch (e) { alert('Erro ao excluir: ' + e.message); }
+    }
+
+    carregar();
   </script>
 </body>
 </html>
