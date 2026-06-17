@@ -1,7 +1,8 @@
 # 🚀 Deploy do AgendaPro Fullstack na Hostinger (EasyPanel)
 
-Esta versao tem **backend Node.js + PostgreSQL + frontend** num so projeto.
-O deploy precisa de **2 servicos** no EasyPanel: um banco PostgreSQL e o app.
+Esta versao usa **Supabase** como banco de dados (PostgreSQL cloud).
+O deploy precisa de **1 servico** no EasyPanel: apenas o App.
+(O banco ja esta rodando no Supabase — sem necessidade de criar PostgreSQL no EasyPanel.)
 
 ---
 
@@ -9,54 +10,24 @@ O deploy precisa de **2 servicos** no EasyPanel: um banco PostgreSQL e o app.
 
 ```
 EasyPanel (sua VPS)
-├── Servico 1: PostgreSQL (banco de dados)
-└── Servico 2: App (Node.js, build via Dockerfile, vem do GitHub)
+└── Servico 1: App (Node.js, build via Dockerfile, vem do GitHub)
         │
-        └── conecta no banco via DATABASE_URL
+        └── conecta no Supabase (cloud) via SUPABASE_DB_* ou DATABASE_URL
 ```
 
 ---
 
 ## PASSO 1 — Subir o codigo no GitHub
 
-Crie um repositorio novo (ex: `agendapro-fullstack`) e suba esta pasta.
-Comandos (dentro da pasta `agendapro-fullstack`):
-
 ```bash
-git init
 git add .
-git commit -m "AgendaPro fullstack - backend + frontend"
-git branch -M main
-git remote add origin https://github.com/Antonio1986-2025/agendapro-fullstack.git
-git push -u origin main
+git commit -m "integracao Supabase"
+git push
 ```
-
-> Crie o repo antes em https://github.com/new com o nome `agendapro-fullstack`.
 
 ---
 
-## PASSO 2 — Criar o banco PostgreSQL no EasyPanel
-
-1. No projeto do EasyPanel, clique **+ Create → Postgres**
-2. Nome do servico: `agendapro-db`
-3. Defina (anote esses valores):
-   - **Password**: escolha uma senha forte
-   - Database: `agendapro` (ou deixe o padrao)
-4. Clique **Create**
-
-Apos criar, o EasyPanel mostra os dados de conexao. O importante e a
-**Connection URL interna**, algo como:
-
-```
-postgres://postgres:SUA_SENHA@agendapro-db:5432/agendapro
-```
-
-> Use o host **interno** (nome do servico, ex: `agendapro-db`), nao o externo.
-> Servicos no mesmo projeto se enxergam pela rede interna.
-
----
-
-## PASSO 3 — Criar o App no EasyPanel
+## PASSO 2 — Criar o App no EasyPanel
 
 1. **+ Create → App**
 2. Nome: `agendapro`
@@ -70,20 +41,29 @@ Na aba **Environment** do app, adicione:
 
 | Variavel | Valor |
 |----------|-------|
-| `DATABASE_URL` | `postgres://postgres:SUA_SENHA@agendapro-db:5432/agendapro` |
+| `SUPABASE_URL` | `https://yavvktjanvbejsrramnc.supabase.co` |
+| `SUPABASE_ANON_KEY` | (anon key do Supabase) |
+| `SUPABASE_SERVICE_KEY` | (service role key do Supabase) |
+| `SUPABASE_DB_HOST` | `db.yavvktjanvbejsrramnc.supabase.co` |
+| `SUPABASE_DB_PORT` | `5432` |
+| `SUPABASE_DB_USER` | `postgres` |
+| `SUPABASE_DB_PASSWORD` | `"Aaa30269041#"` (com aspas para preservar o #) |
+| `SUPABASE_DB_NAME` | `postgres` |
+| `SUPABASE_DB_SSL` | `true` |
 | `JWT_SECRET` | um texto aleatorio longo (ex: gere em https://generate-secret.vercel.app/48) |
 | `NODE_ENV` | `production` |
 | `PORT` | `3000` |
 | `TZ` | `America/Sao_Paulo` |
 | `AUTO_MIGRATE` | `true` |
 
-> Com `AUTO_MIGRATE=true`, o banco e criado automaticamente no 1o start.
+> As chaves do Supabase (URL, anon, service_role) estao no dashboard do Supabase em Settings > API.
+> A senha do banco foi definida na criacao do projeto.
 
 6. Salve e clique **Deploy** de novo.
 
 ---
 
-## PASSO 4 — Configurar o dominio
+## PASSO 3 — Configurar o dominio
 
 1. Aba **Domains** do app `agendapro`
 2. Adicione o dominio (subdominio gratis do EasyPanel ou o seu proprio)
@@ -94,9 +74,7 @@ Acesse a URL → deve abrir a tela de **login** do AgendaPro.
 
 ---
 
-## PASSO 5 — Criar a primeira barbearia
-
-Voce tem duas opcoes:
+## PASSO 4 — Criar a primeira barbearia
 
 ### Opcao A: Criar conta pela tela (recomendado)
 1. Acesse a URL do app
@@ -158,11 +136,10 @@ Com Auto Deploy ativo (Settings → Deploy on push), o EasyPanel atualiza sozinh
 
 ## 🧪 Testar localmente (opcional)
 
-Com Docker instalado:
 ```bash
-docker compose up --build
+npm install
+npm run dev
 # App em http://localhost:3000
-# Rodar seed: docker compose exec app node server/db/seed.js
 ```
 
 ---
@@ -171,8 +148,8 @@ docker compose up --build
 
 | Sintoma | Causa / Solucao |
 |---------|-----------------|
-| App reinicia em loop | `DATABASE_URL` errada — confira host interno e senha |
+| App reinicia em loop | Variaveis Supabase erradas — confira SUPABASE_DB_HOST e senha |
 | 502 Bad Gateway | Porta do dominio diferente de `3000` |
-| "db desconectado" no /api/health | Banco ainda subindo ou URL incorreta |
+| "db desconectado" no /api/health | Supabase pode estar em manutencao ou credenciais incorretas |
 | Login nao funciona | Rode o seed ou crie conta pela tela |
 | Horarios errados | Confirme `TZ=America/Sao_Paulo` nas variaveis |

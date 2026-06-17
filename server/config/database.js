@@ -5,20 +5,33 @@ dotenv.config();
 
 const { Pool } = pg;
 
-// Suporta tanto DATABASE_URL (padrao EasyPanel/Postgres) quanto variaveis separadas
-const connectionConfig = process.env.DATABASE_URL
-  ? {
-      connectionString: process.env.DATABASE_URL,
-      ssl: process.env.DB_SSL === 'true' ? { rejectUnauthorized: false } : false,
-    }
-  : {
-      user: process.env.DB_USER || 'postgres',
-      password: process.env.DB_PASSWORD || 'postgres',
-      host: process.env.DB_HOST || 'localhost',
-      port: parseInt(process.env.DB_PORT || '5432', 10),
-      database: process.env.DB_NAME || 'agendapro',
-      ssl: process.env.DB_SSL === 'true' ? { rejectUnauthorized: false } : false,
-    };
+let connectionConfig;
+
+if (process.env.SUPABASE_DB_HOST) {
+  // Conexao via Supabase (parametros individuais para evitar problemas de URL encoding)
+  connectionConfig = {
+    user: process.env.SUPABASE_DB_USER || 'postgres',
+    password: process.env.SUPABASE_DB_PASSWORD,
+    host: process.env.SUPABASE_DB_HOST,
+    port: parseInt(process.env.SUPABASE_DB_PORT || '6543', 10),
+    database: process.env.SUPABASE_DB_NAME || 'postgres',
+    ssl: process.env.SUPABASE_DB_SSL === 'true' ? { rejectUnauthorized: false } : false,
+  };
+} else if (process.env.DATABASE_URL) {
+  connectionConfig = {
+    connectionString: process.env.DATABASE_URL,
+    ssl: process.env.DB_SSL === 'true' ? { rejectUnauthorized: false } : false,
+  };
+} else {
+  connectionConfig = {
+    user: process.env.DB_USER || 'postgres',
+    password: process.env.DB_PASSWORD || 'postgres',
+    host: process.env.DB_HOST || 'localhost',
+    port: parseInt(process.env.DB_PORT || '5432', 10),
+    database: process.env.DB_NAME || 'agendapro',
+    ssl: process.env.DB_SSL === 'true' ? { rejectUnauthorized: false } : false,
+  };
+}
 
 const pool = new Pool(connectionConfig);
 
