@@ -22,6 +22,10 @@ import agendamentosRoutes from './routes/agendamentos.js';
 import dashboardRoutes from './routes/dashboard.js';
 import horariosRoutes from './routes/horarios.js';
 import whatsappRoutes from './routes/whatsapp.js';
+import comandasRoutes from './routes/comandas.js';
+import caixaRoutes from './routes/caixa.js';
+import transacoesRoutes from './routes/transacoes.js';
+import estoqueRoutes from './routes/estoque.js';
 import publicoRoutes from './routes/publico.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
@@ -58,6 +62,10 @@ app.use('/api/agendamentos', agendamentosRoutes);
 app.use('/api/dashboard', dashboardRoutes);
 app.use('/api/horarios', horariosRoutes);
 app.use('/api/whatsapp', whatsappRoutes);
+app.use('/api/comandas', comandasRoutes);
+app.use('/api/caixa', caixaRoutes);
+app.use('/api/transacoes', transacoesRoutes);
+app.use('/api/estoque', estoqueRoutes);
 app.use('/api/publico', publicoRoutes);
 
 // ---------- FRONTEND ESTATICO ----------

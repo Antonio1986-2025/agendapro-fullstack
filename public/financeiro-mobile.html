@@ -502,21 +502,21 @@
     <main class="main-content">
       <!-- RESUMO FINANCEIRO -->
       <div class="financial-summary">
-        <div class="summary-period">Faturamento - Junho 2026</div>
-        <div class="summary-value">R$ 8.450,00</div>
+        <div class="summary-period" id="summary-period">Carregando...</div>
+        <div class="summary-value" id="summary-value">---</div>
         
         <div class="summary-stats">
           <div class="summary-stat">
-            <div class="summary-stat-value">156</div>
+            <div class="summary-stat-value" id="summary-count">0</div>
             <div class="summary-stat-label">Atendimentos</div>
           </div>
           <div class="summary-stat">
-            <div class="summary-stat-value">R$ 54</div>
+            <div class="summary-stat-value" id="summary-ticket">R$ 0</div>
             <div class="summary-stat-label">Ticket Médio</div>
           </div>
           <div class="summary-stat">
-            <div class="summary-stat-value">+12%</div>
-            <div class="summary-stat-label">vs. Maio</div>
+            <div class="summary-stat-value" id="summary-comandas">0</div>
+            <div class="summary-stat-label">Comandas Abertas</div>
           </div>
         </div>
       </div>
@@ -525,53 +525,30 @@
       <div class="metrics-grid">
         <div class="metric-card">
           <div class="metric-header">
-            <div class="metric-icon">
-              <i class="fas fa-calendar-day"></i>
-            </div>
-            <div class="metric-trend trend-up">
-              <i class="fas fa-arrow-up"></i> 5%
-            </div>
+            <div class="metric-icon"><i class="fas fa-calendar-day"></i></div>
           </div>
-          <div class="metric-value">R$ 420</div>
-          <div class="metric-label">Hoje</div>
+          <div class="metric-value" id="metric-hoje">R$ 0</div>
+          <div class="metric-label">Faturamento Hoje</div>
         </div>
-        
         <div class="metric-card">
           <div class="metric-header">
-            <div class="metric-icon">
-              <i class="fas fa-calendar-week"></i>
-            </div>
-            <div class="metric-trend trend-up">
-              <i class="fas fa-arrow-up"></i> 8%
-            </div>
+            <div class="metric-icon"><i class="fas fa-calendar-week"></i></div>
           </div>
-          <div class="metric-value">R$ 2.180</div>
-          <div class="metric-label">Esta Semana</div>
+          <div class="metric-value" id="metric-semana">R$ 0</div>
+          <div class="metric-label">Faturamento Semana</div>
         </div>
-        
         <div class="metric-card">
           <div class="metric-header">
-            <div class="metric-icon">
-              <i class="fas fa-users"></i>
-            </div>
-            <div class="metric-trend trend-up">
-              <i class="fas fa-arrow-up"></i> 3%
-            </div>
+            <div class="metric-icon"><i class="fas fa-users"></i></div>
           </div>
-          <div class="metric-value">89</div>
-          <div class="metric-label">Clientes Ativos</div>
+          <div class="metric-value" id="metric-clientes">0</div>
+          <div class="metric-label">Clientes Atendidos</div>
         </div>
-        
         <div class="metric-card">
           <div class="metric-header">
-            <div class="metric-icon">
-              <i class="fas fa-receipt"></i>
-            </div>
-            <div class="metric-trend trend-down">
-              <i class="fas fa-arrow-down"></i> 2%
-            </div>
+            <div class="metric-icon"><i class="fas fa-receipt"></i></div>
           </div>
-          <div class="metric-value">12</div>
+          <div class="metric-value" id="metric-abertas">0</div>
           <div class="metric-label">Comandas Abertas</div>
         </div>
       </div>
@@ -580,128 +557,20 @@
       <section class="section">
         <div class="section-header">
           <h2 class="section-title">Comandas Recentes</h2>
-          <a href="#" class="view-all-btn">Ver todas</a>
+          <a href="comanda-detalhe.html" class="view-all-btn">Nova</a>
         </div>
-
-        <div class="commands-list">
-          <!-- Comanda Aberta -->
-          <div class="command-card" onclick="openCommand(67)">
-            <div class="command-header">
-              <div class="command-info">
-                <div class="command-number">#67</div>
-                <div class="command-client">Carlos Silva</div>
-              </div>
-              <div class="command-status status-open">Aberta</div>
-            </div>
-            
-            <div class="command-details">
-              <div class="command-services">Corte Masculino + Barba</div>
-              <div class="command-value">R$ 70,00</div>
-            </div>
-            
-            <div class="command-time">Aberta há 25 min • Junio</div>
-          </div>
-
-          <!-- Comanda Fechada -->
-          <div class="command-card" onclick="openCommand(66)">
-            <div class="command-header">
-              <div class="command-info">
-                <div class="command-number">#66</div>
-                <div class="command-client">Maria Santos</div>
-              </div>
-              <div class="command-status status-closed">Fechada</div>
-            </div>
-            
-            <div class="command-details">
-              <div class="command-services">Corte e Escova</div>
-              <div class="command-value">R$ 85,00</div>
-            </div>
-            
-            <div class="command-time">Fechada às 10:45 • Diogo • PIX</div>
-          </div>
-
-          <!-- Mais comandas -->
-          <div class="command-card" onclick="openCommand(65)">
-            <div class="command-header">
-              <div class="command-info">
-                <div class="command-number">#65</div>
-                <div class="command-client">João Pedro</div>
-              </div>
-              <div class="command-status status-closed">Fechada</div>
-            </div>
-            
-            <div class="command-details">
-              <div class="command-services">Barba Completa</div>
-              <div class="command-value">R$ 35,00</div>
-            </div>
-            
-            <div class="command-time">Fechada às 10:15 • Felipe • Dinheiro</div>
-          </div>
-
-          <div class="command-card" onclick="openCommand(64)">
-            <div class="command-header">
-              <div class="command-info">
-                <div class="command-number">#64</div>
-                <div class="command-client">Ana Costa</div>
-              </div>
-              <div class="command-status status-closed">Fechada</div>
-            </div>
-            
-            <div class="command-details">
-              <div class="command-services">Corte Feminino + Sobrancelha</div>
-              <div class="command-value">R$ 75,00</div>
-            </div>
-            
-            <div class="command-time">Fechada às 09:50 • Luan • Cartão</div>
-          </div>
+        <div class="commands-list" id="commands-list">
+          <div style="text-align:center;padding:var(--space-2xl);color:var(--text-muted);"><i class="fas fa-spinner fa-spin"></i> Carregando...</div>
         </div>
       </section>
 
       <!-- FORMAS DE PAGAMENTO -->
       <section class="section">
         <div class="section-header">
-          <h2 class="section-title">Formas de Pagamento - Hoje</h2>
+          <h2 class="section-title">Transações Hoje</h2>
         </div>
-
-        <div class="payment-methods">
-          <div class="payment-card">
-            <div class="payment-info">
-              <div class="payment-icon payment-pix">
-                <i class="fas fa-qrcode"></i>
-              </div>
-              <div class="payment-content">
-                <div class="payment-name">PIX</div>
-                <div class="payment-amount">8 transações</div>
-              </div>
-            </div>
-            <div class="payment-value">R$ 245,00</div>
-          </div>
-
-          <div class="payment-card">
-            <div class="payment-info">
-              <div class="payment-icon payment-cash">
-                <i class="fas fa-money-bill-wave"></i>
-              </div>
-              <div class="payment-content">
-                <div class="payment-name">Dinheiro</div>
-                <div class="payment-amount">4 transações</div>
-              </div>
-            </div>
-            <div class="payment-value">R$ 140,00</div>
-          </div>
-
-          <div class="payment-card">
-            <div class="payment-info">
-              <div class="payment-icon payment-card-icon">
-                <i class="fas fa-credit-card"></i>
-              </div>
-              <div class="payment-content">
-                <div class="payment-name">Cartão</div>
-                <div class="payment-amount">2 transações</div>
-              </div>
-            </div>
-            <div class="payment-value">R$ 90,00</div>
-          </div>
+        <div class="payment-methods" id="payment-methods">
+          <div style="text-align:center;padding:var(--space-lg);color:var(--text-muted);"><i class="fas fa-spinner fa-spin"></i> Carregando...</div>
         </div>
       </section>
     </main>
@@ -756,27 +625,102 @@
       currentPeriod = period;
       document.querySelectorAll('.period-btn').forEach(btn => btn.classList.remove('active'));
       event.target.classList.add('active');
-      updateFinancialData(period);
+      carregarDados();
     }
 
-    function updateFinancialData(period) {
-      const data = {
-        today: { value: 'R$ 420,00', label: 'Hoje - 16 Jun 2026', count: 8 },
-        week: { value: 'R$ 2.180,00', label: 'Esta Semana - 10-16 Jun', count: 42 },
-        month: { value: 'R$ 8.450,00', label: 'Junho 2026', count: 156 },
-        year: { value: 'R$ 95.600,00', label: 'Ano 2026', count: 1842 }
-      };
-      const selected = data[period];
-      document.querySelector('.summary-value').textContent = selected.value;
-      document.querySelector('.summary-period').textContent = `Faturamento - ${selected.label}`;
-      document.querySelector('.summary-stat-value').textContent = selected.count;
+    async function carregarDados() {
+      try {
+        const [comandas, transacoes] = await Promise.all([
+          API.get('/comandas'),
+          API.get('/transacoes?inicio=' + periodoISO()),
+        ]);
+
+        renderResumo(comandas, transacoes);
+        renderComandas(comandas);
+        renderTransacoes(transacoes);
+      } catch (e) {
+        console.error('Erro ao carregar dados financeiros:', e);
+      }
     }
 
-    function openCommand(commandId) {
-      alert(`Abrir Comanda #${commandId}`);
+    function periodoISO() {
+      const d = new Date();
+      if (currentPeriod === 'today') return d.toISOString().slice(0,10);
+      if (currentPeriod === 'week') {
+        const w = new Date(d); w.setDate(w.getDate()-6);
+        return w.toISOString().slice(0,10);
+      }
+      if (currentPeriod === 'month') {
+        return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-01';
+      }
+      return d.getFullYear()+'-01-01';
     }
 
-    document.addEventListener('DOMContentLoaded', function() {
+    function renderResumo(comandas, transacoes) {
+      const abertas = comandas.filter(c => c.status === 'aberta');
+      const finalizadas = comandas.filter(c => c.status === 'finalizada');
+      const totalFaturado = finalizadas.reduce((s, c) => s + parseFloat(c.valor || 0), 0);
+      const totalTransacoes = transacoes.filter(t => t.tipo === 'entrada').reduce((s, t) => s + parseFloat(t.valor), 0);
+
+      const totals = totalFaturado + totalTransacoes;
+      document.getElementById('summary-value').textContent = 'R$ ' + totals.toFixed(2);
+      document.getElementById('summary-period').textContent = `Período - ${currentPeriod}`;
+      document.getElementById('summary-count').textContent = finalizadas.length;
+      document.getElementById('summary-ticket').textContent = finalizadas.length ? 'R$ ' + (totalFaturado / finalizadas.length).toFixed(2) : 'R$ 0';
+      document.getElementById('summary-comandas').textContent = abertas.length;
+      document.getElementById('metric-abertas').textContent = abertas.length;
+      document.getElementById('metric-hoje').textContent = 'R$ ' + totalFaturado.toFixed(2);
+      document.getElementById('metric-clientes').textContent = comandas.length;
+    }
+
+    function renderComandas(comandas) {
+      const cont = document.getElementById('commands-list');
+      const abertas = comandas.filter(c => c.status === 'aberta').slice(0, 10);
+      if (!abertas.length) {
+        cont.innerHTML = '<div style="text-align:center;padding:var(--space-2xl);color:var(--text-muted);"><i class="fas fa-check-circle"></i><br>Nenhuma comanda aberta</div>';
+        return;
+      }
+      cont.innerHTML = abertas.map(c => `
+        <div class="command-card" onclick="location.href='comanda-detalhe.html?id=${c.id}'">
+          <div class="command-header">
+            <div class="command-info">
+              <div class="command-number">#${c.numero}</div>
+              <div class="command-client">${c.cliente_nome}</div>
+            </div>
+            <div class="command-status status-open">${c.status}</div>
+          </div>
+          <div class="command-details">
+            <div class="command-services">${c.total_itens || 0} item(ns)</div>
+            <div class="command-value">R$ ${parseFloat(c.valor || 0).toFixed(2)}</div>
+          </div>
+          <div class="command-time">${new Date(c.abertura).toLocaleString('pt-BR')}</div>
+        </div>
+      `).join('');
+    }
+
+    function renderTransacoes(transacoes) {
+      const cont = document.getElementById('payment-methods');
+      if (!transacoes.length) {
+        cont.innerHTML = '<div style="text-align:center;padding:var(--space-lg);color:var(--text-muted);">Nenhuma transação hoje</div>';
+        return;
+      }
+      cont.innerHTML = transacoes.slice(0, 5).map(t => `
+        <div class="payment-card">
+          <div class="payment-info">
+            <div class="payment-icon ${t.forma_pagamento === 'pix' ? 'payment-pix' : t.forma_pagamento === 'dinheiro' ? 'payment-cash' : 'payment-card-icon'}">
+              <i class="fas ${t.forma_pagamento === 'pix' ? 'fa-qrcode' : t.forma_pagamento === 'dinheiro' ? 'fa-money-bill-wave' : 'fa-credit-card'}"></i>
+            </div>
+            <div class="payment-content">
+              <div class="payment-name">${t.categoria}</div>
+              <div class="payment-amount">${t.descricao}</div>
+            </div>
+          </div>
+          <div class="payment-value ${t.tipo === 'entrada' ? '' : ''}" style="color:${t.tipo === 'entrada' ? 'var(--success)' : 'var(--error)'}">${t.tipo === 'entrada' ? '' : '-'} R$ ${parseFloat(t.valor).toFixed(2)}</div>
+        </div>
+      `).join('');
+    }
+
+    document.addEventListener('DOMContentLoaded', async function() {
       const savedTheme = localStorage.getItem('theme');
       if (savedTheme === 'dark') {
         document.documentElement.setAttribute('data-theme', 'dark');
@@ -792,16 +736,7 @@
         if (role) role.textContent = user.role === 'owner' ? 'Proprietário' : user.role;
       }
 
-      const cards = document.querySelectorAll('.metric-card, .command-card, .payment-card');
-      cards.forEach((card, index) => {
-        card.style.opacity = '0';
-        card.style.transform = 'translateY(20px)';
-        setTimeout(() => {
-          card.style.transition = 'all 0.3s ease-out';
-          card.style.opacity = '1';
-          card.style.transform = 'translateY(0)';
-        }, index * 80);
-      });
+      await carregarDados();
     });
   </script>
 </body>

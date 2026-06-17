@@ -1,0 +1,478 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>AgendaPro - Comanda</title>
+  <link rel="stylesheet" href="design-system.css">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+  <style>
+    .mobile-app { max-width: 480px; margin: 0 auto; min-height: 100vh; background: var(--bg-primary); position: relative; }
+    .header { position: sticky; top: 0; z-index: var(--z-sticky); background: var(--bg-card); border-bottom: 1px solid var(--border-color); padding: var(--space-md); }
+    .header-content { display: flex; align-items: center; justify-content: space-between; }
+    .header-title { display: flex; align-items: center; gap: var(--space-sm); font-size: var(--text-lg); font-weight: var(--font-bold); color: var(--text-primary); }
+    .back-btn { background: none; border: none; padding: var(--space-sm); border-radius: var(--radius-md); cursor: pointer; color: var(--text-secondary); }
+    .main-content { padding: var(--space-md); padding-bottom: 100px; }
+    
+    .comanda-header { background: var(--bg-card); border: 1px solid var(--border-color); border-radius: var(--radius-lg); padding: var(--space-lg); margin-bottom: var(--space-md); display: flex; justify-content: space-between; align-items: center; }
+    .comanda-numero { font-size: var(--text-2xl); font-weight: var(--font-bold); color: var(--primary); }
+    .comanda-status { padding: var(--space-xs) var(--space-md); border-radius: var(--radius-full); font-size: var(--text-sm); font-weight: var(--font-medium); }
+    .status-aberta { background: var(--warning-light); color: var(--warning); }
+    .status-finalizada { background: var(--success-light); color: var(--success); }
+    .status-cancelada { background: var(--error-light); color: var(--error); }
+    
+    .comanda-cliente { background: var(--bg-card); border: 1px solid var(--border-color); border-radius: var(--radius-lg); padding: var(--space-lg); margin-bottom: var(--space-md); }
+    .cliente-nome { font-size: var(--text-lg); font-weight: var(--font-semibold); color: var(--text-primary); }
+    .cliente-info { font-size: var(--text-sm); color: var(--text-secondary); margin-top: var(--space-xs); }
+    
+    .comanda-total { background: linear-gradient(135deg, var(--primary), var(--primary-dark)); color: white; border-radius: var(--radius-lg); padding: var(--space-lg); margin-bottom: var(--space-md); text-align: center; }
+    .total-label { font-size: var(--text-sm); opacity: 0.9; margin-bottom: var(--space-xs); }
+    .total-value { font-size: var(--text-3xl); font-weight: var(--font-bold); }
+    
+    .item-list { margin-bottom: var(--space-md); }
+    .item-card { background: var(--bg-card); border: 1px solid var(--border-color); border-radius: var(--radius-lg); padding: var(--space-md); margin-bottom: var(--space-sm); display: flex; justify-content: space-between; align-items: center; }
+    .item-info { flex: 1; }
+    .item-desc { font-weight: var(--font-medium); color: var(--text-primary); }
+    .item-meta { font-size: var(--text-xs); color: var(--text-muted); margin-top: var(--space-xs); }
+    .item-valor { font-weight: var(--font-bold); color: var(--text-primary); }
+    .item-remove { background: none; border: none; color: var(--error); cursor: pointer; padding: var(--space-sm); }
+    
+    .acoes { display: flex; gap: var(--space-sm); margin-top: var(--space-lg); }
+    .acoes .btn { flex: 1; }
+    
+    .modal-overlay { position: fixed; inset: 0; background: var(--bg-overlay); display: none; align-items: flex-end; justify-content: center; z-index: var(--z-modal); }
+    .modal-overlay.open { display: flex; }
+    .modal { background: var(--bg-card); border-radius: var(--radius-xl) var(--radius-xl) 0 0; width: 100%; max-width: 480px; padding: var(--space-lg); max-height: 92vh; overflow-y: auto; }
+    .modal-title { font-size: var(--text-lg); font-weight: var(--font-bold); margin-bottom: var(--space-lg); }
+    .field { margin-bottom: var(--space-md); }
+    .field label { display: block; font-size: var(--text-sm); font-weight: var(--font-medium); margin-bottom: var(--space-xs); color: var(--text-secondary); }
+    
+    .bottom-nav { position: fixed; bottom: 0; left: 50%; transform: translateX(-50%); width: 100%; max-width: 480px; background: var(--bg-card); border-top: 1px solid var(--border-color); padding: var(--space-sm) 0; z-index: var(--z-sticky); }
+    .nav-items { display: flex; justify-content: space-around; }
+    .nav-item { display: flex; flex-direction: column; align-items: center; padding: var(--space-sm); text-decoration: none; color: var(--text-secondary); border-radius: var(--radius-md); min-width: 56px; }
+    .nav-item.active { color: var(--primary); background: var(--primary-light); }
+    .nav-icon { font-size: var(--text-lg); margin-bottom: var(--space-xs); }
+    .nav-label { font-size: var(--text-xs); font-weight: var(--font-medium); }
+  </style>
+</head>
+<body>
+  <div class="desktop-layout">
+    <aside class="sidebar desktop-only">
+      <div class="sidebar-logo"><i class="fas fa-calendar-check"></i><span>AgendaPro</span></div>
+      <nav class="sidebar-nav">
+        <div class="nav-section">Principal</div>
+        <a href="dashboard-mobile.html" class="sidebar-item"><i class="fas fa-home"></i> Dashboard</a>
+        <a href="agenda-mobile.html" class="sidebar-item"><i class="fas fa-calendar"></i> Agenda</a>
+        <a href="clientes-mobile.html" class="sidebar-item"><i class="fas fa-users"></i> Clientes</a>
+        <div class="nav-section">Gestão</div>
+        <a href="servicos-mobile.html" class="sidebar-item"><i class="fas fa-cut"></i> Serviços</a>
+        <a href="profissionais-mobile.html" class="sidebar-item"><i class="fas fa-user-tie"></i> Profissionais</a>
+        <a href="financeiro-mobile.html" class="sidebar-item active"><i class="fas fa-chart-line"></i> Financeiro</a>
+        <div class="nav-section">Outros</div>
+        <a href="relatorios-mobile.html" class="sidebar-item"><i class="fas fa-chart-bar"></i> Relatórios</a>
+        <a href="horarios-especiais.html" class="sidebar-item"><i class="fas fa-clock"></i> Horários Especiais</a>
+        <a href="configuracoes-mobile.html" class="sidebar-item"><i class="fas fa-cog"></i> Configurações</a>
+      </nav>
+      <div class="sidebar-footer">
+        <div class="sidebar-user" id="sidebar-user" onclick="API.logout()" title="Sair">
+          <div class="avatar" id="sidebar-avatar">A</div>
+          <div class="user-info">
+            <div class="user-name" id="sidebar-name">Usuário</div>
+            <div class="user-role" id="sidebar-role">Proprietário</div>
+          </div>
+          <i class="fas fa-sign-out-alt" style="color: var(--text-muted); font-size: var(--text-sm);"></i>
+        </div>
+      </div>
+    </aside>
+    <div class="desktop-content">
+      <div class="desktop-header desktop-only">
+        <div>
+          <h1 class="page-title">Comanda</h1>
+          <p class="page-subtitle">Detalhes e pagamento</p>
+        </div>
+        <div class="header-actions">
+          <button class="theme-toggle" onclick="toggleTheme()" style="background: var(--bg-card); border: 1px solid var(--border-color); padding: var(--space-sm) var(--space-md); border-radius: var(--radius-md); cursor: pointer; color: var(--text-secondary);">
+            <i class="fas fa-moon" id="theme-icon-desk"></i>
+          </button>
+        </div>
+      </div>
+      <div class="mobile-app">
+        <header class="header">
+          <div class="header-content">
+            <div class="header-title">
+              <button class="back-btn" onclick="history.back()"><i class="fas fa-arrow-left"></i></button>
+              <span>Comanda</span>
+            </div>
+            <button class="back-btn" onclick="toggleTheme()"><i class="fas fa-moon" id="theme-icon"></i></button>
+          </div>
+        </header>
+        <main class="main-content" id="app">
+          <div style="text-align:center;padding:var(--space-2xl);color:var(--text-muted);"><i class="fas fa-spinner fa-spin fa-2x"></i><br>Carregando...</div>
+        </main>
+        <nav class="bottom-nav">
+          <div class="nav-items">
+            <a href="dashboard-mobile.html" class="nav-item"><i class="nav-icon fas fa-home"></i><span class="nav-label">Dashboard</span></a>
+            <a href="agenda-mobile.html" class="nav-item"><i class="nav-icon fas fa-calendar"></i><span class="nav-label">Agenda</span></a>
+            <a href="financeiro-mobile.html" class="nav-item active"><i class="nav-icon fas fa-chart-line"></i><span class="nav-label">Financeiro</span></a>
+            <a href="clientes-mobile.html" class="nav-item"><i class="nav-icon fas fa-users"></i><span class="nav-label">Clientes</span></a>
+            <a href="configuracoes-mobile.html" class="nav-item"><i class="nav-icon fas fa-cog"></i><span class="nav-label">Config</span></a>
+          </div>
+        </nav>
+      </div>
+    </div>
+  </div>
+
+  <!-- MODAL ADICIONAR ITEM -->
+  <div class="modal-overlay" id="modal-item">
+    <div class="modal">
+      <div class="modal-title">Adicionar Item</div>
+      <div class="field">
+        <label>Tipo</label>
+        <select class="input" id="item-tipo" onchange="toggleTipoItem()">
+          <option value="servico">Serviço</option>
+          <option value="produto">Produto</option>
+        </select>
+      </div>
+      <div class="field" id="field-servico">
+        <label>Serviço</label>
+        <select class="input" id="item-servico"></select>
+      </div>
+      <div class="field" id="field-produto" style="display:none">
+        <label>Produto</label>
+        <select class="input" id="item-produto"></select>
+      </div>
+      <div class="field">
+        <label>Profissional</label>
+        <select class="input" id="item-prof"></select>
+      </div>
+      <div class="field">
+        <label>Valor (R$)</label>
+        <input class="input" type="number" id="item-valor" step="0.01">
+      </div>
+      <div class="field">
+        <label>Quantidade</label>
+        <input class="input" type="number" id="item-qtd" value="1" min="1">
+      </div>
+      <div style="display:flex;gap:var(--space-sm);margin-top:var(--space-md);">
+        <button class="btn btn-secondary btn-full" onclick="fecharModalItem()">Cancelar</button>
+        <button class="btn btn-primary btn-full" onclick="salvarItem()">Adicionar</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- MODAL PAGAMENTO -->
+  <div class="modal-overlay" id="modal-pagamento">
+    <div class="modal">
+      <div class="modal-title">Receber Pagamento</div>
+      <div class="field">
+        <label>Forma de Pagamento</label>
+        <select class="input" id="pag-forma">
+          <option value="dinheiro">Dinheiro</option>
+          <option value="pix">PIX</option>
+          <option value="cartao">Cartão</option>
+        </select>
+      </div>
+      <div class="field">
+        <label>Valor Total</label>
+        <input class="input" type="text" id="pag-total" readonly>
+      </div>
+      <div class="field" id="field-recebido">
+        <label>Valor Recebido</label>
+        <input class="input" type="number" id="pag-recebido" step="0.01" oninput="calcularTroco()">
+      </div>
+      <div class="field" id="field-troco" style="display:none">
+        <label>Troco</label>
+        <input class="input" type="text" id="pag-troco" readonly style="color:var(--warning);font-weight:var(--font-bold);">
+      </div>
+      <div id="pag-erro" style="display:none;background:var(--error-light);color:var(--error);padding:var(--space-sm);border-radius:var(--radius-md);font-size:var(--text-sm);margin-bottom:var(--space-md);"></div>
+      <div style="display:flex;gap:var(--space-sm);margin-top:var(--space-md);">
+        <button class="btn btn-secondary btn-full" onclick="fecharModalPagamento()">Cancelar</button>
+        <button class="btn btn-primary btn-full" onclick="confirmarPagamento()">Confirmar Pagamento</button>
+      </div>
+    </div>
+  </div>
+
+  <script src="api.js"></script>
+  <script>
+    let comandaAtual = null;
+    let servicos = [];
+    let profissionais = [];
+    let produtos = [];
+
+    function toggleTheme() {
+      const html = document.documentElement;
+      const isDark = html.getAttribute('data-theme') === 'dark';
+      if (isDark) { html.removeAttribute('data-theme'); localStorage.setItem('theme','light'); }
+      else { html.setAttribute('data-theme','dark'); localStorage.setItem('theme','dark'); }
+      const cls = isDark ? 'fa-moon' : 'fa-sun';
+      document.querySelectorAll('#theme-icon, #theme-icon-desk').forEach(el => el.className = 'fas ' + cls);
+    }
+
+    function getParam(name) {
+      const p = new URLSearchParams(window.location.search);
+      return p.get(name);
+    }
+
+    async function carregarBase() {
+      try {
+        [servicos, profissionais, produtos] = await Promise.all([
+          API.get('/servicos'),
+          API.get('/profissionais'),
+          API.get('/estoque'),
+        ]);
+
+        // Preencher selects
+        const selServ = document.getElementById('item-servico');
+        selServ.innerHTML = '<option value="">Selecione...</option>' + servicos.map(s =>
+          `<option value="${s.id}" data-preco="${s.preco}">${s.nome} - R$ ${parseFloat(s.preco).toFixed(2)}</option>`
+        ).join('');
+
+        const selProd = document.getElementById('item-produto');
+        selProd.innerHTML = '<option value="">Selecione...</option>' + produtos.filter(p => p.ativo).map(p =>
+          `<option value="${p.id}" data-preco="${p.preco_venda}">${p.nome} - R$ ${parseFloat(p.preco_venda).toFixed(2)} (estoque: ${p.quantidade})</option>`
+        ).join('');
+
+        const selProf = document.getElementById('item-prof');
+        selProf.innerHTML = '<option value="">Nenhum</option>' + profissionais.map(p =>
+          `<option value="${p.id}">${p.nome}</option>`
+        ).join('');
+      } catch (e) {
+        console.error('Erro ao carregar base:', e);
+      }
+    }
+
+    function toggleTipoItem() {
+      const tipo = document.getElementById('item-tipo').value;
+      document.getElementById('field-servico').style.display = tipo === 'servico' ? 'block' : 'none';
+      document.getElementById('field-produto').style.display = tipo === 'produto' ? 'block' : 'none';
+      document.getElementById('item-valor').value = '';
+    }
+
+    document.getElementById('item-servico')?.addEventListener('change', function() {
+      const opt = this.options[this.selectedIndex];
+      if (opt && opt.dataset.preco) document.getElementById('item-valor').value = opt.dataset.preco;
+    });
+
+    document.getElementById('item-produto')?.addEventListener('change', function() {
+      const opt = this.options[this.selectedIndex];
+      if (opt && opt.dataset.preco) document.getElementById('item-valor').value = opt.dataset.preco;
+    });
+
+    async function carregarComanda() {
+      const id = getParam('id');
+      if (!id) {
+        document.getElementById('app').innerHTML = '<div style="text-align:center;padding:var(--space-2xl);color:var(--text-muted);"><i class="fas fa-exclamation-triangle fa-2x"></i><br>ID da comanda não informado</div>';
+        return;
+      }
+
+      try {
+        const data = await API.get('/comandas/' + id);
+        comandaAtual = data;
+        renderComanda(data);
+      } catch (e) {
+        document.getElementById('app').innerHTML = `<div style="text-align:center;padding:var(--space-2xl);color:var(--error);"><i class="fas fa-exclamation-triangle fa-2x"></i><br>Erro: ${e.message}</div>`;
+      }
+    }
+
+    function renderComanda(data) {
+      const itens = data.itens || [];
+      const total = itens.reduce((s, i) => s + parseFloat(i.valor || 0), 0);
+
+      const statusClass = 'status-' + data.status;
+      const statusLabel = { aberta: 'Aberta', finalizada: 'Finalizada', cancelada: 'Cancelada' }[data.status] || data.status;
+
+      let html = `
+        <div class="comanda-header">
+          <div>
+            <div class="comanda-numero">#${data.numero}</div>
+            <div style="font-size:var(--text-sm);color:var(--text-secondary);margin-top:var(--space-xs);">${new Date(data.abertura).toLocaleString('pt-BR')}</div>
+          </div>
+          <div class="comanda-status ${statusClass}">${statusLabel}</div>
+        </div>
+
+        <div class="comanda-cliente">
+          <div class="cliente-nome"><i class="fas fa-user"></i> ${data.cliente_nome}</div>
+          <div class="cliente-info">${data.cliente_id ? 'Cliente cadastrado' : 'Cliente sem cadastro'}</div>
+        </div>
+
+        <div class="comanda-total">
+          <div class="total-label">VALOR TOTAL</div>
+          <div class="total-value">R$ ${total.toFixed(2)}</div>
+        </div>
+
+        <div class="item-list">
+          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:var(--space-md);">
+            <h3 style="font-size:var(--text-lg);font-weight:var(--font-semibold);color:var(--text-primary);margin:0;">Itens</h3>
+            ${data.status === 'aberta' ? '<button class="btn btn-primary btn-sm" onclick="abrirModalItem()"><i class="fas fa-plus"></i> Adicionar</button>' : ''}
+          </div>
+      `;
+
+      if (!itens.length) {
+        html += '<div style="text-align:center;padding:var(--space-lg);color:var(--text-muted);">Nenhum item na comanda</div>';
+      } else {
+        itens.forEach(item => {
+          html += `
+            <div class="item-card">
+              <div class="item-info">
+                <div class="item-desc">${item.descricao}</div>
+                <div class="item-meta">${item.tipo}${item.profissional_nome ? ' • ' + item.profissional_nome : ''}</div>
+              </div>
+              <div style="display:flex;align-items:center;gap:var(--space-sm);">
+                <div class="item-valor">R$ ${parseFloat(item.valor).toFixed(2)}</div>
+                ${data.status === 'aberta' ? `<button class="item-remove" onclick="removerItem('${item.id}')"><i class="fas fa-times"></i></button>` : ''}
+              </div>
+            </div>
+          `;
+        });
+      }
+
+      html += '</div>';
+
+      if (data.status === 'aberta') {
+        html += `
+          <div class="acoes">
+            <button class="btn btn-primary btn-full" onclick="abrirModalPagamento()"><i class="fas fa-check"></i> Fechar & Pagar</button>
+          </div>
+        `;
+      } else if (data.status === 'finalizada' && data.forma_pagamento) {
+        html += `
+          <div class="comanda-cliente">
+            <div style="font-size:var(--text-sm);color:var(--text-secondary);">
+              <strong>Forma de pagamento:</strong> ${data.forma_pagamento.toUpperCase()}
+              ${data.troco ? `<br><strong>Troco:</strong> R$ ${parseFloat(data.troco).toFixed(2)}` : ''}
+              <br><strong>Fechamento:</strong> ${new Date(data.fechamento).toLocaleString('pt-BR')}
+            </div>
+          </div>
+        `;
+      }
+
+      document.getElementById('app').innerHTML = html;
+    }
+
+    function abrirModalItem() {
+      document.getElementById('modal-item').classList.add('open');
+    }
+    function fecharModalItem() {
+      document.getElementById('modal-item').classList.remove('open');
+    }
+
+    async function salvarItem() {
+      const tipo = document.getElementById('item-tipo').value;
+      const selServ = document.getElementById('item-servico');
+      const selProd = document.getElementById('item-produto');
+      const profId = document.getElementById('item-prof').value;
+      const qtd = parseInt(document.getElementById('item-qtd').value) || 1;
+      let descricao = '';
+      let valor = parseFloat(document.getElementById('item-valor').value) || 0;
+
+      if (tipo === 'servico') {
+        const opt = selServ.options[selServ.selectedIndex];
+        if (!opt || !opt.value) return alert('Selecione um serviço');
+        descricao = opt.text.split(' - ')[0];
+        valor = parseFloat(opt.dataset.preco || 0);
+      } else {
+        const opt = selProd.options[selProd.selectedIndex];
+        if (!opt || !opt.value) return alert('Selecione um produto');
+        descricao = opt.text.split(' - ')[0];
+        valor = parseFloat(opt.dataset.preco || 0);
+      }
+
+      valor = valor * qtd;
+      if (qtd > 1) descricao = `${qtd}x ${descricao}`;
+
+      try {
+        await API.post(`/comandas/${comandaAtual.id}/itens`, {
+          descricao,
+          valor: valor.toFixed(2),
+          tipo,
+          profissional_id: profId || null,
+        });
+        fecharModalItem();
+        await carregarComanda();
+      } catch (e) {
+        alert('Erro: ' + e.message);
+      }
+    }
+
+    async function removerItem(itemId) {
+      if (!confirm('Remover este item?')) return;
+      try {
+        await API.del(`/comandas/${comandaAtual.id}/itens/${itemId}`);
+        await carregarComanda();
+      } catch (e) {
+        alert('Erro: ' + e.message);
+      }
+    }
+
+    function abrirModalPagamento() {
+      const itens = comandaAtual?.itens || [];
+      const total = itens.reduce((s, i) => s + parseFloat(i.valor || 0), 0);
+      document.getElementById('pag-total').value = 'R$ ' + total.toFixed(2);
+      document.getElementById('pag-recebido').value = total.toFixed(2);
+      document.getElementById('field-recebido').style.display = 'block';
+      document.getElementById('field-troco').style.display = 'none';
+      document.getElementById('pag-erro').style.display = 'none';
+      document.getElementById('modal-pagamento').classList.add('open');
+    }
+    function fecharModalPagamento() {
+      document.getElementById('modal-pagamento').classList.remove('open');
+    }
+
+    function calcularTroco() {
+      const total = parseFloat(document.getElementById('pag-total').value.replace('R$ ', '')) || 0;
+      const recebido = parseFloat(document.getElementById('pag-recebido').value) || 0;
+      if (recebido > total) {
+        document.getElementById('pag-troco').value = 'R$ ' + (recebido - total).toFixed(2);
+        document.getElementById('field-troco').style.display = 'block';
+      } else {
+        document.getElementById('field-troco').style.display = 'none';
+      }
+    }
+
+    async function confirmarPagamento() {
+      const forma = document.getElementById('pag-forma').value;
+      const recebido = parseFloat(document.getElementById('pag-recebido').value) || 0;
+      const total = parseFloat(document.getElementById('pag-total').value.replace('R$ ', '')) || 0;
+
+      if (recebido < total) {
+        document.getElementById('pag-erro').textContent = 'Valor recebido menor que o total!';
+        document.getElementById('pag-erro').style.display = 'block';
+        return;
+      }
+
+      try {
+        await API.patch(`/comandas/${comandaAtual.id}/pagar`, {
+          forma_pagamento: forma,
+          valor_recebido: recebido.toFixed(2),
+        });
+        fecharModalPagamento();
+        await carregarComanda();
+        alert('✅ Pagamento registrado com sucesso!');
+      } catch (e) {
+        document.getElementById('pag-erro').textContent = e.message;
+        document.getElementById('pag-erro').style.display = 'block';
+      }
+    }
+
+    document.addEventListener('DOMContentLoaded', async function() {
+      const savedTheme = localStorage.getItem('theme');
+      if (savedTheme === 'dark') {
+        document.documentElement.setAttribute('data-theme', 'dark');
+        document.querySelectorAll('#theme-icon, #theme-icon-desk').forEach(el => el.className = 'fas fa-sun');
+      }
+      const user = API.getUser();
+      if (user) {
+        const avatar = document.getElementById('sidebar-avatar');
+        const name = document.getElementById('sidebar-name');
+        const role = document.getElementById('sidebar-role');
+        if (avatar) avatar.textContent = (user.nome || 'U').charAt(0).toUpperCase();
+        if (name) name.textContent = user.nome || 'Usuário';
+        if (role) role.textContent = user.role === 'owner' ? 'Proprietário' : user.role;
+      }
+
+      await carregarBase();
+      await carregarComanda();
+    });
+  </script>
+</body>
+</html>

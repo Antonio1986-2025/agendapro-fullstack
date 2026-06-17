@@ -143,6 +143,106 @@ CREATE TABLE IF NOT EXISTS whatsapp_mensagens (
     created_at TIMESTAMPTZ DEFAULT now()
 );
 
+-- ---------- COMANDA ----------
+CREATE SEQUENCE IF NOT EXISTS comandas_numero_seq START 1;
+
+CREATE TABLE IF NOT EXISTS comandas (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    barbearia_id UUID NOT NULL REFERENCES barbearias(id) ON DELETE CASCADE,
+    agendamento_id UUID REFERENCES agendamentos(id) ON DELETE SET NULL,
+    numero INTEGER NOT NULL DEFAULT nextval('comandas_numero_seq'),
+    cliente_id UUID REFERENCES clientes(id) ON DELETE SET NULL,
+    cliente_nome VARCHAR(255) NOT NULL,
+    status VARCHAR(30) DEFAULT 'aberta',           -- aberta | finalizada | cancelada
+    valor DECIMAL(10,2) DEFAULT 0,
+    forma_pagamento VARCHAR(30),
+    troco DECIMAL(10,2),
+    valor_recebido DECIMAL(10,2),
+    abertura TIMESTAMPTZ DEFAULT now(),
+    fechamento TIMESTAMPTZ,
+    created_at TIMESTAMPTZ DEFAULT now()
+);
+
+CREATE TABLE IF NOT EXISTS comanda_itens (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    comanda_id UUID NOT NULL REFERENCES comandas(id) ON DELETE CASCADE,
+    descricao VARCHAR(255) NOT NULL,
+    valor DECIMAL(10,2) NOT NULL,
+    profissional_id UUID REFERENCES profissionais(id) ON DELETE SET NULL,
+    tipo VARCHAR(30) DEFAULT 'servico',           -- servico | produto
+    created_at TIMESTAMPTZ DEFAULT now()
+);
+
+-- ---------- CAIXA ----------
+CREATE TABLE IF NOT EXISTS caixa_registros (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    barbearia_id UUID NOT NULL REFERENCES barbearias(id) ON DELETE CASCADE,
+    data DATE NOT NULL,
+    valor_inicial DECIMAL(10,2) DEFAULT 0,
+    valor_final DECIMAL(10,2),
+    abertura TIMESTAMPTZ DEFAULT now(),
+    fechamento TIMESTAMPTZ,
+    status VARCHAR(30) DEFAULT 'aberto',           -- aberto | fechado
+    responsavel VARCHAR(255),
+    created_at TIMESTAMPTZ DEFAULT now(),
+    UNIQUE (barbearia_id, data)
+);
+
+CREATE TABLE IF NOT EXISTS caixa_movimentos (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    caixa_id UUID NOT NULL REFERENCES caixa_registros(id) ON DELETE CASCADE,
+    barbearia_id UUID NOT NULL REFERENCES barbearias(id) ON DELETE CASCADE,
+    tipo VARCHAR(30) NOT NULL,                     -- entrada | saida
+    descricao TEXT NOT NULL,
+    valor DECIMAL(10,2) NOT NULL,
+    forma_pagamento VARCHAR(30),
+    comanda_id UUID REFERENCES comandas(id) ON DELETE SET NULL,
+    hora TIMESTAMPTZ DEFAULT now(),
+    created_at TIMESTAMPTZ DEFAULT now()
+);
+
+-- ---------- TRANSAÇÕES (Financeiro geral) ----------
+CREATE TABLE IF NOT EXISTS transacoes (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    barbearia_id UUID NOT NULL REFERENCES barbearias(id) ON DELETE CASCADE,
+    tipo VARCHAR(30) NOT NULL,                     -- entrada | saida
+    categoria VARCHAR(120) NOT NULL,
+    descricao TEXT NOT NULL,
+    valor DECIMAL(10,2) NOT NULL,
+    forma_pagamento VARCHAR(30),
+    data DATE NOT NULL DEFAULT CURRENT_DATE,
+    observacao TEXT,
+    comanda_id UUID REFERENCES comandas(id) ON DELETE SET NULL,
+    created_at TIMESTAMPTZ DEFAULT now()
+);
+
+-- ---------- ESTOQUE ----------
+CREATE TABLE IF NOT EXISTS estoque_itens (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    barbearia_id UUID NOT NULL REFERENCES barbearias(id) ON DELETE CASCADE,
+    nome VARCHAR(255) NOT NULL,
+    unidade VARCHAR(30) DEFAULT 'un',
+    quantidade DECIMAL(10,2) DEFAULT 0,
+    minimo DECIMAL(10,2) DEFAULT 0,
+    custo DECIMAL(10,2) DEFAULT 0,
+    preco_venda DECIMAL(10,2) DEFAULT 0,
+    ativo BOOLEAN DEFAULT true,
+    created_at TIMESTAMPTZ DEFAULT now()
+);
+
+CREATE TABLE IF NOT EXISTS estoque_movimentos (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    barbearia_id UUID NOT NULL REFERENCES barbearias(id) ON DELETE CASCADE,
+    item_id UUID NOT NULL REFERENCES estoque_itens(id) ON DELETE CASCADE,
+    tipo VARCHAR(30) NOT NULL,                     -- entrada | saida | consumo | ajuste
+    quantidade DECIMAL(10,2) NOT NULL,
+    motivo TEXT,
+    profissional_id UUID REFERENCES profissionais(id) ON DELETE SET NULL,
+    comanda_id UUID REFERENCES comandas(id) ON DELETE SET NULL,
+    data DATE NOT NULL DEFAULT CURRENT_DATE,
+    created_at TIMESTAMPTZ DEFAULT now()
+);
+
 -- ---------- INDICES ----------
 CREATE INDEX IF NOT EXISTS idx_usuarios_barbearia ON usuarios(barbearia_id);
 CREATE INDEX IF NOT EXISTS idx_profissionais_barbearia ON profissionais(barbearia_id);
@@ -152,3 +252,13 @@ CREATE INDEX IF NOT EXISTS idx_agendamentos_barbearia ON agendamentos(barbearia_
 CREATE INDEX IF NOT EXISTS idx_agendamentos_data ON agendamentos(data_hora);
 CREATE INDEX IF NOT EXISTS idx_agendamentos_prof ON agendamentos(profissional_id);
 CREATE INDEX IF NOT EXISTS idx_wa_msg_barbearia ON whatsapp_mensagens(barbearia_id);
+CREATE INDEX IF NOT EXISTS idx_comandas_barbearia ON comandas(barbearia_id);
+CREATE INDEX IF NOT EXISTS idx_comandas_status ON comandas(status);
+CREATE INDEX IF NOT EXISTS idx_comanda_itens_comanda ON comanda_itens(comanda_id);
+CREATE INDEX IF NOT EXISTS idx_caixa_barbearia ON caixa_registros(barbearia_id);
+CREATE INDEX IF NOT EXISTS idx_caixa_data ON caixa_registros(data);
+CREATE INDEX IF NOT EXISTS idx_caixa_mov_caixa ON caixa_movimentos(caixa_id);
+CREATE INDEX IF NOT EXISTS idx_transacoes_barbearia ON transacoes(barbearia_id);
+CREATE INDEX IF NOT EXISTS idx_transacoes_data ON transacoes(data);
+CREATE INDEX IF NOT EXISTS idx_estoque_barbearia ON estoque_itens(barbearia_id);
+CREATE INDEX IF NOT EXISTS idx_estoque_mov_item ON estoque_movimentos(item_id);

@@ -91,6 +91,31 @@ router.post('/', async (req, res) => {
   notificarBarbeiroNovoAgendamento(req.barbeariaId, rows[0].id)
     .catch((e) => console.error('Notificacao barbeiro falhou:', e.message));
 
+  // Cria comanda automaticamente para o agendamento
+  try {
+    const ag = rows[0];
+    const proxNum = await query(
+      `SELECT COALESCE(MAX(numero),0) + 1 AS prox FROM comandas WHERE barbearia_id = $1`, [req.barbeariaId]
+    );
+    const cmd = await query(
+      `INSERT INTO comandas (barbearia_id, agendamento_id, numero, cliente_id, cliente_nome, valor)
+       SELECT $1, $2, $3, c.id, c.nome, $4
+         FROM clientes c WHERE c.id = $5
+       RETURNING *`,
+      [req.barbeariaId, ag.id, proxNum.rows[0].prox, preco.toFixed(2), ag.cliente_id]
+    );
+    if (cmd.rows[0] && servico_id) {
+      const srv = await query(`SELECT nome FROM servicos WHERE id = $1`, [servico_id]);
+      await query(
+        `INSERT INTO comanda_itens (comanda_id, descricao, valor, tipo, profissional_id)
+         VALUES ($1,$2,$3,'servico',$4)`,
+        [cmd.rows[0].id, srv.rows[0]?.nome || 'Serviço', preco.toFixed(2), profissional_id]
+      );
+    }
+  } catch (e) {
+    console.error('Erro ao criar comanda automatica:', e.message);
+  }
+
   res.status(201).json(rows[0]);
 });
 
