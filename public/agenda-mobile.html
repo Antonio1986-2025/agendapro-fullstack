@@ -58,6 +58,7 @@
   .agenda-nav-desktop { display: flex; align-items: center; gap: var(--space-sm); background: var(--bg-secondary); border-radius: var(--radius-lg); padding: var(--space-xs); }
   .agenda-nav-btn { background: none; border: none; padding: var(--space-sm) var(--space-md); border-radius: var(--radius-md); cursor: pointer; color: var(--text-secondary); font-weight: var(--font-medium); transition: all var(--transition-fast); }
   .agenda-nav-btn:hover { background: var(--bg-card); color: var(--text-primary); }
+  .agenda-nav-btn.especial-on { color: var(--warning); border-color: var(--warning); }
   .agenda-nav-hoje { color: var(--primary); font-weight: var(--font-bold); }
   .agenda-nav-data { font-weight: var(--font-semibold); color: var(--text-primary); padding: 0 var(--space-sm); }
 
@@ -133,6 +134,9 @@
             <span class="agenda-nav-data" id="data-label-desktop">--</span>
             <button class="agenda-nav-btn" onclick="irHoje()"><i class="fas fa-calendar-alt"></i></button>
             <button class="agenda-nav-btn" onclick="mudarDia(1)"><i class="fas fa-chevron-right"></i></button>
+            <button class="agenda-nav-btn" id="btn-especial" onclick="toggleEspecial()" title="Horários Especiais 19h-21h">
+              <i class="fas fa-clock"></i> <span id="especial-label">Especial</span>
+            </button>
             <button class="agenda-nav-btn" onclick="toggleTheme()"><i class="fas fa-moon" id="theme-icon-desk"></i></button>
           </div>
         </div>
@@ -156,7 +160,10 @@
         <button class="back-btn" onclick="mudarDia(1)"><i class="fas fa-chevron-right"></i></button>
         <button class="back-btn" onclick="irHoje()" title="Hoje"><i class="fas fa-calendar-day"></i></button>
       </div>
-      <div class="resumo" id="resumo">--</div>
+        <div class="resumo" id="resumo">--</div>
+        <button class="back-btn" onclick="toggleEspecial()" title="Horários Especiais 19h-21h" id="btn-especial-mobile" style="display:flex; align-items:center; gap:4px; font-size:var(--text-xs);">
+          <i class="fas fa-clock"></i> <span id="especial-label-mobile">Especial</span>
+        </button>
     </header>
 
     <main class="main-content">
@@ -234,12 +241,19 @@
 
     let dataAtual = new Date();
     let profissionais = [], servicos = [], clientes = [];
+    let mostrarEspecial = false;
 
     function ymd(d) {
       return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
     }
     function mudarDia(n) { dataAtual.setDate(dataAtual.getDate()+n); carregar(); }
     function irHoje() { dataAtual = new Date(); carregar(); }
+    function toggleEspecial() {
+      mostrarEspecial = !mostrarEspecial;
+      document.querySelectorAll('#btn-especial, #btn-especial-mobile').forEach(el => el.classList.toggle('especial-on', mostrarEspecial));
+      document.querySelectorAll('#especial-label, #especial-label-mobile').forEach(el => el.textContent = mostrarEspecial ? 'Especial ON' : 'Especial');
+      carregar();
+    }
 
     async function carregarBase() {
       [profissionais, servicos, clientes] = await Promise.all([
@@ -320,6 +334,7 @@
       };
       addRange(7, 30, 11, 0);
       addRange(13, 0, 19, 0);
+      if (mostrarEspecial) addRange(19, 0, 21, 0);
       const horariosFiltrados = horarios.filter(hora => {
         if (!ehHoje) return true;
         const [hh, mm] = hora.split(':').map(Number);
