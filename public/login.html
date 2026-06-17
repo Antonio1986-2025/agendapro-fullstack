@@ -1,0 +1,145 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>AgendaPro - Entrar</title>
+  <link rel="stylesheet" href="design-system.css">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+  <style>
+    body { min-height: 100vh; display: flex; align-items: center; justify-content: center; background: linear-gradient(135deg, var(--primary), var(--primary-dark)); padding: var(--space-md); }
+    .auth-card { background: var(--bg-card); border-radius: var(--radius-xl); box-shadow: var(--shadow-xl); width: 100%; max-width: 420px; padding: var(--space-xl); }
+    .auth-logo { text-align: center; margin-bottom: var(--space-lg); }
+    .auth-logo i { font-size: 2.5rem; color: var(--primary); }
+    .auth-logo h1 { font-size: var(--text-2xl); font-weight: var(--font-bold); color: var(--text-primary); margin-top: var(--space-sm); }
+    .auth-logo p { color: var(--text-secondary); font-size: var(--text-sm); }
+    .tabs { display: flex; background: var(--bg-secondary); border-radius: var(--radius-md); padding: 3px; margin-bottom: var(--space-lg); }
+    .tab { flex: 1; text-align: center; padding: var(--space-sm); border-radius: var(--radius-sm); cursor: pointer; font-size: var(--text-sm); font-weight: var(--font-medium); color: var(--text-secondary); border: none; background: none; }
+    .tab.active { background: var(--primary); color: #fff; }
+    .field { margin-bottom: var(--space-md); }
+    .field label { display: block; font-size: var(--text-sm); font-weight: var(--font-medium); margin-bottom: var(--space-xs); color: var(--text-secondary); }
+    .alert { padding: var(--space-sm) var(--space-md); border-radius: var(--radius-md); font-size: var(--text-sm); margin-bottom: var(--space-md); display: none; }
+    .alert.error { background: var(--error-light); color: var(--error); display: block; }
+    .alert.success { background: var(--success-light); color: var(--success); display: block; }
+    .hidden { display: none; }
+    .muted { text-align: center; font-size: var(--text-xs); color: var(--text-muted); margin-top: var(--space-md); }
+  </style>
+</head>
+<body>
+  <div class="auth-card">
+    <div class="auth-logo">
+      <i class="fas fa-calendar-check"></i>
+      <h1>AgendaPro</h1>
+      <p>Sistema de agendamentos para barbearias</p>
+    </div>
+
+    <div class="tabs">
+      <button class="tab active" id="tab-login" onclick="mostrar('login')">Entrar</button>
+      <button class="tab" id="tab-registro" onclick="mostrar('registro')">Criar conta</button>
+    </div>
+
+    <div id="alerta" class="alert"></div>
+
+    <!-- LOGIN -->
+    <form id="form-login" onsubmit="return fazerLogin(event)">
+      <div class="field">
+        <label>Email</label>
+        <input class="input" type="email" id="login-email" required placeholder="seu@email.com">
+      </div>
+      <div class="field">
+        <label>Senha</label>
+        <input class="input" type="password" id="login-senha" required placeholder="••••••">
+      </div>
+      <button class="btn btn-primary btn-full btn-lg" type="submit">
+        <i class="fas fa-sign-in-alt"></i> Entrar
+      </button>
+      <p class="muted">Demo: demo@agendapro.com / 123456</p>
+    </form>
+
+    <!-- REGISTRO -->
+    <form id="form-registro" class="hidden" onsubmit="return fazerRegistro(event)">
+      <div class="field">
+        <label>Nome da barbearia</label>
+        <input class="input" type="text" id="reg-barbearia" required placeholder="Barbearia do Ze">
+      </div>
+      <div class="field">
+        <label>Seu nome</label>
+        <input class="input" type="text" id="reg-nome" required placeholder="Jose Silva">
+      </div>
+      <div class="field">
+        <label>Email</label>
+        <input class="input" type="email" id="reg-email" required placeholder="seu@email.com">
+      </div>
+      <div class="field">
+        <label>Telefone</label>
+        <input class="input" type="text" id="reg-telefone" placeholder="(67) 99999-0000">
+      </div>
+      <div class="field">
+        <label>Senha (min. 6 caracteres)</label>
+        <input class="input" type="password" id="reg-senha" required minlength="6" placeholder="••••••">
+      </div>
+      <button class="btn btn-primary btn-full btn-lg" type="submit">
+        <i class="fas fa-rocket"></i> Criar minha barbearia
+      </button>
+    </form>
+  </div>
+
+  <script src="api.js"></script>
+  <script>
+    // Se ja estiver logado, vai pro dashboard
+    if (API.getToken()) window.location.href = 'dashboard-mobile.html';
+
+    function mostrar(qual) {
+      document.getElementById('tab-login').classList.toggle('active', qual === 'login');
+      document.getElementById('tab-registro').classList.toggle('active', qual === 'registro');
+      document.getElementById('form-login').classList.toggle('hidden', qual !== 'login');
+      document.getElementById('form-registro').classList.toggle('hidden', qual !== 'registro');
+      esconderAlerta();
+    }
+
+    function mostrarAlerta(msg, tipo) {
+      const el = document.getElementById('alerta');
+      el.textContent = msg;
+      el.className = 'alert ' + (tipo || 'error');
+    }
+    function esconderAlerta() {
+      document.getElementById('alerta').className = 'alert';
+    }
+
+    async function fazerLogin(e) {
+      e.preventDefault();
+      esconderAlerta();
+      try {
+        const r = await API.auth.login(
+          document.getElementById('login-email').value.trim(),
+          document.getElementById('login-senha').value
+        );
+        API.setSession(r.token, r.usuario);
+        window.location.href = 'dashboard-mobile.html';
+      } catch (err) {
+        mostrarAlerta(err.message);
+      }
+      return false;
+    }
+
+    async function fazerRegistro(e) {
+      e.preventDefault();
+      esconderAlerta();
+      try {
+        const r = await API.auth.registrar({
+          barbeariaNome: document.getElementById('reg-barbearia').value.trim(),
+          nome: document.getElementById('reg-nome').value.trim(),
+          email: document.getElementById('reg-email').value.trim(),
+          telefone: document.getElementById('reg-telefone').value.trim(),
+          senha: document.getElementById('reg-senha').value,
+        });
+        API.setSession(r.token, r.usuario);
+        window.location.href = 'dashboard-mobile.html';
+      } catch (err) {
+        mostrarAlerta(err.message);
+      }
+      return false;
+    }
+  </script>
+</body>
+</html>

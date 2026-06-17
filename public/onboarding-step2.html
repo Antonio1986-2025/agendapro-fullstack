@@ -1,0 +1,289 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>AgendaPro - Cadastrar Profissionais</title>
+  <link rel="stylesheet" href="design-system.css">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+  <style>
+    .onboarding-container {
+      max-width: 500px;
+      margin: 0 auto;
+      min-height: 100vh;
+      background: var(--bg-primary);
+      display: flex;
+      flex-direction: column;
+    }
+    
+    .header {
+      text-align: center;
+      padding: var(--space-xl) var(--space-lg);
+      background: linear-gradient(135deg, var(--primary), var(--primary-hover));
+      color: var(--text-inverse);
+    }
+    
+    .logo {
+      font-size: var(--text-2xl);
+      font-weight: var(--font-bold);
+      margin-bottom: var(--space-sm);
+    }
+    
+    .step-indicator {
+      margin: var(--space-lg) var(--space-lg) 0;
+      display: flex;
+      justify-content: center;
+      gap: var(--space-sm);
+    }
+    
+    .step {
+      width: 40px;
+      height: 4px;
+      background: var(--gray-300);
+      border-radius: var(--radius-full);
+    }
+    
+    .step.completed { background: var(--success); }
+    .step.active { background: var(--primary); }
+    
+    .content {
+      flex: 1;
+      padding: var(--space-lg);
+    }
+    
+    .step-title {
+      font-size: var(--text-2xl);
+      font-weight: var(--font-bold);
+      color: var(--text-primary);
+      text-align: center;
+      margin-bottom: var(--space-sm);
+    }
+    
+    .step-subtitle {
+      color: var(--text-secondary);
+      text-align: center;
+      margin-bottom: var(--space-xl);
+    }
+    
+    .professional-card {
+      background: var(--bg-card);
+      border: 1px solid var(--border-color);
+      border-radius: var(--radius-lg);
+      padding: var(--space-lg);
+      margin-bottom: var(--space-md);
+      position: relative;
+    }
+    
+    .remove-btn {
+      position: absolute;
+      top: var(--space-sm);
+      right: var(--space-sm);
+      background: var(--error);
+      color: var(--text-inverse);
+      border: none;
+      width: 24px;
+      height: 24px;
+      border-radius: var(--radius-full);
+      cursor: pointer;
+      font-size: 12px;
+    }
+    
+    .form-row {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: var(--space-md);
+      margin-bottom: var(--space-md);
+    }
+    
+    .form-group {
+      margin-bottom: var(--space-md);
+    }
+    
+    .form-label {
+      display: block;
+      font-weight: var(--font-medium);
+      color: var(--text-primary);
+      margin-bottom: var(--space-sm);
+      font-size: var(--text-sm);
+    }
+    
+    .form-input, .form-select {
+      width: 100%;
+      padding: var(--space-sm) var(--space-md);
+      border: 1px solid var(--border-color);
+      border-radius: var(--radius-md);
+      font-size: var(--text-sm);
+    }
+    
+    .specialties {
+      display: flex;
+      flex-wrap: wrap;
+      gap: var(--space-xs);
+      margin-top: var(--space-sm);
+    }
+    
+    .specialty-tag {
+      background: var(--primary-light);
+      color: var(--primary-dark);
+      padding: var(--space-xs) var(--space-sm);
+      border-radius: var(--radius-full);
+      font-size: 12px;
+      cursor: pointer;
+      border: 1px solid transparent;
+    }
+    
+    .specialty-tag.selected {
+      background: var(--primary);
+      color: var(--text-inverse);
+    }
+    
+    .add-professional {
+      border: 2px dashed var(--border-color);
+      border-radius: var(--radius-lg);
+      padding: var(--space-xl);
+      text-align: center;
+      cursor: pointer;
+      transition: all var(--transition-fast);
+      color: var(--text-secondary);
+    }
+    
+    .add-professional:hover {
+      border-color: var(--primary);
+      background: var(--primary-light);
+      color: var(--primary);
+    }
+  </style>
+</head>
+<body>
+  <div class="onboarding-container">
+    <header class="header">
+      <div class="logo">👨‍💼 Cadastrar Profissionais</div>
+      <p>Adicione sua equipe de trabalho</p>
+    </header>
+    
+    <div class="step-indicator">
+      <div class="step completed"></div>
+      <div class="step active"></div>
+      <div class="step"></div>
+      <div class="step"></div>
+      <div class="step"></div>
+    </div>
+    
+    <div class="content">
+      <h1 class="step-title">Equipe de Profissionais</h1>
+      <p class="step-subtitle">Cadastre os barbeiros e cabeleireiros</p>
+      
+      <div id="professionals-list">
+        <!-- Profissional exemplo -->
+        <div class="professional-card">
+          <button class="remove-btn" onclick="removeProfessional(this)">×</button>
+          
+          <div class="form-row">
+            <div class="form-group">
+              <label class="form-label">Nome Completo</label>
+              <input type="text" class="form-input" placeholder="Ex: João Silva" required>
+            </div>
+            <div class="form-group">
+              <label class="form-label">Nível</label>
+              <select class="form-select" required>
+                <option value="">Selecione</option>
+                <option value="junior">Júnior</option>
+                <option value="pleno">Pleno</option>
+                <option value="senior">Sênior</option>
+                <option value="master">Master</option>
+              </select>
+            </div>
+          </div>
+          
+          <div class="form-group">
+            <label class="form-label">Especialidades</label>
+            <div class="specialties">
+              <span class="specialty-tag" onclick="toggleSpecialty(this)" data-specialty="corte-masculino">Corte Masculino</span>
+              <span class="specialty-tag" onclick="toggleSpecialty(this)" data-specialty="corte-feminino">Corte Feminino</span>
+              <span class="specialty-tag" onclick="toggleSpecialty(this)" data-specialty="barba">Barba</span>
+              <span class="specialty-tag" onclick="toggleSpecialty(this)" data-specialty="sobrancelha">Sobrancelha</span>
+              <span class="specialty-tag" onclick="toggleSpecialty(this)" data-specialty="coloracao">Coloração</span>
+              <span class="specialty-tag" onclick="toggleSpecialty(this)" data-specialty="escova">Escova</span>
+            </div>
+          </div>
+          
+          <div class="form-row">
+            <div class="form-group">
+              <label class="form-label">Horário Entrada</label>
+              <input type="time" class="form-input" value="08:00">
+            </div>
+            <div class="form-group">
+              <label class="form-label">Horário Saída</label>
+              <input type="time" class="form-input" value="18:00">
+            </div>
+          </div>
+        </div>
+      </div>
+      
+      <div class="add-professional" onclick="addProfessional()">
+        <i class="fas fa-plus" style="font-size: var(--text-xl); margin-bottom: var(--space-sm);"></i>
+        <p>Adicionar Profissional</p>
+      </div>
+    </div>
+    
+    <div style="padding: var(--space-lg); border-top: 1px solid var(--border-color);">
+      <button onclick="prevStep()" class="btn btn-secondary" style="margin-right: var(--space-md);">
+        <i class="fas fa-arrow-left"></i> Voltar
+      </button>
+      <button onclick="nextStep()" class="btn btn-primary">
+        Próximo <i class="fas fa-arrow-right"></i>
+      </button>
+    </div>
+  </div>
+
+  <script>
+    function toggleSpecialty(element) {
+      element.classList.toggle('selected');
+    }
+    
+    function addProfessional() {
+      const template = document.querySelector('.professional-card').cloneNode(true);
+      template.querySelectorAll('input').forEach(input => input.value = '');
+      template.querySelectorAll('select').forEach(select => select.selectedIndex = 0);
+      template.querySelectorAll('.specialty-tag').forEach(tag => tag.classList.remove('selected'));
+      
+      document.getElementById('professionals-list').appendChild(template);
+    }
+    
+    function removeProfessional(btn) {
+      if (document.querySelectorAll('.professional-card').length > 1) {
+        btn.parentElement.remove();
+      } else {
+        alert('Você precisa ter pelo menos 1 profissional');
+      }
+    }
+    
+    function prevStep() {
+      window.location.href = 'onboarding-step1.html';
+    }
+    
+    function nextStep() {
+      const professionals = [];
+      document.querySelectorAll('.professional-card').forEach(card => {
+        const name = card.querySelector('input[placeholder*="João"]').value;
+        const level = card.querySelector('select').value;
+        const startTime = card.querySelectorAll('input[type="time"]')[0].value;
+        const endTime = card.querySelectorAll('input[type="time"]')[1].value;
+        const specialties = Array.from(card.querySelectorAll('.specialty-tag.selected')).map(tag => tag.dataset.specialty);
+        
+        if (name && level) {
+          professionals.push({ name, level, startTime, endTime, specialties });
+        }
+      });
+      
+      if (professionals.length === 0) {
+        alert('Cadastre pelo menos 1 profissional');
+        return;
+      }
+      
+      localStorage.setItem('onboarding_step2', JSON.stringify(professionals));
+      window.location.href = 'onboarding-step3.html';
+    }
+  </script>
+</body>
+</html>

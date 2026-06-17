@@ -1,0 +1,547 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>AgendaPro - Horários Especiais</title>
+  <link rel="stylesheet" href="design-system.css">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+  <style>
+    .mobile-app {
+      max-width: 430px;
+      margin: 0 auto;
+      min-height: 100vh;
+      background: var(--bg-primary);
+      position: relative;
+    }
+    
+    .header {
+      position: sticky;
+      top: 0;
+      z-index: var(--z-sticky);
+      background: linear-gradient(135deg, var(--warning), #ea580c);
+      color: white;
+      padding: var(--space-lg);
+    }
+    
+    .header-content {
+      display: flex;
+      align-items: center;
+      gap: var(--space-md);
+      margin-bottom: var(--space-md);
+    }
+    
+    .back-btn {
+      background: rgba(255, 255, 255, 0.2);
+      border: none;
+      padding: var(--space-sm);
+      border-radius: var(--radius-full);
+      cursor: pointer;
+      color: white;
+    }
+    
+    .page-title {
+      font-size: var(--text-xl);
+      font-weight: var(--font-bold);
+    }
+    
+    .header-subtitle {
+      opacity: 0.9;
+      font-size: var(--text-sm);
+    }
+    
+    .content {
+      padding: var(--space-lg);
+    }
+    
+    .info-banner {
+      background: var(--warning-light);
+      border: 1px solid var(--warning);
+      border-radius: var(--radius-lg);
+      padding: var(--space-lg);
+      margin-bottom: var(--space-xl);
+    }
+    
+    .banner-title {
+      display: flex;
+      align-items: center;
+      gap: var(--space-sm);
+      font-weight: var(--font-semibold);
+      color: var(--warning);
+      margin-bottom: var(--space-sm);
+    }
+    
+    .banner-text {
+      color: var(--text-secondary);
+      font-size: var(--text-sm);
+      line-height: var(--leading-relaxed);
+    }
+    
+    .professional-card {
+      background: var(--bg-card);
+      border: 1px solid var(--border-color);
+      border-radius: var(--radius-lg);
+      padding: var(--space-lg);
+      margin-bottom: var(--space-lg);
+    }
+    
+    .professional-header {
+      display: flex;
+      align-items: center;
+      gap: var(--space-md);
+      margin-bottom: var(--space-lg);
+    }
+    
+    .professional-avatar {
+      width: 48px;
+      height: 48px;
+      background: var(--primary);
+      color: white;
+      border-radius: var(--radius-full);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: var(--text-lg);
+      font-weight: var(--font-bold);
+    }
+    
+    .professional-info h3 {
+      font-weight: var(--font-semibold);
+      color: var(--text-primary);
+      margin-bottom: var(--space-xs);
+    }
+    
+    .professional-role {
+      color: var(--text-secondary);
+      font-size: var(--text-sm);
+    }
+    
+    .hours-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: var(--space-sm);
+    }
+    
+    .hour-slot {
+      background: var(--bg-secondary);
+      border: 2px solid var(--border-color);
+      border-radius: var(--radius-lg);
+      padding: var(--space-md);
+      text-align: center;
+      cursor: pointer;
+      transition: all var(--transition-fast);
+      position: relative;
+    }
+    
+    .hour-slot:hover {
+      transform: translateY(-2px);
+      box-shadow: var(--shadow-md);
+    }
+    
+    .hour-slot.enabled {
+      background: var(--warning-light);
+      border-color: var(--warning);
+      color: var(--warning);
+    }
+    
+    .hour-slot.enabled:hover {
+      background: var(--warning);
+      color: white;
+    }
+    
+    .hour-time {
+      font-weight: var(--font-bold);
+      margin-bottom: var(--space-xs);
+    }
+    
+    .hour-status {
+      font-size: var(--text-xs);
+      opacity: 0.8;
+    }
+    
+    .hour-price {
+      position: absolute;
+      top: -8px;
+      right: -8px;
+      background: var(--success);
+      color: white;
+      font-size: 10px;
+      padding: 2px 6px;
+      border-radius: var(--radius-full);
+      font-weight: var(--font-bold);
+    }
+    
+    .hour-slot.enabled .hour-price {
+      background: var(--warning);
+    }
+    
+    .stats-section {
+      background: var(--bg-card);
+      border: 1px solid var(--border-color);
+      border-radius: var(--radius-lg);
+      padding: var(--space-lg);
+      margin-bottom: var(--space-lg);
+    }
+    
+    .stats-title {
+      font-weight: var(--font-semibold);
+      color: var(--text-primary);
+      margin-bottom: var(--space-md);
+    }
+    
+    .stats-grid {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: var(--space-md);
+    }
+    
+    .stat-item {
+      text-align: center;
+      background: var(--bg-secondary);
+      padding: var(--space-md);
+      border-radius: var(--radius-md);
+    }
+    
+    .stat-value {
+      font-size: var(--text-xl);
+      font-weight: var(--font-bold);
+      color: var(--primary);
+    }
+    
+    .stat-label {
+      font-size: var(--text-sm);
+      color: var(--text-secondary);
+      margin-top: var(--space-xs);
+    }
+    
+    .action-buttons {
+      display: flex;
+      gap: var(--space-md);
+      margin-top: var(--space-xl);
+    }
+    
+    .btn-outline {
+      background: transparent;
+      border: 2px solid var(--primary);
+      color: var(--primary);
+    }
+    
+    .btn-outline:hover {
+      background: var(--primary);
+      color: white;
+    }
+  </style>
+</head>
+<body>
+  <div class="mobile-app">
+    <header class="header">
+      <div class="header-content">
+        <button class="back-btn" onclick="history.back()">
+          <i class="fas fa-arrow-left"></i>
+        </button>
+        <div>
+          <h1 class="page-title">🌙 Horários Especiais</h1>
+          <p class="header-subtitle">Configure horários noturnos premium</p>
+        </div>
+      </div>
+    </header>
+
+    <div class="content">
+      <!-- BANNER INFORMATIVO -->
+      <div class="info-banner">
+        <div class="banner-title">
+          <i class="fas fa-info-circle"></i>
+          Como funcionam os Horários Especiais
+        </div>
+        <div class="banner-text">
+          Horários especiais são das <strong>19:00 às 21:00</strong> com valor <strong>+50%</strong> sobre o preço normal. 
+          Cada profissional pode ativar/desativar individualmente conforme sua disponibilidade.
+        </div>
+      </div>
+
+      <!-- JOÃO SILVA -->
+      <div class="professional-card">
+        <div class="professional-header">
+          <div class="professional-avatar">J</div>
+          <div class="professional-info">
+            <h3>João Silva</h3>
+            <div class="professional-role">Barbeiro Sênior</div>
+          </div>
+        </div>
+        
+        <div class="hours-grid">
+          <div class="hour-slot enabled" onclick="toggleHour(this, 'João', '19:00')">
+            <div class="hour-price">+50%</div>
+            <div class="hour-time">19:00</div>
+            <div class="hour-status">Ativado</div>
+          </div>
+          <div class="hour-slot enabled" onclick="toggleHour(this, 'João', '19:30')">
+            <div class="hour-price">+50%</div>
+            <div class="hour-time">19:30</div>
+            <div class="hour-status">Ativado</div>
+          </div>
+          <div class="hour-slot enabled" onclick="toggleHour(this, 'João', '20:00')">
+            <div class="hour-price">+50%</div>
+            <div class="hour-time">20:00</div>
+            <div class="hour-status">Ativado</div>
+          </div>
+          <div class="hour-slot enabled" onclick="toggleHour(this, 'João', '20:30')">
+            <div class="hour-price">+50%</div>
+            <div class="hour-time">20:30</div>
+            <div class="hour-status">Ativado</div>
+          </div>
+          <div class="hour-slot enabled" onclick="toggleHour(this, 'João', '21:00')">
+            <div class="hour-price">+50%</div>
+            <div class="hour-time">21:00</div>
+            <div class="hour-status">Ativado</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- DIOGO SANTOS -->
+      <div class="professional-card">
+        <div class="professional-header">
+          <div class="professional-avatar">D</div>
+          <div class="professional-info">
+            <h3>Diogo Santos</h3>
+            <div class="professional-role">Cabeleireiro</div>
+          </div>
+        </div>
+        
+        <div class="hours-grid">
+          <div class="hour-slot" onclick="toggleHour(this, 'Diogo', '19:00')">
+            <div class="hour-time">19:00</div>
+            <div class="hour-status">Desativado</div>
+          </div>
+          <div class="hour-slot" onclick="toggleHour(this, 'Diogo', '19:30')">
+            <div class="hour-time">19:30</div>
+            <div class="hour-status">Desativado</div>
+          </div>
+          <div class="hour-slot" onclick="toggleHour(this, 'Diogo', '20:00')">
+            <div class="hour-time">20:00</div>
+            <div class="hour-status">Desativado</div>
+          </div>
+          <div class="hour-slot" onclick="toggleHour(this, 'Diogo', '20:30')">
+            <div class="hour-time">20:30</div>
+            <div class="hour-status">Desativado</div>
+          </div>
+          <div class="hour-slot" onclick="toggleHour(this, 'Diogo', '21:00')">
+            <div class="hour-time">21:00</div>
+            <div class="hour-status">Desativado</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- FELIPE COSTA -->
+      <div class="professional-card">
+        <div class="professional-header">
+          <div class="professional-avatar">F</div>
+          <div class="professional-info">
+            <h3>Felipe Costa</h3>
+            <div class="professional-role">Barbeiro Júnior</div>
+          </div>
+        </div>
+        
+        <div class="hours-grid">
+          <div class="hour-slot enabled" onclick="toggleHour(this, 'Felipe', '19:00')">
+            <div class="hour-price">+50%</div>
+            <div class="hour-time">19:00</div>
+            <div class="hour-status">Ativado</div>
+          </div>
+          <div class="hour-slot enabled" onclick="toggleHour(this, 'Felipe', '19:30')">
+            <div class="hour-price">+50%</div>
+            <div class="hour-time">19:30</div>
+            <div class="hour-status">Ativado</div>
+          </div>
+          <div class="hour-slot enabled" onclick="toggleHour(this, 'Felipe', '20:00')">
+            <div class="hour-price">+50%</div>
+            <div class="hour-time">20:00</div>
+            <div class="hour-status">Ativado</div>
+          </div>
+          <div class="hour-slot enabled" onclick="toggleHour(this, 'Felipe', '20:30')">
+            <div class="hour-price">+50%</div>
+            <div class="hour-time">20:30</div>
+            <div class="hour-status">Ativado</div>
+          </div>
+          <div class="hour-slot enabled" onclick="toggleHour(this, 'Felipe', '21:00')">
+            <div class="hour-price">+50%</div>
+            <div class="hour-time">21:00</div>
+            <div class="hour-status">Ativado</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- LUAN OLIVEIRA -->
+      <div class="professional-card">
+        <div class="professional-header">
+          <div class="professional-avatar">L</div>
+          <div class="professional-info">
+            <h3>Luan Oliveira</h3>
+            <div class="professional-role">Barbeiro</div>
+          </div>
+        </div>
+        
+        <div class="hours-grid">
+          <div class="hour-slot" onclick="toggleHour(this, 'Luan', '19:00')">
+            <div class="hour-time">19:00</div>
+            <div class="hour-status">Desativado</div>
+          </div>
+          <div class="hour-slot" onclick="toggleHour(this, 'Luan', '19:30')">
+            <div class="hour-time">19:30</div>
+            <div class="hour-status">Desativado</div>
+          </div>
+          <div class="hour-slot" onclick="toggleHour(this, 'Luan', '20:00')">
+            <div class="hour-time">20:00</div>
+            <div class="hour-status">Desativado</div>
+          </div>
+          <div class="hour-slot" onclick="toggleHour(this, 'Luan', '20:30')">
+            <div class="hour-time">20:30</div>
+            <div class="hour-status">Desativado</div>
+          </div>
+          <div class="hour-slot" onclick="toggleHour(this, 'Luan', '21:00')">
+            <div class="hour-time">21:00</div>
+            <div class="hour-status">Desativado</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ESTATÍSTICAS -->
+      <div class="stats-section">
+        <div class="stats-title">📊 Estatísticas dos Horários Especiais</div>
+        <div class="stats-grid">
+          <div class="stat-item">
+            <div class="stat-value">10</div>
+            <div class="stat-label">Slots Ativos</div>
+          </div>
+          <div class="stat-item">
+            <div class="stat-value">R$ 380</div>
+            <div class="stat-label">Extra este mês</div>
+          </div>
+          <div class="stat-item">
+            <div class="stat-value">85%</div>
+            <div class="stat-label">Taxa ocupação</div>
+          </div>
+          <div class="stat-item">
+            <div class="stat-value">23</div>
+            <div class="stat-label">Agendamentos</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- AÇÕES -->
+      <div class="action-buttons">
+        <button class="btn btn-outline btn-full" onclick="toggleAllHours()">
+          <i class="fas fa-toggle-on"></i> Ativar Todos
+        </button>
+        <button class="btn btn-primary btn-full" onclick="saveSettings()">
+          <i class="fas fa-save"></i> Salvar Configurações
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    function toggleHour(element, professional, time) {
+      const isEnabled = element.classList.contains('enabled');
+      
+      if (isEnabled) {
+        // Desativar
+        element.classList.remove('enabled');
+        element.querySelector('.hour-status').textContent = 'Desativado';
+        
+        // Remover badge de preço
+        const priceTag = element.querySelector('.hour-price');
+        if (priceTag) priceTag.remove();
+        
+        console.log(`${professional} - ${time}: DESATIVADO`);
+      } else {
+        // Ativar
+        element.classList.add('enabled');
+        element.querySelector('.hour-status').textContent = 'Ativado';
+        
+        // Adicionar badge de preço
+        if (!element.querySelector('.hour-price')) {
+          const priceTag = document.createElement('div');
+          priceTag.className = 'hour-price';
+          priceTag.textContent = '+50%';
+          element.appendChild(priceTag);
+        }
+        
+        console.log(`${professional} - ${time}: ATIVADO`);
+      }
+      
+      // Atualizar estatísticas
+      updateStats();
+    }
+    
+    function toggleAllHours() {
+      const allSlots = document.querySelectorAll('.hour-slot');
+      const enabledCount = document.querySelectorAll('.hour-slot.enabled').length;
+      const shouldEnable = enabledCount < allSlots.length / 2;
+      
+      allSlots.forEach(slot => {
+        const professional = slot.closest('.professional-card').querySelector('h3').textContent;
+        const time = slot.querySelector('.hour-time').textContent;
+        
+        if (shouldEnable && !slot.classList.contains('enabled')) {
+          toggleHour(slot, professional, time);
+        } else if (!shouldEnable && slot.classList.contains('enabled')) {
+          toggleHour(slot, professional, time);
+        }
+      });
+      
+      const button = document.querySelector('.btn-outline');
+      button.innerHTML = shouldEnable ? 
+        '<i class="fas fa-toggle-off"></i> Desativar Todos' : 
+        '<i class="fas fa-toggle-on"></i> Ativar Todos';
+    }
+    
+    function updateStats() {
+      const activeSlots = document.querySelectorAll('.hour-slot.enabled').length;
+      document.querySelector('.stat-value').textContent = activeSlots;
+      
+      // Simular cálculo de receita extra
+      const extraRevenue = activeSlots * 38; // R$ 38 média por slot especial
+      document.querySelectorAll('.stat-value')[1].textContent = `R$ ${extraRevenue}`;
+    }
+    
+    function saveSettings() {
+      const settings = {};
+      
+      document.querySelectorAll('.professional-card').forEach(card => {
+        const professional = card.querySelector('h3').textContent;
+        const enabledHours = [];
+        
+        card.querySelectorAll('.hour-slot.enabled').forEach(slot => {
+          enabledHours.push(slot.querySelector('.hour-time').textContent);
+        });
+        
+        settings[professional] = enabledHours;
+      });
+      
+      console.log('Configurações salvas:', settings);
+      
+      // Feedback visual
+      const button = event.target;
+      const originalText = button.innerHTML;
+      button.innerHTML = '<i class="fas fa-check"></i> Salvo!';
+      button.style.background = 'var(--success)';
+      
+      setTimeout(() => {
+        button.innerHTML = originalText;
+        button.style.background = '';
+      }, 2000);
+      
+      alert('✅ Configurações de horários especiais salvas com sucesso!\n\nAs alterações já estão ativas na agenda.');
+    }
+    
+    // Carregar tema
+    document.addEventListener('DOMContentLoaded', function() {
+      const savedTheme = localStorage.getItem('theme');
+      if (savedTheme === 'dark') {
+        document.documentElement.setAttribute('data-theme', 'dark');
+      }
+    });
+  </script>
+</body>
+</html>

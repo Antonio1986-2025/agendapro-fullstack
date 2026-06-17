@@ -1,0 +1,773 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>AgendaPro - Financeiro</title>
+  <link rel="stylesheet" href="design-system.css">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+  <style>
+    .mobile-app {
+      max-width: 430px;
+      margin: 0 auto;
+      min-height: 100vh;
+      background: var(--bg-primary);
+      position: relative;
+    }
+    
+    /* HEADER */
+    .header {
+      position: sticky;
+      top: 0;
+      z-index: var(--z-sticky);
+      background: var(--bg-card);
+      border-bottom: 1px solid var(--border-color);
+      padding: var(--space-md);
+    }
+    
+    .header-content {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: var(--space-md);
+    }
+    
+    .header-title {
+      display: flex;
+      align-items: center;
+      gap: var(--space-sm);
+      font-size: var(--text-lg);
+      font-weight: var(--font-bold);
+      color: var(--text-primary);
+    }
+    
+    /* PERÍODO */
+    .period-selector {
+      display: flex;
+      background: var(--bg-secondary);
+      border-radius: var(--radius-md);
+      padding: 2px;
+    }
+    
+    .period-btn {
+      background: none;
+      border: none;
+      padding: var(--space-xs) var(--space-sm);
+      border-radius: var(--radius-sm);
+      font-size: var(--text-sm);
+      font-weight: var(--font-medium);
+      cursor: pointer;
+      color: var(--text-secondary);
+      transition: all var(--transition-fast);
+    }
+    
+    .period-btn.active {
+      background: var(--primary);
+      color: var(--text-inverse);
+      box-shadow: var(--shadow-sm);
+    }
+    
+    /* CONTEÚDO */
+    .main-content {
+      padding: var(--space-md);
+      padding-bottom: 80px;
+    }
+    
+    /* RESUMO FINANCEIRO */
+    .financial-summary {
+      background: linear-gradient(135deg, var(--success), #047857);
+      color: white;
+      border-radius: var(--radius-xl);
+      padding: var(--space-xl);
+      margin-bottom: var(--space-lg);
+      text-align: center;
+    }
+    
+    .summary-period {
+      font-size: var(--text-sm);
+      opacity: 0.9;
+      margin-bottom: var(--space-sm);
+    }
+    
+    .summary-value {
+      font-size: var(--text-3xl);
+      font-weight: var(--font-bold);
+      margin-bottom: var(--space-md);
+    }
+    
+    .summary-stats {
+      display: flex;
+      justify-content: space-between;
+      gap: var(--space-md);
+    }
+    
+    .summary-stat {
+      flex: 1;
+      text-align: center;
+    }
+    
+    .summary-stat-value {
+      font-size: var(--text-lg);
+      font-weight: var(--font-semibold);
+      margin-bottom: var(--space-xs);
+    }
+    
+    .summary-stat-label {
+      font-size: var(--text-sm);
+      opacity: 0.8;
+    }
+    
+    /* MÉTRICAS */
+    .metrics-grid {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: var(--space-md);
+      margin-bottom: var(--space-lg);
+    }
+    
+    .metric-card {
+      background: var(--bg-card);
+      border: 1px solid var(--border-color);
+      border-radius: var(--radius-lg);
+      padding: var(--space-md);
+    }
+    
+    .metric-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: var(--space-sm);
+    }
+    
+    .metric-icon {
+      width: 32px;
+      height: 32px;
+      background: var(--primary-light);
+      color: var(--primary);
+      border-radius: var(--radius-md);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+    
+    .metric-trend {
+      font-size: var(--text-xs);
+      padding: 2px 6px;
+      border-radius: var(--radius-sm);
+    }
+    
+    .trend-up {
+      background: var(--success-light);
+      color: var(--success);
+    }
+    
+    .trend-down {
+      background: var(--error-light);
+      color: var(--error);
+    }
+    
+    .metric-value {
+      font-size: var(--text-xl);
+      font-weight: var(--font-bold);
+      color: var(--text-primary);
+      margin-bottom: var(--space-xs);
+    }
+    
+    .metric-label {
+      font-size: var(--text-sm);
+      color: var(--text-secondary);
+    }
+    
+    /* COMANDAS */
+    .section {
+      margin-bottom: var(--space-xl);
+    }
+    
+    .section-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: var(--space-md);
+    }
+    
+    .section-title {
+      font-size: var(--text-lg);
+      font-weight: var(--font-semibold);
+      color: var(--text-primary);
+    }
+    
+    .view-all-btn {
+      color: var(--primary);
+      text-decoration: none;
+      font-size: var(--text-sm);
+      font-weight: var(--font-medium);
+    }
+    
+    .commands-list {
+      display: flex;
+      flex-direction: column;
+      gap: var(--space-sm);
+    }
+    
+    .command-card {
+      background: var(--bg-card);
+      border: 1px solid var(--border-color);
+      border-radius: var(--radius-lg);
+      padding: var(--space-md);
+      cursor: pointer;
+      transition: all var(--transition-fast);
+    }
+    
+    .command-card:hover {
+      transform: translateY(-2px);
+      box-shadow: var(--shadow-md);
+      border-color: var(--primary);
+    }
+    
+    .command-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: var(--space-sm);
+    }
+    
+    .command-info {
+      display: flex;
+      align-items: center;
+      gap: var(--space-sm);
+    }
+    
+    .command-number {
+      background: var(--primary-light);
+      color: var(--primary);
+      padding: var(--space-xs) var(--space-sm);
+      border-radius: var(--radius-md);
+      font-size: var(--text-sm);
+      font-weight: var(--font-bold);
+    }
+    
+    .command-client {
+      font-weight: var(--font-medium);
+      color: var(--text-primary);
+    }
+    
+    .command-status {
+      padding: var(--space-xs) var(--space-sm);
+      border-radius: var(--radius-full);
+      font-size: var(--text-xs);
+      font-weight: var(--font-medium);
+      text-transform: uppercase;
+    }
+    
+    .status-open {
+      background: var(--warning-light);
+      color: var(--warning);
+    }
+    
+    .status-closed {
+      background: var(--success-light);
+      color: var(--success);
+    }
+    
+    .status-cancelled {
+      background: var(--error-light);
+      color: var(--error);
+    }
+    
+    .command-details {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+    
+    .command-services {
+      font-size: var(--text-sm);
+      color: var(--text-secondary);
+    }
+    
+    .command-value {
+      font-size: var(--text-lg);
+      font-weight: var(--font-bold);
+      color: var(--success);
+    }
+    
+    .command-time {
+      font-size: var(--text-xs);
+      color: var(--text-muted);
+      margin-top: var(--space-xs);
+    }
+    
+    /* FORMAS DE PAGAMENTO */
+    .payment-methods {
+      display: flex;
+      flex-direction: column;
+      gap: var(--space-sm);
+    }
+    
+    .payment-card {
+      background: var(--bg-card);
+      border: 1px solid var(--border-color);
+      border-radius: var(--radius-lg);
+      padding: var(--space-md);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+    
+    .payment-info {
+      display: flex;
+      align-items: center;
+      gap: var(--space-md);
+    }
+    
+    .payment-icon {
+      width: 40px;
+      height: 40px;
+      border-radius: var(--radius-md);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: var(--text-lg);
+    }
+    
+    .payment-pix {
+      background: #32bcad;
+      color: white;
+    }
+    
+    .payment-cash {
+      background: var(--success-light);
+      color: var(--success);
+    }
+    
+    .payment-card-icon {
+      background: var(--primary-light);
+      color: var(--primary);
+    }
+    
+    .payment-content {
+      flex: 1;
+    }
+    
+    .payment-name {
+      font-weight: var(--font-medium);
+      color: var(--text-primary);
+      margin-bottom: var(--space-xs);
+    }
+    
+    .payment-amount {
+      font-size: var(--text-sm);
+      color: var(--text-secondary);
+    }
+    
+    .payment-value {
+      font-size: var(--text-lg);
+      font-weight: var(--font-bold);
+      color: var(--text-primary);
+    }
+    
+    /* BOTTOM NAV */
+    .bottom-nav {
+      position: fixed;
+      bottom: 0;
+      left: 50%;
+      transform: translateX(-50%);
+      width: 100%;
+      max-width: 430px;
+      background: var(--bg-card);
+      border-top: 1px solid var(--border-color);
+      padding: var(--space-sm) 0;
+      z-index: var(--z-sticky);
+    }
+    
+    .nav-items {
+      display: flex;
+      justify-content: space-around;
+      align-items: center;
+    }
+    
+    .nav-item {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      padding: var(--space-sm);
+      text-decoration: none;
+      color: var(--text-secondary);
+      transition: all var(--transition-fast);
+      border-radius: var(--radius-md);
+      min-width: 60px;
+    }
+    
+    .nav-item.active {
+      color: var(--primary);
+      background: var(--primary-light);
+    }
+    
+    .nav-icon {
+      font-size: var(--text-lg);
+      margin-bottom: var(--space-xs);
+    }
+    
+    .nav-label {
+      font-size: var(--text-xs);
+      font-weight: var(--font-medium);
+    }
+    
+    /* RESPONSIVO */
+    @media (min-width: 768px) {
+      .mobile-app {
+        max-width: 100%;
+        padding: 0 var(--space-lg);
+      }
+      
+      .bottom-nav { display: none; }
+      .main-content { padding-bottom: var(--space-md); }
+      
+      .metrics-grid {
+        grid-template-columns: repeat(4, 1fr);
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="mobile-app">
+    <!-- HEADER -->
+    <header class="header">
+      <div class="header-content">
+        <div class="header-title">
+          <i class="fas fa-chart-line"></i>
+          <span>Financeiro</span>
+        </div>
+        
+        <button class="theme-toggle" onclick="toggleTheme()" style="background: none; border: none; padding: var(--space-sm); border-radius: var(--radius-md); cursor: pointer; color: var(--text-secondary);">
+          <i class="fas fa-moon" id="theme-icon"></i>
+        </button>
+      </div>
+      
+      <!-- SELETOR DE PERÍODO -->
+      <div class="period-selector">
+        <button class="period-btn" onclick="setPeriod('today')">Hoje</button>
+        <button class="period-btn" onclick="setPeriod('week')">Semana</button>
+        <button class="period-btn active" onclick="setPeriod('month')">Mês</button>
+        <button class="period-btn" onclick="setPeriod('year')">Ano</button>
+      </div>
+    </header>
+
+    <!-- CONTEÚDO -->
+    <main class="main-content">
+      <!-- RESUMO FINANCEIRO -->
+      <div class="financial-summary">
+        <div class="summary-period">Faturamento - Junho 2026</div>
+        <div class="summary-value">R$ 8.450,00</div>
+        
+        <div class="summary-stats">
+          <div class="summary-stat">
+            <div class="summary-stat-value">156</div>
+            <div class="summary-stat-label">Atendimentos</div>
+          </div>
+          <div class="summary-stat">
+            <div class="summary-stat-value">R$ 54</div>
+            <div class="summary-stat-label">Ticket Médio</div>
+          </div>
+          <div class="summary-stat">
+            <div class="summary-stat-value">+12%</div>
+            <div class="summary-stat-label">vs. Maio</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- MÉTRICAS -->
+      <div class="metrics-grid">
+        <div class="metric-card">
+          <div class="metric-header">
+            <div class="metric-icon">
+              <i class="fas fa-calendar-day"></i>
+            </div>
+            <div class="metric-trend trend-up">
+              <i class="fas fa-arrow-up"></i> 5%
+            </div>
+          </div>
+          <div class="metric-value">R$ 420</div>
+          <div class="metric-label">Hoje</div>
+        </div>
+        
+        <div class="metric-card">
+          <div class="metric-header">
+            <div class="metric-icon">
+              <i class="fas fa-calendar-week"></i>
+            </div>
+            <div class="metric-trend trend-up">
+              <i class="fas fa-arrow-up"></i> 8%
+            </div>
+          </div>
+          <div class="metric-value">R$ 2.180</div>
+          <div class="metric-label">Esta Semana</div>
+        </div>
+        
+        <div class="metric-card">
+          <div class="metric-header">
+            <div class="metric-icon">
+              <i class="fas fa-users"></i>
+            </div>
+            <div class="metric-trend trend-up">
+              <i class="fas fa-arrow-up"></i> 3%
+            </div>
+          </div>
+          <div class="metric-value">89</div>
+          <div class="metric-label">Clientes Ativos</div>
+        </div>
+        
+        <div class="metric-card">
+          <div class="metric-header">
+            <div class="metric-icon">
+              <i class="fas fa-receipt"></i>
+            </div>
+            <div class="metric-trend trend-down">
+              <i class="fas fa-arrow-down"></i> 2%
+            </div>
+          </div>
+          <div class="metric-value">12</div>
+          <div class="metric-label">Comandas Abertas</div>
+        </div>
+      </div>
+
+      <!-- COMANDAS RECENTES -->
+      <section class="section">
+        <div class="section-header">
+          <h2 class="section-title">Comandas Recentes</h2>
+          <a href="#" class="view-all-btn">Ver todas</a>
+        </div>
+
+        <div class="commands-list">
+          <!-- Comanda Aberta -->
+          <div class="command-card" onclick="openCommand(67)">
+            <div class="command-header">
+              <div class="command-info">
+                <div class="command-number">#67</div>
+                <div class="command-client">Carlos Silva</div>
+              </div>
+              <div class="command-status status-open">Aberta</div>
+            </div>
+            
+            <div class="command-details">
+              <div class="command-services">Corte Masculino + Barba</div>
+              <div class="command-value">R$ 70,00</div>
+            </div>
+            
+            <div class="command-time">Aberta há 25 min • Junio</div>
+          </div>
+
+          <!-- Comanda Fechada -->
+          <div class="command-card" onclick="openCommand(66)">
+            <div class="command-header">
+              <div class="command-info">
+                <div class="command-number">#66</div>
+                <div class="command-client">Maria Santos</div>
+              </div>
+              <div class="command-status status-closed">Fechada</div>
+            </div>
+            
+            <div class="command-details">
+              <div class="command-services">Corte e Escova</div>
+              <div class="command-value">R$ 85,00</div>
+            </div>
+            
+            <div class="command-time">Fechada às 10:45 • Diogo • PIX</div>
+          </div>
+
+          <!-- Mais comandas -->
+          <div class="command-card" onclick="openCommand(65)">
+            <div class="command-header">
+              <div class="command-info">
+                <div class="command-number">#65</div>
+                <div class="command-client">João Pedro</div>
+              </div>
+              <div class="command-status status-closed">Fechada</div>
+            </div>
+            
+            <div class="command-details">
+              <div class="command-services">Barba Completa</div>
+              <div class="command-value">R$ 35,00</div>
+            </div>
+            
+            <div class="command-time">Fechada às 10:15 • Felipe • Dinheiro</div>
+          </div>
+
+          <div class="command-card" onclick="openCommand(64)">
+            <div class="command-header">
+              <div class="command-info">
+                <div class="command-number">#64</div>
+                <div class="command-client">Ana Costa</div>
+              </div>
+              <div class="command-status status-closed">Fechada</div>
+            </div>
+            
+            <div class="command-details">
+              <div class="command-services">Corte Feminino + Sobrancelha</div>
+              <div class="command-value">R$ 75,00</div>
+            </div>
+            
+            <div class="command-time">Fechada às 09:50 • Luan • Cartão</div>
+          </div>
+        </div>
+      </section>
+
+      <!-- FORMAS DE PAGAMENTO -->
+      <section class="section">
+        <div class="section-header">
+          <h2 class="section-title">Formas de Pagamento - Hoje</h2>
+        </div>
+
+        <div class="payment-methods">
+          <div class="payment-card">
+            <div class="payment-info">
+              <div class="payment-icon payment-pix">
+                <i class="fas fa-qrcode"></i>
+              </div>
+              <div class="payment-content">
+                <div class="payment-name">PIX</div>
+                <div class="payment-amount">8 transações</div>
+              </div>
+            </div>
+            <div class="payment-value">R$ 245,00</div>
+          </div>
+
+          <div class="payment-card">
+            <div class="payment-info">
+              <div class="payment-icon payment-cash">
+                <i class="fas fa-money-bill-wave"></i>
+              </div>
+              <div class="payment-content">
+                <div class="payment-name">Dinheiro</div>
+                <div class="payment-amount">4 transações</div>
+              </div>
+            </div>
+            <div class="payment-value">R$ 140,00</div>
+          </div>
+
+          <div class="payment-card">
+            <div class="payment-info">
+              <div class="payment-icon payment-card-icon">
+                <i class="fas fa-credit-card"></i>
+              </div>
+              <div class="payment-content">
+                <div class="payment-name">Cartão</div>
+                <div class="payment-amount">2 transações</div>
+              </div>
+            </div>
+            <div class="payment-value">R$ 90,00</div>
+          </div>
+        </div>
+      </section>
+    </main>
+
+    <!-- BOTTOM NAV -->
+    <nav class="bottom-nav">
+      <div class="nav-items">
+        <a href="dashboard-mobile.html" class="nav-item">
+          <i class="nav-icon fas fa-home"></i>
+          <span class="nav-label">Dashboard</span>
+        </a>
+        
+        <a href="agenda-mobile.html" class="nav-item">
+          <i class="nav-icon fas fa-calendar"></i>
+          <span class="nav-label">Agenda</span>
+        </a>
+        
+        <a href="clientes-mobile.html" class="nav-item">
+          <i class="nav-icon fas fa-users"></i>
+          <span class="nav-label">Clientes</span>
+        </a>
+        
+        <a href="configuracoes-mobile.html" class="nav-item">
+          <i class="nav-icon fas fa-cog"></i>
+          <span class="nav-label">Config</span>
+        </a>
+        
+        <a href="#" class="nav-item active">
+          <i class="nav-icon fas fa-comments"></i>
+          <span class="nav-label">Financeiro</span>
+        </a>
+      </div>
+    </nav>
+  </div>
+
+  <script>
+    let currentPeriod = 'month';
+
+    // TOGGLE TEMA
+    function toggleTheme() {
+      const html = document.documentElement;
+      const themeIcon = document.getElementById('theme-icon');
+      
+      if (html.getAttribute('data-theme') === 'dark') {
+        html.removeAttribute('data-theme');
+        themeIcon.className = 'fas fa-moon';
+        localStorage.setItem('theme', 'light');
+      } else {
+        html.setAttribute('data-theme', 'dark');
+        themeIcon.className = 'fas fa-sun';
+        localStorage.setItem('theme', 'dark');
+      }
+    }
+
+    // PERÍODO
+    function setPeriod(period) {
+      currentPeriod = period;
+      
+      // Atualizar botões
+      document.querySelectorAll('.period-btn').forEach(btn => {
+        btn.classList.remove('active');
+      });
+      event.target.classList.add('active');
+      
+      // Simular atualização de dados
+      updateFinancialData(period);
+    }
+
+    function updateFinancialData(period) {
+      const data = {
+        today: { value: 'R$ 420,00', label: 'Hoje - 16 Jun 2026', count: 8 },
+        week: { value: 'R$ 2.180,00', label: 'Esta Semana - 10-16 Jun', count: 42 },
+        month: { value: 'R$ 8.450,00', label: 'Junho 2026', count: 156 },
+        year: { value: 'R$ 95.600,00', label: 'Ano 2026', count: 1842 }
+      };
+      
+      const selected = data[period];
+      document.querySelector('.summary-value').textContent = selected.value;
+      document.querySelector('.summary-period').textContent = `Faturamento - ${selected.label}`;
+      document.querySelector('.summary-stat-value').textContent = selected.count;
+      
+      console.log(`Período alterado para: ${period}`);
+    }
+
+    // COMANDAS
+    function openCommand(commandId) {
+      alert(`Abrir Comanda #${commandId}\n\nAqui você veria:\n- Detalhes dos serviços\n- Histórico de pagamentos\n- Ações: imprimir, reabrir, etc.`);
+    }
+
+    // INICIALIZAÇÃO
+    document.addEventListener('DOMContentLoaded', function() {
+      // Tema
+      const savedTheme = localStorage.getItem('theme');
+      if (savedTheme === 'dark') {
+        document.documentElement.setAttribute('data-theme', 'dark');
+        document.getElementById('theme-icon').className = 'fas fa-sun';
+      }
+
+      // Animações
+      const cards = document.querySelectorAll('.metric-card, .command-card, .payment-card');
+      cards.forEach((card, index) => {
+        card.style.opacity = '0';
+        card.style.transform = 'translateY(20px)';
+        
+        setTimeout(() => {
+          card.style.transition = 'all 0.3s ease-out';
+          card.style.opacity = '1';
+          card.style.transform = 'translateY(0)';
+        }, index * 80);
+      });
+    });
+  </script>
+</body>
+</html>

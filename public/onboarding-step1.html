@@ -1,0 +1,210 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>AgendaPro - Configuração Inicial</title>
+  <link rel="stylesheet" href="design-system.css">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+  <style>
+    .onboarding-container {
+      max-width: 500px;
+      margin: 0 auto;
+      min-height: 100vh;
+      background: var(--bg-primary);
+      display: flex;
+      flex-direction: column;
+    }
+    
+    .header {
+      text-align: center;
+      padding: var(--space-2xl) var(--space-lg);
+      background: linear-gradient(135deg, var(--primary), var(--primary-hover));
+      color: var(--text-inverse);
+    }
+    
+    .logo {
+      font-size: var(--text-3xl);
+      font-weight: var(--font-bold);
+      margin-bottom: var(--space-sm);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: var(--space-sm);
+    }
+    
+    .step-indicator {
+      margin: var(--space-lg) var(--space-lg) 0;
+      display: flex;
+      justify-content: center;
+      gap: var(--space-sm);
+    }
+    
+    .step {
+      width: 40px;
+      height: 4px;
+      background: var(--gray-300);
+      border-radius: var(--radius-full);
+    }
+    
+    .step.active {
+      background: var(--primary);
+    }
+    
+    .step.completed {
+      background: var(--success);
+    }
+    
+    .content {
+      flex: 1;
+      padding: var(--space-lg);
+    }
+    
+    .step-title {
+      font-size: var(--text-2xl);
+      font-weight: var(--font-bold);
+      color: var(--text-primary);
+      text-align: center;
+      margin-bottom: var(--space-sm);
+    }
+    
+    .step-subtitle {
+      color: var(--text-secondary);
+      text-align: center;
+      margin-bottom: var(--space-2xl);
+    }
+    
+    .form-group {
+      margin-bottom: var(--space-lg);
+    }
+    
+    .form-label {
+      display: block;
+      font-weight: var(--font-medium);
+      color: var(--text-primary);
+      margin-bottom: var(--space-sm);
+    }
+    
+    .form-input {
+      width: 100%;
+      padding: var(--space-md);
+      border: 2px solid var(--border-color);
+      border-radius: var(--radius-lg);
+      font-size: var(--text-base);
+      transition: all var(--transition-fast);
+    }
+    
+    .form-input:focus {
+      border-color: var(--primary);
+      box-shadow: 0 0 0 3px rgba(30, 64, 175, 0.1);
+    }
+    
+    .upload-area {
+      border: 2px dashed var(--border-color);
+      border-radius: var(--radius-lg);
+      padding: var(--space-2xl);
+      text-align: center;
+      cursor: pointer;
+      transition: all var(--transition-fast);
+    }
+    
+    .upload-area:hover {
+      border-color: var(--primary);
+      background: var(--primary-light);
+    }
+    
+    .upload-icon {
+      width: 48px;
+      height: 48px;
+      background: var(--primary-light);
+      color: var(--primary);
+      border-radius: var(--radius-full);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      margin: 0 auto var(--space-md);
+    }
+  </style>
+</head>
+<body>
+  <div class="onboarding-container">
+    <header class="header">
+      <div class="logo">
+        <i class="fas fa-calendar-check"></i>
+        AgendaPro
+      </div>
+      <p>Configure sua barbearia em 5 passos simples</p>
+    </header>
+    
+    <div class="step-indicator">
+      <div class="step active"></div>
+      <div class="step"></div>
+      <div class="step"></div>
+      <div class="step"></div>
+      <div class="step"></div>
+    </div>
+    
+    <div class="content">
+      <h1 class="step-title">Dados da Barbearia</h1>
+      <p class="step-subtitle">Vamos começar com as informações básicas</p>
+      
+      <form id="step1-form">
+        <div class="form-group">
+          <label class="form-label">Nome da Barbearia *</label>
+          <input type="text" class="form-input" placeholder="Ex: Barbearia Premium" required>
+        </div>
+        
+        <div class="form-group">
+          <label class="form-label">Cidade *</label>
+          <input type="text" class="form-input" placeholder="Ex: São Paulo, SP" required>
+        </div>
+        
+        <div class="form-group">
+          <label class="form-label">Ano de Fundação</label>
+          <input type="number" class="form-input" placeholder="Ex: 2015" min="1900" max="2026">
+        </div>
+        
+        <div class="form-group">
+          <label class="form-label">Logo da Barbearia</label>
+          <div class="upload-area" onclick="document.getElementById('logo-upload').click()">
+            <div class="upload-icon">
+              <i class="fas fa-camera"></i>
+            </div>
+            <p>Clique para enviar seu logo</p>
+            <small style="color: var(--text-secondary);">JPG, PNG até 2MB</small>
+          </div>
+          <input type="file" id="logo-upload" accept="image/*" style="display: none;">
+        </div>
+      </form>
+    </div>
+    
+    <div style="padding: var(--space-lg); border-top: 1px solid var(--border-color);">
+      <button onclick="nextStep()" class="btn btn-primary btn-full btn-lg">
+        Próximo Passo <i class="fas fa-arrow-right"></i>
+      </button>
+    </div>
+  </div>
+
+  <script>
+    function nextStep() {
+      // Validar form
+      if (!document.getElementById('step1-form').checkValidity()) {
+        document.getElementById('step1-form').reportValidity();
+        return;
+      }
+      
+      // Salvar dados
+      const formData = {
+        nome: document.querySelector('input[placeholder*="Barbearia"]').value,
+        cidade: document.querySelector('input[placeholder*="São Paulo"]').value,
+        ano_fundacao: document.querySelector('input[type="number"]').value
+      };
+      
+      localStorage.setItem('onboarding_step1', JSON.stringify(formData));
+      
+      // Ir para próximo passo
+      window.location.href = 'onboarding-step2.html';
+    }
+  </script>
+</body>
+</html>

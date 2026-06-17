@@ -1,0 +1,256 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Agendar Horario</title>
+  <link rel="stylesheet" href="design-system.css">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+  <style>
+    .mobile-app { max-width: 480px; margin: 0 auto; min-height: 100vh; background: var(--bg-primary); }
+    .topo { background: linear-gradient(135deg, var(--primary), var(--primary-dark)); color: #fff; padding: var(--space-xl) var(--space-lg); text-align: center; }
+    .topo h1 { font-size: var(--text-2xl); font-weight: var(--font-bold); }
+    .topo p { opacity: .9; font-size: var(--text-sm); margin-top: var(--space-xs); }
+    .conteudo { padding: var(--space-lg); padding-bottom: 120px; }
+    .secao { margin-bottom: var(--space-xl); }
+    .secao-titulo { font-weight: var(--font-semibold); margin-bottom: var(--space-md); display: flex; align-items: center; gap: var(--space-sm); color: var(--text-primary); }
+    .secao-titulo .num { width: 24px; height: 24px; border-radius: 50%; background: var(--primary); color: #fff; display: flex; align-items: center; justify-content: center; font-size: var(--text-xs); }
+    .opcoes { display: grid; gap: var(--space-sm); }
+    .opcao { border: 2px solid var(--border-color); border-radius: var(--radius-lg); padding: var(--space-md); cursor: pointer; transition: all var(--transition-fast); display: flex; justify-content: space-between; align-items: center; }
+    .opcao:hover { border-color: var(--primary); }
+    .opcao.sel { border-color: var(--primary); background: var(--primary-light); }
+    .opcao .nome { font-weight: var(--font-medium); }
+    .opcao .meta { font-size: var(--text-sm); color: var(--text-secondary); }
+    .grid-horarios { display: grid; grid-template-columns: repeat(4, 1fr); gap: var(--space-sm); }
+    .slot { border: 2px solid var(--border-color); border-radius: var(--radius-md); padding: var(--space-sm); text-align: center; cursor: pointer; font-size: var(--text-sm); font-weight: var(--font-medium); }
+    .slot:hover { border-color: var(--primary); }
+    .slot.sel { background: var(--primary); color: #fff; border-color: var(--primary); }
+    .slot.ocupado { background: var(--gray-200); color: var(--text-muted); cursor: not-allowed; text-decoration: line-through; }
+    .slot.especial { border-color: var(--warning); color: var(--warning); }
+    .slot.especial.sel { background: var(--warning); color: #fff; }
+    .barra { position: fixed; bottom: 0; left: 50%; transform: translateX(-50%); width: 100%; max-width: 480px; background: var(--bg-card); border-top: 1px solid var(--border-color); padding: var(--space-md); }
+    .alert { padding: var(--space-sm) var(--space-md); border-radius: var(--radius-md); font-size: var(--text-sm); margin-bottom: var(--space-md); display: none; }
+    .alert.error { background: var(--error-light); color: var(--error); display: block; }
+    .sucesso-box { text-align: center; padding: var(--space-2xl) var(--space-lg); }
+    .sucesso-box .check { width: 80px; height: 80px; border-radius: 50%; background: var(--success-light); color: var(--success); display: flex; align-items: center; justify-content: center; font-size: 2.5rem; margin: 0 auto var(--space-lg); }
+    .hidden { display: none; }
+  </style>
+</head>
+<body>
+  <div class="mobile-app">
+    <div class="topo">
+      <h1 id="barbearia-nome">Carregando...</h1>
+      <p id="barbearia-endereco">Agende seu horario online</p>
+    </div>
+
+    <div class="conteudo" id="form-area">
+      <div id="alerta" class="alert"></div>
+
+      <!-- 1. Servico -->
+      <div class="secao">
+        <div class="secao-titulo"><span class="num">1</span> Escolha o servico</div>
+        <div class="opcoes" id="lista-servicos"></div>
+      </div>
+
+      <!-- 2. Profissional -->
+      <div class="secao">
+        <div class="secao-titulo"><span class="num">2</span> Escolha o profissional</div>
+        <div class="opcoes" id="lista-profissionais"></div>
+      </div>
+
+      <!-- 3. Data -->
+      <div class="secao">
+        <div class="secao-titulo"><span class="num">3</span> Escolha a data</div>
+        <input class="input" type="date" id="data-agendamento">
+      </div>
+
+      <!-- 4. Horario -->
+      <div class="secao">
+        <div class="secao-titulo"><span class="num">4</span> Escolha o horario</div>
+        <div class="grid-horarios" id="lista-horarios"></div>
+      </div>
+
+      <!-- 5. Seus dados -->
+      <div class="secao">
+        <div class="secao-titulo"><span class="num">5</span> Seus dados</div>
+        <div style="margin-bottom: var(--space-sm)">
+          <input class="input" type="text" id="cliente-nome" placeholder="Seu nome">
+        </div>
+        <input class="input" type="tel" id="cliente-telefone" placeholder="Seu WhatsApp (DDD + numero)">
+      </div>
+    </div>
+
+    <!-- SUCESSO -->
+    <div class="conteudo hidden" id="sucesso-area">
+      <div class="sucesso-box">
+        <div class="check"><i class="fas fa-check"></i></div>
+        <h2 style="font-weight: var(--font-bold); margin-bottom: var(--space-sm)">Agendamento confirmado!</h2>
+        <p style="color: var(--text-secondary)" id="sucesso-detalhe"></p>
+        <p style="color: var(--text-muted); font-size: var(--text-sm); margin-top: var(--space-md)">
+          Voce recebera a confirmacao no WhatsApp.
+        </p>
+        <button class="btn btn-secondary btn-full" style="margin-top: var(--space-xl)" onclick="location.reload()">
+          Fazer outro agendamento
+        </button>
+      </div>
+    </div>
+
+    <div class="barra" id="barra-acao">
+      <button class="btn btn-primary btn-full btn-lg" onclick="confirmar()">
+        <i class="fas fa-calendar-check"></i> Confirmar agendamento
+      </button>
+    </div>
+  </div>
+
+  <script>
+    const params = new URLSearchParams(location.search);
+    const slug = params.get('b');
+    let dados = null;
+    let sel = { servico: null, profissional: null, horario: null, especial: false };
+    let ocupados = [];
+
+    function alerta(msg) {
+      const el = document.getElementById('alerta');
+      el.textContent = msg; el.className = 'alert error';
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    }
+
+    async function carregar() {
+      if (!slug) { alerta('Link invalido. Falta o identificador da barbearia (?b=slug).'); return; }
+      try {
+        const r = await fetch(`/api/publico/${slug}`);
+        if (!r.ok) throw new Error('Barbearia nao encontrada');
+        dados = await r.json();
+        document.getElementById('barbearia-nome').textContent = dados.barbearia.nome;
+        if (dados.barbearia.endereco) document.getElementById('barbearia-endereco').textContent = dados.barbearia.endereco;
+        renderServicos();
+        renderProfissionais();
+        // data padrao = hoje
+        const hoje = new Date().toISOString().split('T')[0];
+        document.getElementById('data-agendamento').value = hoje;
+        document.getElementById('data-agendamento').min = hoje;
+        await carregarOcupados();
+      } catch (e) {
+        alerta(e.message);
+      }
+    }
+
+    function renderServicos() {
+      document.getElementById('lista-servicos').innerHTML = dados.servicos.map(s => `
+        <div class="opcao" data-id="${s.id}" onclick="selServico('${s.id}', this)">
+          <div><div class="nome">${s.nome}</div><div class="meta">${s.duracao_minutos} min</div></div>
+          <div class="meta">R$ ${Number(s.preco).toFixed(2)}</div>
+        </div>`).join('');
+    }
+    function renderProfissionais() {
+      document.getElementById('lista-profissionais').innerHTML = dados.profissionais.map(p => `
+        <div class="opcao" data-id="${p.id}" onclick="selProf('${p.id}', this)">
+          <div><div class="nome">${p.nome}</div><div class="meta">${p.especialidade || ''}</div></div>
+          <i class="fas fa-chevron-right meta"></i>
+        </div>`).join('');
+    }
+
+    function selServico(id, el) {
+      sel.servico = id;
+      document.querySelectorAll('#lista-servicos .opcao').forEach(o => o.classList.remove('sel'));
+      el.classList.add('sel');
+    }
+    function selProf(id, el) {
+      sel.profissional = id;
+      document.querySelectorAll('#lista-profissionais .opcao').forEach(o => o.classList.remove('sel'));
+      el.classList.add('sel');
+      renderHorarios();
+    }
+
+    async function carregarOcupados() {
+      const data = document.getElementById('data-agendamento').value;
+      const r = await fetch(`/api/publico/${slug}/horarios?data=${data}`);
+      const j = await r.json();
+      ocupados = (j.ocupados || []).map(o => ({
+        prof: o.profissional_id,
+        hora: new Date(o.data_hora).toTimeString().slice(0,5),
+      }));
+      renderHorarios();
+    }
+
+    function gerarSlots() {
+      const cfg = dados.barbearia.horario_config || {};
+      const slots = [];
+      const addRange = (ini, fim, especial) => {
+        if (!ini || !fim) return;
+        let [h, m] = ini.split(':').map(Number);
+        const [hf, mf] = fim.split(':').map(Number);
+        while (h < hf || (h === hf && m < mf)) {
+          slots.push({ hora: `${String(h).padStart(2,'0')}:${String(m).padStart(2,'0')}`, especial });
+          m += (cfg.intervalo_minutos || 30);
+          if (m >= 60) { m -= 60; h++; }
+        }
+      };
+      addRange(cfg.manha?.inicio, cfg.manha?.fim, false);
+      addRange(cfg.tarde?.inicio, cfg.tarde?.fim, false);
+      addRange(cfg.especial?.inicio, cfg.especial?.fim, true);
+      return slots;
+    }
+
+    function renderHorarios() {
+      const cont = document.getElementById('lista-horarios');
+      if (!sel.profissional) { cont.innerHTML = '<p class="meta" style="grid-column:1/-1; color: var(--text-muted)">Selecione um profissional primeiro</p>'; return; }
+      const slots = gerarSlots();
+      cont.innerHTML = slots.map(s => {
+        const ocupado = ocupados.some(o => o.prof === sel.profissional && o.hora === s.hora);
+        const cls = ['slot'];
+        if (s.especial) cls.push('especial');
+        if (ocupado) cls.push('ocupado');
+        return `<div class="${cls.join(' ')}" ${ocupado ? '' : `onclick="selHora('${s.hora}', ${s.especial}, this)"`}>${s.hora}</div>`;
+      }).join('');
+    }
+
+    function selHora(hora, especial, el) {
+      sel.horario = hora; sel.especial = especial;
+      document.querySelectorAll('#lista-horarios .slot').forEach(o => o.classList.remove('sel'));
+      el.classList.add('sel');
+    }
+
+    document.getElementById('data-agendamento').addEventListener('change', () => { sel.horario = null; carregarOcupados(); });
+
+    async function confirmar() {
+      const nome = document.getElementById('cliente-nome').value.trim();
+      const telefone = document.getElementById('cliente-telefone').value.trim();
+      const data = document.getElementById('data-agendamento').value;
+
+      if (!sel.servico) return alerta('Escolha um servico');
+      if (!sel.profissional) return alerta('Escolha um profissional');
+      if (!data || !sel.horario) return alerta('Escolha data e horario');
+      if (!nome || !telefone) return alerta('Preencha seu nome e telefone');
+
+      const data_hora = `${data}T${sel.horario}:00`;
+      try {
+        const r = await fetch(`/api/publico/${slug}/agendar`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            nome, telefone,
+            profissional_id: sel.profissional,
+            servico_id: sel.servico,
+            data_hora,
+            is_especial: sel.especial,
+          }),
+        });
+        const j = await r.json();
+        if (!r.ok) throw new Error(j.erro || 'Erro ao agendar');
+
+        const prof = dados.profissionais.find(p => p.id === sel.profissional);
+        document.getElementById('sucesso-detalhe').textContent =
+          `${data.split('-').reverse().join('/')} as ${sel.horario} com ${prof?.nome || ''}`;
+        document.getElementById('form-area').classList.add('hidden');
+        document.getElementById('barra-acao').classList.add('hidden');
+        document.getElementById('sucesso-area').classList.remove('hidden');
+      } catch (e) {
+        alerta(e.message);
+      }
+    }
+
+    carregar();
+  </script>
+</body>
+</html>

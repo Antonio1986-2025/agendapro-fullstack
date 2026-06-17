@@ -1,0 +1,430 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>AgendaPro - Configuração Concluída!</title>
+  <link rel="stylesheet" href="design-system.css">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+  <style>
+    .onboarding-container {
+      max-width: 500px;
+      margin: 0 auto;
+      min-height: 100vh;
+      background: var(--bg-primary);
+      display: flex;
+      flex-direction: column;
+    }
+    
+    .header {
+      text-align: center;
+      padding: var(--space-2xl) var(--space-lg);
+      background: linear-gradient(135deg, var(--success), #047857);
+      color: white;
+    }
+    
+    .success-icon {
+      width: 80px;
+      height: 80px;
+      background: rgba(255, 255, 255, 0.2);
+      border-radius: var(--radius-full);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      margin: 0 auto var(--space-lg);
+      font-size: var(--text-3xl);
+      animation: pulse 2s infinite;
+    }
+    
+    @keyframes pulse {
+      0%, 100% { transform: scale(1); }
+      50% { transform: scale(1.1); }
+    }
+    
+    .step-indicator {
+      margin: var(--space-lg) var(--space-lg) 0;
+      display: flex;
+      justify-content: center;
+      gap: var(--space-sm);
+    }
+    
+    .step {
+      width: 40px;
+      height: 4px;
+      background: var(--success);
+      border-radius: var(--radius-full);
+    }
+    
+    .content {
+      flex: 1;
+      padding: var(--space-lg);
+      text-align: center;
+    }
+    
+    .step-title {
+      font-size: var(--text-3xl);
+      font-weight: var(--font-bold);
+      color: var(--text-primary);
+      margin-bottom: var(--space-md);
+    }
+    
+    .step-subtitle {
+      color: var(--text-secondary);
+      font-size: var(--text-lg);
+      margin-bottom: var(--space-2xl);
+    }
+    
+    .summary-card {
+      background: var(--bg-card);
+      border: 1px solid var(--border-color);
+      border-radius: var(--radius-lg);
+      padding: var(--space-xl);
+      margin-bottom: var(--space-xl);
+      text-align: left;
+    }
+    
+    .summary-header {
+      display: flex;
+      align-items: center;
+      gap: var(--space-md);
+      margin-bottom: var(--space-lg);
+      padding-bottom: var(--space-md);
+      border-bottom: 1px solid var(--border-color);
+    }
+    
+    .business-logo {
+      width: 60px;
+      height: 60px;
+      background: var(--primary);
+      color: white;
+      border-radius: var(--radius-lg);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: var(--text-2xl);
+    }
+    
+    .business-info h2 {
+      font-size: var(--text-xl);
+      font-weight: var(--font-bold);
+      color: var(--text-primary);
+      margin-bottom: var(--space-xs);
+    }
+    
+    .business-info p {
+      color: var(--text-secondary);
+      font-size: var(--text-sm);
+    }
+    
+    .summary-section {
+      margin-bottom: var(--space-lg);
+    }
+    
+    .section-title {
+      font-weight: var(--font-semibold);
+      color: var(--text-primary);
+      margin-bottom: var(--space-md);
+      display: flex;
+      align-items: center;
+      gap: var(--space-sm);
+    }
+    
+    .stats-grid {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: var(--space-md);
+      margin-bottom: var(--space-lg);
+    }
+    
+    .stat-item {
+      background: var(--bg-secondary);
+      padding: var(--space-md);
+      border-radius: var(--radius-md);
+      text-align: center;
+    }
+    
+    .stat-number {
+      font-size: var(--text-xl);
+      font-weight: var(--font-bold);
+      color: var(--primary);
+      display: block;
+    }
+    
+    .stat-label {
+      font-size: var(--text-sm);
+      color: var(--text-secondary);
+      margin-top: var(--space-xs);
+    }
+    
+    .next-steps {
+      background: var(--primary-light);
+      border: 1px solid var(--primary);
+      border-radius: var(--radius-lg);
+      padding: var(--space-xl);
+      margin-bottom: var(--space-xl);
+    }
+    
+    .next-steps h3 {
+      color: var(--primary-dark);
+      font-weight: var(--font-semibold);
+      margin-bottom: var(--space-md);
+      display: flex;
+      align-items: center;
+      gap: var(--space-sm);
+    }
+    
+    .step-item {
+      display: flex;
+      align-items: flex-start;
+      gap: var(--space-sm);
+      margin-bottom: var(--space-md);
+      font-size: var(--text-sm);
+    }
+    
+    .step-number {
+      background: var(--primary);
+      color: white;
+      width: 24px;
+      height: 24px;
+      border-radius: var(--radius-full);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-weight: var(--font-bold);
+      font-size: 12px;
+      flex-shrink: 0;
+    }
+    
+    .action-buttons {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: var(--space-md);
+      margin-top: var(--space-xl);
+    }
+    
+    .plan-info {
+      background: var(--warning-light);
+      border: 1px solid var(--warning);
+      border-radius: var(--radius-lg);
+      padding: var(--space-lg);
+      margin-bottom: var(--space-xl);
+      text-align: center;
+    }
+    
+    .plan-info h4 {
+      color: var(--warning);
+      font-weight: var(--font-semibold);
+      margin-bottom: var(--space-sm);
+    }
+  </style>
+</head>
+<body>
+  <div class="onboarding-container">
+    <header class="header">
+      <div class="success-icon">
+        <i class="fas fa-check"></i>
+      </div>
+      <h1 style="font-size: var(--text-2xl); font-weight: var(--font-bold); margin-bottom: var(--space-sm);">
+        Configuração Concluída!
+      </h1>
+      <p>Sua barbearia está pronta para receber agendamentos</p>
+    </header>
+    
+    <div class="step-indicator">
+      <div class="step"></div>
+      <div class="step"></div>
+      <div class="step"></div>
+      <div class="step"></div>
+      <div class="step"></div>
+    </div>
+    
+    <div class="content">
+      <h1 class="step-title">Tudo Pronto! 🎉</h1>
+      <p class="step-subtitle">Seu sistema está configurado e funcionando</p>
+      
+      <!-- Resumo da Configuração -->
+      <div class="summary-card">
+        <div class="summary-header">
+          <div class="business-logo">
+            <i class="fas fa-cut"></i>
+          </div>
+          <div class="business-info">
+            <h2 id="business-name">Carregando...</h2>
+            <p id="business-location">Carregando localização...</p>
+          </div>
+        </div>
+        
+        <div class="stats-grid">
+          <div class="stat-item">
+            <span class="stat-number" id="professionals-count">0</span>
+            <span class="stat-label">Profissionais</span>
+          </div>
+          <div class="stat-item">
+            <span class="stat-number" id="services-count">0</span>
+            <span class="stat-label">Serviços</span>
+          </div>
+        </div>
+        
+        <div class="summary-section">
+          <div class="section-title">
+            <i class="fas fa-whatsapp" style="color: #25d366;"></i>
+            WhatsApp
+          </div>
+          <p id="whatsapp-status" style="color: var(--text-secondary); font-size: var(--text-sm);">
+            Carregando status...
+          </p>
+        </div>
+      </div>
+      
+      <!-- Período de Teste -->
+      <div class="plan-info">
+        <h4><i class="fas fa-gift"></i> Período de Teste - 7 dias GRÁTIS</h4>
+        <p style="font-size: var(--text-sm); color: var(--text-secondary);">
+          Teste todas as funcionalidades sem compromisso. Após o período, escolha seu plano.
+        </p>
+      </div>
+      
+      <!-- Próximos Passos -->
+      <div class="next-steps">
+        <h3>
+          <i class="fas fa-list-check"></i>
+          Próximos Passos
+        </h3>
+        
+        <div class="step-item">
+          <div class="step-number">1</div>
+          <div>
+            <strong>Acesse seu dashboard</strong><br>
+            Explore as funcionalidades e familiarize-se com o sistema
+          </div>
+        </div>
+        
+        <div class="step-item">
+          <div class="step-number">2</div>
+          <div>
+            <strong>Teste os agendamentos</strong><br>
+            Envie uma mensagem para seu WhatsApp e veja a IA funcionando
+          </div>
+        </div>
+        
+        <div class="step-item">
+          <div class="step-number">3</div>
+          <div>
+            <strong>Personalize as configurações</strong><br>
+            Ajuste horários, mensagens e notificações
+          </div>
+        </div>
+        
+        <div class="step-item">
+          <div class="step-number">4</div>
+          <div>
+            <strong>Divulgue para os clientes</strong><br>
+            Compartilhe seu número WhatsApp para agendamentos automáticos
+          </div>
+        </div>
+      </div>
+    </div>
+    
+    <div style="padding: var(--space-lg);">
+      <div class="action-buttons">
+        <button onclick="openTutorial()" class="btn btn-secondary">
+          <i class="fas fa-play"></i> Tutorial
+        </button>
+        <button onclick="goToDashboard()" class="btn btn-primary">
+          <i class="fas fa-rocket"></i> Começar
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    // Carregar dados do onboarding
+    document.addEventListener('DOMContentLoaded', function() {
+      loadSummaryData();
+    });
+    
+    function loadSummaryData() {
+      try {
+        // Dados da barbearia
+        const step1 = JSON.parse(localStorage.getItem('onboarding_step1') || '{}');
+        document.getElementById('business-name').textContent = step1.nome || 'Minha Barbearia';
+        document.getElementById('business-location').textContent = step1.cidade || 'Cidade não informada';
+        
+        // Profissionais
+        const step2 = JSON.parse(localStorage.getItem('onboarding_step2') || '[]');
+        document.getElementById('professionals-count').textContent = step2.length || 0;
+        
+        // Serviços
+        const step3 = JSON.parse(localStorage.getItem('onboarding_step3') || '[]');
+        document.getElementById('services-count').textContent = step3.length || 0;
+        
+        // WhatsApp
+        const step4 = JSON.parse(localStorage.getItem('onboarding_step4') || '{}');
+        const whatsappStatus = document.getElementById('whatsapp-status');
+        
+        if (step4.type === 'auto') {
+          whatsappStatus.innerHTML = '<i class="fas fa-check" style="color: var(--success);"></i> Configuração automática - ' + (step4.phone || 'Número não informado');
+        } else if (step4.type === 'manual') {
+          whatsappStatus.innerHTML = '<i class="fas fa-cog" style="color: var(--primary);"></i> Configuração manual - ' + (step4.instance || 'Instância configurada');
+        } else {
+          whatsappStatus.innerHTML = '<i class="fas fa-clock" style="color: var(--warning);"></i> Para configurar depois';
+        }
+        
+      } catch (error) {
+        console.error('Erro ao carregar dados do onboarding:', error);
+      }
+    }
+    
+    function openTutorial() {
+      // Implementar tutorial interativo
+      alert('Tutorial interativo será aberto aqui!\n\nIrá mostrar:\n• Como usar o dashboard\n• Como funcionam os agendamentos\n• Dicas de configuração');
+    }
+    
+    function goToDashboard() {
+      // Marcar onboarding como concluído
+      localStorage.setItem('onboarding_completed', 'true');
+      
+      // Salvar dados finais (aqui seria enviado para o backend)
+      const onboardingData = {
+        business: JSON.parse(localStorage.getItem('onboarding_step1') || '{}'),
+        professionals: JSON.parse(localStorage.getItem('onboarding_step2') || '[]'),
+        services: JSON.parse(localStorage.getItem('onboarding_step3') || '[]'),
+        whatsapp: JSON.parse(localStorage.getItem('onboarding_step4') || '{}'),
+        completed_at: new Date().toISOString()
+      };
+      
+      console.log('Dados do onboarding completos:', onboardingData);
+      
+      // Simular envio para backend
+      setTimeout(() => {
+        // Ir para dashboard
+        window.location.href = 'dashboard-mobile.html';
+      }, 1000);
+    }
+    
+    // Efeito de animação nos números
+    function animateCounter(elementId, target) {
+      const element = document.getElementById(elementId);
+      let current = 0;
+      const increment = target / 30;
+      const timer = setInterval(() => {
+        current += increment;
+        if (current >= target) {
+          current = target;
+          clearInterval(timer);
+        }
+        element.textContent = Math.floor(current);
+      }, 50);
+    }
+    
+    // Animar contadores após carregamento
+    setTimeout(() => {
+      const profCount = parseInt(document.getElementById('professionals-count').textContent);
+      const servCount = parseInt(document.getElementById('services-count').textContent);
+      
+      if (profCount > 0) animateCounter('professionals-count', profCount);
+      if (servCount > 0) animateCounter('services-count', servCount);
+    }, 500);
+  </script>
+</body>
+</html>

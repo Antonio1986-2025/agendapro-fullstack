@@ -1,0 +1,379 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>AgendaPro - Cadastrar Serviços</title>
+  <link rel="stylesheet" href="design-system.css">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+  <style>
+    .onboarding-container {
+      max-width: 500px;
+      margin: 0 auto;
+      min-height: 100vh;
+      background: var(--bg-primary);
+      display: flex;
+      flex-direction: column;
+    }
+    
+    .header {
+      text-align: center;
+      padding: var(--space-xl) var(--space-lg);
+      background: linear-gradient(135deg, var(--primary), var(--primary-hover));
+      color: var(--text-inverse);
+    }
+    
+    .step-indicator {
+      margin: var(--space-lg) var(--space-lg) 0;
+      display: flex;
+      justify-content: center;
+      gap: var(--space-sm);
+    }
+    
+    .step {
+      width: 40px;
+      height: 4px;
+      background: var(--gray-300);
+      border-radius: var(--radius-full);
+    }
+    
+    .step.completed { background: var(--success); }
+    .step.active { background: var(--primary); }
+    
+    .content {
+      flex: 1;
+      padding: var(--space-lg);
+    }
+    
+    .step-title {
+      font-size: var(--text-2xl);
+      font-weight: var(--font-bold);
+      color: var(--text-primary);
+      text-align: center;
+      margin-bottom: var(--space-sm);
+    }
+    
+    .step-subtitle {
+      color: var(--text-secondary);
+      text-align: center;
+      margin-bottom: var(--space-xl);
+    }
+    
+    .templates-section {
+      margin-bottom: var(--space-xl);
+    }
+    
+    .template-btn {
+      width: 100%;
+      padding: var(--space-md);
+      background: var(--bg-card);
+      border: 1px solid var(--border-color);
+      border-radius: var(--radius-lg);
+      margin-bottom: var(--space-md);
+      cursor: pointer;
+      transition: all var(--transition-fast);
+      text-align: left;
+    }
+    
+    .template-btn:hover {
+      border-color: var(--primary);
+      background: var(--primary-light);
+    }
+    
+    .template-title {
+      font-weight: var(--font-semibold);
+      color: var(--text-primary);
+      margin-bottom: var(--space-xs);
+    }
+    
+    .template-desc {
+      font-size: var(--text-sm);
+      color: var(--text-secondary);
+      margin-bottom: var(--space-sm);
+    }
+    
+    .template-services {
+      font-size: 12px;
+      color: var(--text-muted);
+    }
+    
+    .service-card {
+      background: var(--bg-card);
+      border: 1px solid var(--border-color);
+      border-radius: var(--radius-lg);
+      padding: var(--space-md);
+      margin-bottom: var(--space-md);
+      position: relative;
+    }
+    
+    .remove-service-btn {
+      position: absolute;
+      top: var(--space-sm);
+      right: var(--space-sm);
+      background: var(--error);
+      color: var(--text-inverse);
+      border: none;
+      width: 20px;
+      height: 20px;
+      border-radius: var(--radius-full);
+      cursor: pointer;
+      font-size: 10px;
+    }
+    
+    .form-row {
+      display: grid;
+      grid-template-columns: 2fr 1fr 1fr;
+      gap: var(--space-sm);
+      align-items: end;
+    }
+    
+    .form-group {
+      margin-bottom: var(--space-sm);
+    }
+    
+    .form-label {
+      display: block;
+      font-weight: var(--font-medium);
+      color: var(--text-primary);
+      margin-bottom: var(--space-xs);
+      font-size: 12px;
+    }
+    
+    .form-input, .form-select {
+      width: 100%;
+      padding: var(--space-sm);
+      border: 1px solid var(--border-color);
+      border-radius: var(--radius-md);
+      font-size: var(--text-sm);
+    }
+    
+    .currency-input {
+      position: relative;
+    }
+    
+    .currency-input::before {
+      content: 'R$';
+      position: absolute;
+      left: 8px;
+      top: 50%;
+      transform: translateY(-50%);
+      color: var(--text-secondary);
+      font-size: var(--text-sm);
+    }
+    
+    .currency-input input {
+      padding-left: 28px;
+    }
+    
+    .add-service {
+      border: 2px dashed var(--border-color);
+      border-radius: var(--radius-lg);
+      padding: var(--space-lg);
+      text-align: center;
+      cursor: pointer;
+      transition: all var(--transition-fast);
+      color: var(--text-secondary);
+    }
+    
+    .add-service:hover {
+      border-color: var(--primary);
+      background: var(--primary-light);
+      color: var(--primary);
+    }
+  </style>
+</head>
+<body>
+  <div class="onboarding-container">
+    <header class="header">
+      <div style="font-size: var(--text-2xl); font-weight: var(--font-bold); margin-bottom: var(--space-sm);">
+        ✂️ Cadastrar Serviços
+      </div>
+      <p>Configure seu catálogo de serviços</p>
+    </header>
+    
+    <div class="step-indicator">
+      <div class="step completed"></div>
+      <div class="step completed"></div>
+      <div class="step active"></div>
+      <div class="step"></div>
+      <div class="step"></div>
+    </div>
+    
+    <div class="content">
+      <h1 class="step-title">Catálogo de Serviços</h1>
+      <p class="step-subtitle">Escolha um template ou crie do zero</p>
+      
+      <div class="templates-section">
+        <div class="template-btn" onclick="loadTemplate('barbearia-tradicional')">
+          <div class="template-title">🏪 Barbearia Tradicional</div>
+          <div class="template-desc">Serviços clássicos masculinos</div>
+          <div class="template-services">Corte Masculino • Barba • Bigode • Sobrancelha</div>
+        </div>
+        
+        <div class="template-btn" onclick="loadTemplate('salao-misto')">
+          <div class="template-title">💇 Salão Misto</div>
+          <div class="template-desc">Atendimento masculino e feminino</div>
+          <div class="template-services">Cortes • Barba • Escova • Coloração • Sobrancelha</div>
+        </div>
+        
+        <div class="template-btn" onclick="loadTemplate('barbearia-premium')">
+          <div class="template-title">👑 Barbearia Premium</div>
+          <div class="template-desc">Serviços diferenciados e tratamentos</div>
+          <div class="template-services">Todos os serviços • Tratamentos • Massagem • Hot Towel</div>
+        </div>
+      </div>
+      
+      <hr style="border: 1px solid var(--border-color); margin: var(--space-xl) 0;">
+      
+      <div id="services-list">
+        <!-- Serviço exemplo -->
+        <div class="service-card">
+          <button class="remove-service-btn" onclick="removeService(this)">×</button>
+          
+          <div class="form-row">
+            <div class="form-group">
+              <label class="form-label">Nome do Serviço</label>
+              <input type="text" class="form-input" placeholder="Ex: Corte Masculino" required>
+            </div>
+            <div class="form-group">
+              <label class="form-label">Preço (R$)</label>
+              <div class="currency-input">
+                <input type="number" class="form-input" placeholder="25.00" step="0.01" required>
+              </div>
+            </div>
+            <div class="form-group">
+              <label class="form-label">Duração (min)</label>
+              <input type="number" class="form-input" placeholder="30" min="5" max="300" required>
+            </div>
+          </div>
+          
+          <div class="form-group">
+            <label class="form-label">Categoria</label>
+            <select class="form-select" required>
+              <option value="">Selecione</option>
+              <option value="cabelo">Cabelo</option>
+              <option value="barba">Barba</option>
+              <option value="sobrancelha">Sobrancelha</option>
+              <option value="tratamento">Tratamento</option>
+              <option value="outros">Outros</option>
+            </select>
+          </div>
+          
+          <div class="form-group">
+            <label class="form-label">Descrição (opcional)</label>
+            <input type="text" class="form-input" placeholder="Ex: Corte com máquina e tesoura, finalização com gel">
+          </div>
+        </div>
+      </div>
+      
+      <div class="add-service" onclick="addService()">
+        <i class="fas fa-plus" style="font-size: var(--text-lg); margin-bottom: var(--space-xs);"></i>
+        <p>Adicionar Serviço</p>
+      </div>
+    </div>
+    
+    <div style="padding: var(--space-lg); border-top: 1px solid var(--border-color);">
+      <button onclick="prevStep()" class="btn btn-secondary" style="margin-right: var(--space-md);">
+        <i class="fas fa-arrow-left"></i> Voltar
+      </button>
+      <button onclick="nextStep()" class="btn btn-primary">
+        Próximo <i class="fas fa-arrow-right"></i>
+      </button>
+    </div>
+  </div>
+
+  <script>
+    const templates = {
+      'barbearia-tradicional': [
+        { nome: 'Corte Masculino', preco: 25.00, duracao: 30, categoria: 'cabelo', descricao: 'Corte tradicional com máquina e tesoura' },
+        { nome: 'Barba Completa', preco: 15.00, duracao: 20, categoria: 'barba', descricao: 'Aparar, modelar e finalizar com produtos' },
+        { nome: 'Bigode', preco: 8.00, duracao: 10, categoria: 'barba', descricao: 'Aparar e modelar bigode' },
+        { nome: 'Sobrancelha Masculina', preco: 12.00, duracao: 15, categoria: 'sobrancelha', descricao: 'Aparar e modelar sobrancelhas' }
+      ],
+      'salao-misto': [
+        { nome: 'Corte Masculino', preco: 25.00, duracao: 30, categoria: 'cabelo' },
+        { nome: 'Corte Feminino', preco: 35.00, duracao: 45, categoria: 'cabelo' },
+        { nome: 'Corte + Escova', preco: 50.00, duracao: 60, categoria: 'cabelo' },
+        { nome: 'Barba Completa', preco: 15.00, duracao: 20, categoria: 'barba' },
+        { nome: 'Design de Sobrancelha', preco: 20.00, duracao: 25, categoria: 'sobrancelha' },
+        { nome: 'Coloração', preco: 80.00, duracao: 120, categoria: 'cabelo' }
+      ],
+      'barbearia-premium': [
+        { nome: 'Corte Premium', preco: 45.00, duracao: 45, categoria: 'cabelo' },
+        { nome: 'Barba Premium', preco: 30.00, duracao: 30, categoria: 'barba' },
+        { nome: 'Combo Corte + Barba', preco: 70.00, duracao: 60, categoria: 'cabelo' },
+        { nome: 'Hot Towel', preco: 25.00, duracao: 20, categoria: 'tratamento' },
+        { nome: 'Massagem Relaxante', preco: 40.00, duracao: 30, categoria: 'tratamento' },
+        { nome: 'Tratamento Capilar', preco: 60.00, duracao: 45, categoria: 'tratamento' }
+      ]
+    };
+    
+    function loadTemplate(templateName) {
+      const services = templates[templateName];
+      const servicesList = document.getElementById('services-list');
+      servicesList.innerHTML = '';
+      
+      services.forEach(service => {
+        const card = createServiceCard(service);
+        servicesList.appendChild(card);
+      });
+    }
+    
+    function createServiceCard(service = {}) {
+      const template = document.querySelector('.service-card').cloneNode(true);
+      
+      if (service.nome) {
+        template.querySelector('input[placeholder*="Corte"]').value = service.nome;
+        template.querySelector('input[placeholder*="25.00"]').value = service.preco;
+        template.querySelector('input[placeholder*="30"]').value = service.duracao;
+        template.querySelector('select').value = service.categoria || '';
+        if (service.descricao) {
+          template.querySelector('input[placeholder*="máquina"]').value = service.descricao;
+        }
+      }
+      
+      return template;
+    }
+    
+    function addService() {
+      const newCard = createServiceCard();
+      document.getElementById('services-list').appendChild(newCard);
+    }
+    
+    function removeService(btn) {
+      if (document.querySelectorAll('.service-card').length > 1) {
+        btn.parentElement.remove();
+      } else {
+        alert('Você precisa ter pelo menos 1 serviço');
+      }
+    }
+    
+    function prevStep() {
+      window.location.href = 'onboarding-step2.html';
+    }
+    
+    function nextStep() {
+      const services = [];
+      document.querySelectorAll('.service-card').forEach(card => {
+        const nome = card.querySelector('input[placeholder*="Corte"]').value;
+        const preco = card.querySelector('input[placeholder*="25.00"]').value;
+        const duracao = card.querySelector('input[placeholder*="30"]').value;
+        const categoria = card.querySelector('select').value;
+        const descricao = card.querySelector('input[placeholder*="máquina"]').value;
+        
+        if (nome && preco && duracao && categoria) {
+          services.push({ nome, preco: parseFloat(preco), duracao: parseInt(duracao), categoria, descricao });
+        }
+      });
+      
+      if (services.length === 0) {
+        alert('Cadastre pelo menos 1 serviço');
+        return;
+      }
+      
+      localStorage.setItem('onboarding_step3', JSON.stringify(services));
+      window.location.href = 'onboarding-step4.html';
+    }
+  </script>
+</body>
+</html>

@@ -1,0 +1,409 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>AgendaPro - Configurar WhatsApp</title>
+  <link rel="stylesheet" href="design-system.css">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+  <style>
+    .onboarding-container {
+      max-width: 500px;
+      margin: 0 auto;
+      min-height: 100vh;
+      background: var(--bg-primary);
+      display: flex;
+      flex-direction: column;
+    }
+    
+    .header {
+      text-align: center;
+      padding: var(--space-xl) var(--space-lg);
+      background: linear-gradient(135deg, #25d366, #128c7e);
+      color: white;
+    }
+    
+    .step-indicator {
+      margin: var(--space-lg) var(--space-lg) 0;
+      display: flex;
+      justify-content: center;
+      gap: var(--space-sm);
+    }
+    
+    .step {
+      width: 40px;
+      height: 4px;
+      background: var(--gray-300);
+      border-radius: var(--radius-full);
+    }
+    
+    .step.completed { background: var(--success); }
+    .step.active { background: var(--primary); }
+    
+    .content {
+      flex: 1;
+      padding: var(--space-lg);
+    }
+    
+    .step-title {
+      font-size: var(--text-2xl);
+      font-weight: var(--font-bold);
+      color: var(--text-primary);
+      text-align: center;
+      margin-bottom: var(--space-sm);
+    }
+    
+    .step-subtitle {
+      color: var(--text-secondary);
+      text-align: center;
+      margin-bottom: var(--space-xl);
+    }
+    
+    .integration-option {
+      background: var(--bg-card);
+      border: 2px solid var(--border-color);
+      border-radius: var(--radius-lg);
+      padding: var(--space-lg);
+      margin-bottom: var(--space-md);
+      cursor: pointer;
+      transition: all var(--transition-fast);
+    }
+    
+    .integration-option:hover,
+    .integration-option.selected {
+      border-color: #25d366;
+      background: rgba(37, 211, 102, 0.05);
+    }
+    
+    .option-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: var(--space-md);
+    }
+    
+    .option-info {
+      display: flex;
+      align-items: center;
+      gap: var(--space-md);
+    }
+    
+    .option-icon {
+      width: 48px;
+      height: 48px;
+      background: #25d366;
+      color: white;
+      border-radius: var(--radius-lg);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: var(--text-xl);
+    }
+    
+    .option-details h3 {
+      font-weight: var(--font-semibold);
+      color: var(--text-primary);
+      margin-bottom: var(--space-xs);
+    }
+    
+    .option-details p {
+      font-size: var(--text-sm);
+      color: var(--text-secondary);
+    }
+    
+    .radio-btn {
+      width: 20px;
+      height: 20px;
+      border: 2px solid var(--border-color);
+      border-radius: var(--radius-full);
+      position: relative;
+    }
+    
+    .integration-option.selected .radio-btn {
+      border-color: #25d366;
+      background: #25d366;
+    }
+    
+    .integration-option.selected .radio-btn::after {
+      content: '✓';
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      color: white;
+      font-size: 12px;
+      font-weight: bold;
+    }
+    
+    .config-form {
+      display: none;
+      background: var(--bg-secondary);
+      border-radius: var(--radius-lg);
+      padding: var(--space-lg);
+      margin-top: var(--space-md);
+    }
+    
+    .config-form.active {
+      display: block;
+    }
+    
+    .form-group {
+      margin-bottom: var(--space-md);
+    }
+    
+    .form-label {
+      display: block;
+      font-weight: var(--font-medium);
+      color: var(--text-primary);
+      margin-bottom: var(--space-sm);
+      font-size: var(--text-sm);
+    }
+    
+    .form-input {
+      width: 100%;
+      padding: var(--space-md);
+      border: 1px solid var(--border-color);
+      border-radius: var(--radius-md);
+      font-size: var(--text-base);
+    }
+    
+    .help-text {
+      font-size: 12px;
+      color: var(--text-muted);
+      margin-top: var(--space-xs);
+    }
+    
+    .qr-placeholder {
+      width: 200px;
+      height: 200px;
+      border: 2px dashed var(--border-color);
+      border-radius: var(--radius-lg);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      margin: var(--space-lg) auto;
+      color: var(--text-muted);
+      flex-direction: column;
+      gap: var(--space-sm);
+    }
+    
+    .whatsapp-benefits {
+      background: rgba(37, 211, 102, 0.1);
+      border: 1px solid rgba(37, 211, 102, 0.3);
+      border-radius: var(--radius-lg);
+      padding: var(--space-lg);
+      margin-top: var(--space-xl);
+    }
+    
+    .benefit {
+      display: flex;
+      align-items: center;
+      gap: var(--space-sm);
+      margin-bottom: var(--space-sm);
+      font-size: var(--text-sm);
+    }
+    
+    .benefit i {
+      color: #25d366;
+      width: 16px;
+    }
+  </style>
+</head>
+<body>
+  <div class="onboarding-container">
+    <header class="header">
+      <div style="font-size: var(--text-2xl); font-weight: var(--font-bold); margin-bottom: var(--space-sm);">
+        📱 WhatsApp Integration
+      </div>
+      <p>Configure os agendamentos automáticos</p>
+    </header>
+    
+    <div class="step-indicator">
+      <div class="step completed"></div>
+      <div class="step completed"></div>
+      <div class="step completed"></div>
+      <div class="step active"></div>
+      <div class="step"></div>
+    </div>
+    
+    <div class="content">
+      <h1 class="step-title">Integração WhatsApp</h1>
+      <p class="step-subtitle">Como você quer conectar o WhatsApp?</p>
+      
+      <!-- Opção 1: Automática -->
+      <div class="integration-option" onclick="selectOption(this, 'auto')">
+        <div class="option-header">
+          <div class="option-info">
+            <div class="option-icon">
+              <i class="fas fa-magic"></i>
+            </div>
+            <div class="option-details">
+              <h3>Configuração Automática</h3>
+              <p>Nós configuramos tudo para você (Recomendado)</p>
+            </div>
+          </div>
+          <div class="radio-btn"></div>
+        </div>
+        
+        <div class="config-form" id="auto-config">
+          <div class="form-group">
+            <label class="form-label">Número do WhatsApp Business</label>
+            <input type="tel" class="form-input" placeholder="(11) 99999-9999" required>
+            <div class="help-text">Digite o número que será usado para receber agendamentos</div>
+          </div>
+          
+          <div class="qr-placeholder">
+            <i class="fas fa-qrcode" style="font-size: 48px;"></i>
+            <p>Escaneie o QR Code no WhatsApp</p>
+            <small>Apareça após inserir o número</small>
+          </div>
+        </div>
+      </div>
+      
+      <!-- Opção 2: Manual -->
+      <div class="integration-option" onclick="selectOption(this, 'manual')">
+        <div class="option-header">
+          <div class="option-info">
+            <div class="option-icon">
+              <i class="fas fa-cog"></i>
+            </div>
+            <div class="option-details">
+              <h3>Configuração Manual</h3>
+              <p>Você já tem Evolution API configurada</p>
+            </div>
+          </div>
+          <div class="radio-btn"></div>
+        </div>
+        
+        <div class="config-form" id="manual-config">
+          <div class="form-group">
+            <label class="form-label">URL da Evolution API</label>
+            <input type="url" class="form-input" placeholder="https://sua-api.com" required>
+          </div>
+          
+          <div class="form-group">
+            <label class="form-label">API Key</label>
+            <input type="text" class="form-input" placeholder="your-api-key" required>
+            <div class="help-text">Chave de acesso da sua instância Evolution</div>
+          </div>
+          
+          <div class="form-group">
+            <label class="form-label">Nome da Instância</label>
+            <input type="text" class="form-input" placeholder="minha-barbearia" required>
+          </div>
+        </div>
+      </div>
+      
+      <!-- Opção 3: Depois -->
+      <div class="integration-option" onclick="selectOption(this, 'later')">
+        <div class="option-header">
+          <div class="option-info">
+            <div class="option-icon">
+              <i class="fas fa-clock"></i>
+            </div>
+            <div class="option-details">
+              <h3>Configurar Depois</h3>
+              <p>Pular por agora, configurar mais tarde</p>
+            </div>
+          </div>
+          <div class="radio-btn"></div>
+        </div>
+      </div>
+      
+      <!-- Benefícios do WhatsApp -->
+      <div class="whatsapp-benefits">
+        <h4 style="color: #25d366; font-weight: var(--font-semibold); margin-bottom: var(--space-md);">
+          🚀 Com o WhatsApp você terá:
+        </h4>
+        
+        <div class="benefit">
+          <i class="fas fa-robot"></i>
+          <span>Agendamentos automáticos 24/7</span>
+        </div>
+        
+        <div class="benefit">
+          <i class="fas fa-bell"></i>
+          <span>Lembretes automáticos para clientes</span>
+        </div>
+        
+        <div class="benefit">
+          <i class="fas fa-microphone"></i>
+          <span>Clientes podem mandar áudio</span>
+        </div>
+        
+        <div class="benefit">
+          <i class="fas fa-calendar-check"></i>
+          <span>Confirmações e reagendamentos</span>
+        </div>
+        
+        <div class="benefit">
+          <i class="fas fa-chart-line"></i>
+          <span>Relatórios de conversas</span>
+        </div>
+      </div>
+    </div>
+    
+    <div style="padding: var(--space-lg); border-top: 1px solid var(--border-color);">
+      <button onclick="prevStep()" class="btn btn-secondary" style="margin-right: var(--space-md);">
+        <i class="fas fa-arrow-left"></i> Voltar
+      </button>
+      <button onclick="nextStep()" class="btn btn-primary">
+        Finalizar <i class="fas fa-check"></i>
+      </button>
+    </div>
+  </div>
+
+  <script>
+    let selectedOption = null;
+    
+    function selectOption(element, option) {
+      // Remove seleção anterior
+      document.querySelectorAll('.integration-option').forEach(opt => {
+        opt.classList.remove('selected');
+        opt.querySelector('.config-form').classList.remove('active');
+      });
+      
+      // Seleciona nova opção
+      element.classList.add('selected');
+      element.querySelector('.config-form')?.classList.add('active');
+      selectedOption = option;
+    }
+    
+    function prevStep() {
+      window.location.href = 'onboarding-step3.html';
+    }
+    
+    function nextStep() {
+      if (!selectedOption) {
+        alert('Selecione uma opção de integração');
+        return;
+      }
+      
+      let whatsappConfig = { type: selectedOption };
+      
+      if (selectedOption === 'auto') {
+        const phone = document.querySelector('#auto-config input[type="tel"]').value;
+        if (!phone) {
+          alert('Digite o número do WhatsApp');
+          return;
+        }
+        whatsappConfig.phone = phone;
+      } else if (selectedOption === 'manual') {
+        const url = document.querySelector('#manual-config input[type="url"]').value;
+        const apiKey = document.querySelector('#manual-config input[placeholder*="api-key"]').value;
+        const instance = document.querySelector('#manual-config input[placeholder*="barbearia"]').value;
+        
+        if (!url || !apiKey || !instance) {
+          alert('Preencha todos os campos da configuração manual');
+          return;
+        }
+        
+        whatsappConfig = { type: selectedOption, url, apiKey, instance };
+      }
+      
+      localStorage.setItem('onboarding_step4', JSON.stringify(whatsappConfig));
+      window.location.href = 'onboarding-step5.html';
+    }
+  </script>
+</body>
+</html>
