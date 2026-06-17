@@ -721,7 +721,7 @@
         }
       } catch (e) {
         console.error('Erro ao carregar caixa:', e);
-        document.getElementById('caixa-status').innerHTML = '<div style="text-align:center;padding:var(--space-lg);color:var(--error);">Erro ao carregar caixa</div>';
+        document.getElementById('caixa-status').innerHTML = '<div style="text-align:center;padding:var(--space-lg);color:var(--error);">Erro: ' + e.message + '</div>';
       }
     }
 
