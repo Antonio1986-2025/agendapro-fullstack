@@ -489,3 +489,43 @@ body {
   outline: none;
   box-shadow: 0 0 0 3px rgba(30, 64, 175, 0.2);
 }
+
+
+/* ============================================================
+   AJUSTE PARA DESKTOP (telas grandes)
+   As telas sao mobile-first; aqui adaptamos para PC/tablet.
+   Usa !important para sobrepor os estilos inline de cada pagina.
+   ============================================================ */
+@media (min-width: 768px) {
+  .mobile-app {
+    max-width: 1000px !important;
+    box-shadow: var(--shadow-md);
+    border-left: 1px solid var(--border-color);
+    border-right: 1px solid var(--border-color);
+  }
+
+  /* Barra de navegacao inferior acompanha a largura do container */
+  .bottom-nav {
+    max-width: 1000px !important;
+  }
+
+  /* Botao flutuante ancorado dentro do container centralizado */
+  .fab {
+    right: calc(50% - 500px + 24px) !important;
+  }
+
+  /* Grids de metricas/cards ganham mais colunas no desktop */
+  .metrics-grid {
+    grid-template-columns: repeat(4, 1fr) !important;
+  }
+}
+
+/* Telas bem largas: limita e centraliza o conteudo confortavelmente */
+@media (min-width: 1100px) {
+  .main-content,
+  .content {
+    max-width: 960px;
+    margin-left: auto;
+    margin-right: auto;
+  }
+}
