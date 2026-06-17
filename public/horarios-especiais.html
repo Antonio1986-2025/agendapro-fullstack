@@ -233,7 +233,52 @@
   </style>
 </head>
 <body>
-  <div class="mobile-app">
+  <div class="desktop-layout">
+    <aside class="sidebar desktop-only">
+      <div class="sidebar-logo">
+        <i class="fas fa-calendar-check"></i>
+        <span>AgendaPro</span>
+      </div>
+      <nav class="sidebar-nav">
+        <div class="nav-section">Principal</div>
+        <a href="dashboard-mobile.html" class="sidebar-item"><i class="fas fa-home"></i> Dashboard</a>
+        <a href="agenda-mobile.html" class="sidebar-item"><i class="fas fa-calendar"></i> Agenda</a>
+        <a href="clientes-mobile.html" class="sidebar-item"><i class="fas fa-users"></i> Clientes</a>
+        <div class="nav-section">Gestão</div>
+        <a href="servicos-mobile.html" class="sidebar-item"><i class="fas fa-cut"></i> Serviços</a>
+        <a href="profissionais-mobile.html" class="sidebar-item"><i class="fas fa-user-tie"></i> Profissionais</a>
+        <a href="financeiro-mobile.html" class="sidebar-item"><i class="fas fa-chart-line"></i> Financeiro</a>
+        <div class="nav-section">Outros</div>
+        <a href="relatorios-mobile.html" class="sidebar-item"><i class="fas fa-chart-bar"></i> Relatórios</a>
+        <a href="horarios-especiais.html" class="sidebar-item active"><i class="fas fa-clock"></i> Horários Especiais</a>
+        <a href="configuracoes-mobile.html" class="sidebar-item"><i class="fas fa-cog"></i> Configurações</a>
+      </nav>
+      <div class="sidebar-footer">
+        <div class="sidebar-user" id="sidebar-user" onclick="API.logout()" title="Sair">
+          <div class="avatar" id="sidebar-avatar">A</div>
+          <div class="user-info">
+            <div class="user-name" id="sidebar-name">Usuário</div>
+            <div class="user-role" id="sidebar-role">Proprietário</div>
+          </div>
+          <i class="fas fa-sign-out-alt" style="color: var(--text-muted); font-size: var(--text-sm);"></i>
+        </div>
+      </div>
+    </aside>
+
+    <div class="desktop-content">
+      <div class="desktop-header desktop-only">
+        <div>
+          <h1 class="page-title">Horários Especiais</h1>
+          <p class="page-subtitle">Configure horários noturnos premium</p>
+        </div>
+        <div class="header-actions">
+          <button class="theme-toggle" onclick="toggleTheme()" style="background: var(--bg-card); border: 1px solid var(--border-color); padding: var(--space-sm) var(--space-md); border-radius: var(--radius-md); cursor: pointer; color: var(--text-secondary);">
+            <i class="fas fa-moon" id="theme-icon-desk"></i>
+          </button>
+        </div>
+      </div>
+
+      <div class="mobile-app">
     <header class="header">
       <div class="header-content">
         <button class="back-btn" onclick="history.back()">
@@ -243,6 +288,9 @@
           <h1 class="page-title">🌙 Horários Especiais</h1>
           <p class="header-subtitle">Configure horários noturnos premium</p>
         </div>
+        <button class="theme-toggle" onclick="toggleTheme()" style="background: rgba(255,255,255,0.2); border: none; padding: var(--space-sm); border-radius: var(--radius-full); cursor: pointer; color: white; margin-left: auto;">
+          <i class="fas fa-moon" id="theme-icon"></i>
+        </button>
       </div>
     </header>
 
@@ -438,39 +486,37 @@
         </button>
       </div>
     </div>
+    </div>
+    </div>
   </div>
 
+  <script src="api.js"></script>
   <script>
+    function toggleTheme() {
+      const html = document.documentElement;
+      const isDark = html.getAttribute('data-theme') === 'dark';
+      if (isDark) { html.removeAttribute('data-theme'); localStorage.setItem('theme','light'); }
+      else { html.setAttribute('data-theme','dark'); localStorage.setItem('theme','dark'); }
+      const cls = isDark ? 'fa-moon' : 'fa-sun';
+      document.querySelectorAll('#theme-icon, #theme-icon-desk').forEach(el => el.className = 'fas ' + cls);
+    }
+
     function toggleHour(element, professional, time) {
-      const isEnabled = element.classList.contains('enabled');
-      
-      if (isEnabled) {
-        // Desativar
+      if (element.classList.contains('enabled')) {
         element.classList.remove('enabled');
         element.querySelector('.hour-status').textContent = 'Desativado';
-        
-        // Remover badge de preço
         const priceTag = element.querySelector('.hour-price');
         if (priceTag) priceTag.remove();
-        
-        console.log(`${professional} - ${time}: DESATIVADO`);
       } else {
-        // Ativar
         element.classList.add('enabled');
         element.querySelector('.hour-status').textContent = 'Ativado';
-        
-        // Adicionar badge de preço
         if (!element.querySelector('.hour-price')) {
           const priceTag = document.createElement('div');
           priceTag.className = 'hour-price';
           priceTag.textContent = '+50%';
           element.appendChild(priceTag);
         }
-        
-        console.log(`${professional} - ${time}: ATIVADO`);
       }
-      
-      // Atualizar estatísticas
       updateStats();
     }
     
@@ -478,68 +524,55 @@
       const allSlots = document.querySelectorAll('.hour-slot');
       const enabledCount = document.querySelectorAll('.hour-slot.enabled').length;
       const shouldEnable = enabledCount < allSlots.length / 2;
-      
       allSlots.forEach(slot => {
         const professional = slot.closest('.professional-card').querySelector('h3').textContent;
         const time = slot.querySelector('.hour-time').textContent;
-        
-        if (shouldEnable && !slot.classList.contains('enabled')) {
-          toggleHour(slot, professional, time);
-        } else if (!shouldEnable && slot.classList.contains('enabled')) {
-          toggleHour(slot, professional, time);
-        }
+        if (shouldEnable && !slot.classList.contains('enabled')) toggleHour(slot, professional, time);
+        else if (!shouldEnable && slot.classList.contains('enabled')) toggleHour(slot, professional, time);
       });
-      
       const button = document.querySelector('.btn-outline');
-      button.innerHTML = shouldEnable ? 
-        '<i class="fas fa-toggle-off"></i> Desativar Todos' : 
-        '<i class="fas fa-toggle-on"></i> Ativar Todos';
+      button.innerHTML = shouldEnable ? '<i class="fas fa-toggle-off"></i> Desativar Todos' : '<i class="fas fa-toggle-on"></i> Ativar Todos';
     }
     
     function updateStats() {
       const activeSlots = document.querySelectorAll('.hour-slot.enabled').length;
       document.querySelector('.stat-value').textContent = activeSlots;
-      
-      // Simular cálculo de receita extra
-      const extraRevenue = activeSlots * 38; // R$ 38 média por slot especial
+      const extraRevenue = activeSlots * 38;
       document.querySelectorAll('.stat-value')[1].textContent = `R$ ${extraRevenue}`;
     }
     
     function saveSettings() {
       const settings = {};
-      
       document.querySelectorAll('.professional-card').forEach(card => {
         const professional = card.querySelector('h3').textContent;
         const enabledHours = [];
-        
         card.querySelectorAll('.hour-slot.enabled').forEach(slot => {
           enabledHours.push(slot.querySelector('.hour-time').textContent);
         });
-        
         settings[professional] = enabledHours;
       });
-      
-      console.log('Configurações salvas:', settings);
-      
-      // Feedback visual
       const button = event.target;
       const originalText = button.innerHTML;
       button.innerHTML = '<i class="fas fa-check"></i> Salvo!';
       button.style.background = 'var(--success)';
-      
-      setTimeout(() => {
-        button.innerHTML = originalText;
-        button.style.background = '';
-      }, 2000);
-      
-      alert('✅ Configurações de horários especiais salvas com sucesso!\n\nAs alterações já estão ativas na agenda.');
+      setTimeout(() => { button.innerHTML = originalText; button.style.background = ''; }, 2000);
+      alert('Configurações de horários especiais salvas com sucesso!');
     }
     
-    // Carregar tema
     document.addEventListener('DOMContentLoaded', function() {
       const savedTheme = localStorage.getItem('theme');
       if (savedTheme === 'dark') {
         document.documentElement.setAttribute('data-theme', 'dark');
+        document.querySelectorAll('#theme-icon, #theme-icon-desk').forEach(el => el.className = 'fas fa-sun');
+      }
+      const user = API.getUser();
+      if (user) {
+        const avatar = document.getElementById('sidebar-avatar');
+        const name = document.getElementById('sidebar-name');
+        const role = document.getElementById('sidebar-role');
+        if (avatar) avatar.textContent = (user.nome || 'U').charAt(0).toUpperCase();
+        if (name) name.textContent = user.nome || 'Usuário';
+        if (role) role.textContent = user.role === 'owner' ? 'Proprietário' : user.role;
       }
     });
   </script>

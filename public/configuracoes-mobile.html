@@ -327,24 +327,65 @@
   </style>
 </head>
 <body>
-  <div class="mobile-app">
-    <!-- HEADER -->
+  <div class="desktop-layout">
+    <aside class="sidebar desktop-only">
+      <div class="sidebar-logo">
+        <i class="fas fa-calendar-check"></i>
+        <span>AgendaPro</span>
+      </div>
+      <nav class="sidebar-nav">
+        <div class="nav-section">Principal</div>
+        <a href="dashboard-mobile.html" class="sidebar-item"><i class="fas fa-home"></i> Dashboard</a>
+        <a href="agenda-mobile.html" class="sidebar-item"><i class="fas fa-calendar"></i> Agenda</a>
+        <a href="clientes-mobile.html" class="sidebar-item"><i class="fas fa-users"></i> Clientes</a>
+        <div class="nav-section">Gestão</div>
+        <a href="servicos-mobile.html" class="sidebar-item"><i class="fas fa-cut"></i> Serviços</a>
+        <a href="profissionais-mobile.html" class="sidebar-item"><i class="fas fa-user-tie"></i> Profissionais</a>
+        <a href="financeiro-mobile.html" class="sidebar-item"><i class="fas fa-chart-line"></i> Financeiro</a>
+        <div class="nav-section">Outros</div>
+        <a href="relatorios-mobile.html" class="sidebar-item"><i class="fas fa-chart-bar"></i> Relatórios</a>
+        <a href="horarios-especiais.html" class="sidebar-item"><i class="fas fa-clock"></i> Horários Especiais</a>
+        <a href="configuracoes-mobile.html" class="sidebar-item active"><i class="fas fa-cog"></i> Configurações</a>
+      </nav>
+      <div class="sidebar-footer">
+        <div class="sidebar-user" id="sidebar-user" onclick="API.logout()" title="Sair">
+          <div class="avatar" id="sidebar-avatar">A</div>
+          <div class="user-info">
+            <div class="user-name" id="sidebar-name">Usuário</div>
+            <div class="user-role" id="sidebar-role">Proprietário</div>
+          </div>
+          <i class="fas fa-sign-out-alt" style="color: var(--text-muted); font-size: var(--text-sm);"></i>
+        </div>
+      </div>
+    </aside>
+
+    <div class="desktop-content">
+      <div class="desktop-header desktop-only">
+        <div>
+          <h1 class="page-title">Configurações</h1>
+          <p class="page-subtitle">Gerencie sua conta e sistema</p>
+        </div>
+        <div class="header-actions">
+          <button class="theme-toggle" onclick="toggleTheme()" style="background: var(--bg-card); border: 1px solid var(--border-color); padding: var(--space-sm) var(--space-md); border-radius: var(--radius-md); cursor: pointer; color: var(--text-secondary);">
+            <i class="fas fa-moon" id="theme-icon-desk"></i>
+          </button>
+        </div>
+      </div>
+
+      <div class="mobile-app">
     <header class="header">
       <div class="header-content">
         <div class="header-title">
           <i class="fas fa-cog"></i>
           <span>Configurações</span>
         </div>
-        
         <button class="theme-toggle" onclick="toggleTheme()" style="background: none; border: none; padding: var(--space-sm); border-radius: var(--radius-md); cursor: pointer; color: var(--text-secondary);">
           <i class="fas fa-moon" id="theme-icon"></i>
         </button>
       </div>
     </header>
 
-    <!-- CONTEÚDO -->
     <main class="main-content">
-      <!-- PERFIL DA BARBEARIA -->
       <div class="business-profile">
         <div class="business-logo">
           <i class="fas fa-cut"></i>
@@ -352,31 +393,26 @@
         <div class="business-name">Barbearia Status</div>
         <div class="business-info">Coxim, MS • Desde 1991</div>
         <button class="edit-profile-btn" onclick="editBusinessProfile()">
-          <i class="fas fa-edit"></i>
-          Editar Perfil
+          <i class="fas fa-edit"></i> Editar Perfil
         </button>
       </div>
 
-      <!-- STATUS DO SISTEMA -->
       <div class="status-grid">
         <div class="status-card">
           <div class="status-indicator status-online"></div>
           <div class="status-label">WhatsApp</div>
           <div class="status-value">Online</div>
         </div>
-        
         <div class="status-card">
           <div class="status-indicator status-online"></div>
           <div class="status-label">Sistema</div>
           <div class="status-value">Ativo</div>
         </div>
-        
         <div class="status-card">
           <div class="status-indicator status-online"></div>
           <div class="status-label">Backup</div>
           <div class="status-value">Ok</div>
         </div>
-        
         <div class="status-card">
           <div class="status-indicator status-online"></div>
           <div class="status-label">Plano</div>
@@ -384,374 +420,239 @@
         </div>
       </div>
 
-      <!-- CONFIGURAÇÕES GERAIS -->
-      <div class="config-section">
-        <h2 class="section-title">
-          <i class="fas fa-building section-icon"></i>
-          Negócio
-        </h2>
-        
-        <div class="config-cards">
-          <div class="config-card">
-            <div class="config-item" onclick="openBusinessInfo()">
-              <div class="config-icon">
-                <i class="fas fa-info-circle"></i>
+      <div class="config-desktop-grid">
+        <div class="config-section">
+          <h2 class="section-title"><i class="fas fa-building section-icon"></i> Negócio</h2>
+          <div class="config-cards">
+            <div class="config-card">
+              <div class="config-item" onclick="openBusinessInfo()">
+                <div class="config-icon"><i class="fas fa-info-circle"></i></div>
+                <div class="config-content">
+                  <div class="config-label">Informações da Empresa</div>
+                  <div class="config-description">Nome, endereço, contato</div>
+                </div>
+                <i class="fas fa-chevron-right config-arrow"></i>
               </div>
-              <div class="config-content">
-                <div class="config-label">Informações da Empresa</div>
-                <div class="config-description">Nome, endereço, contato</div>
+              <div class="config-item" onclick="openBusinessHours()">
+                <div class="config-icon"><i class="fas fa-clock"></i></div>
+                <div class="config-content">
+                  <div class="config-label">Horário de Funcionamento</div>
+                  <div class="config-value">Seg-Sáb: 08:00 - 20:00</div>
+                </div>
+                <i class="fas fa-chevron-right config-arrow"></i>
               </div>
-              <i class="fas fa-chevron-right config-arrow"></i>
-            </div>
-            
-            <div class="config-item" onclick="openBusinessHours()">
-              <div class="config-icon">
-                <i class="fas fa-clock"></i>
+              <div class="config-item" onclick="openServices()">
+                <div class="config-icon"><i class="fas fa-cut"></i></div>
+                <div class="config-content">
+                  <div class="config-label">Serviços</div>
+                  <div class="config-description">Gerenciar serviços e preços</div>
+                </div>
+                <i class="fas fa-chevron-right config-arrow"></i>
               </div>
-              <div class="config-content">
-                <div class="config-label">Horário de Funcionamento</div>
-                <div class="config-value">Seg-Sáb: 08:00 - 20:00</div>
-              </div>
-              <i class="fas fa-chevron-right config-arrow"></i>
-            </div>
-            
-            <div class="config-item" onclick="openServices()">
-              <div class="config-icon">
-                <i class="fas fa-cut"></i>
-              </div>
-              <div class="config-content">
-                <div class="config-label">Serviços</div>
-                <div class="config-description">Gerenciar serviços e preços</div>
-              </div>
-              <i class="fas fa-chevron-right config-arrow"></i>
-            </div>
-            
-            <div class="config-item" onclick="openProfessionals()">
-              <div class="config-icon">
-                <i class="fas fa-users"></i>
-              </div>
-              <div class="config-content">
-                <div class="config-label">Profissionais</div>
-                <div class="config-description">Gerenciar equipe</div>
-              </div>
-              <i class="fas fa-chevron-right config-arrow"></i>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      <!-- WHATSAPP -->
-      <div class="config-section">
-        <h2 class="section-title">
-          <i class="fab fa-whatsapp section-icon"></i>
-          WhatsApp
-        </h2>
-        
-        <div class="config-cards">
-          <div class="config-card">
-            <div class="config-item" onclick="openWhatsAppConfig()">
-              <div class="config-icon">
-                <i class="fab fa-whatsapp"></i>
-              </div>
-              <div class="config-content">
-                <div class="config-label">Número do WhatsApp</div>
-                <div class="config-value">(67) 99999-0000</div>
-              </div>
-              <i class="fas fa-chevron-right config-arrow"></i>
-            </div>
-            
-            <div class="config-item" onclick="openBotMessages()">
-              <div class="config-icon">
-                <i class="fas fa-robot"></i>
-              </div>
-              <div class="config-content">
-                <div class="config-label">Mensagens do Bot</div>
-                <div class="config-description">Personalizar respostas automáticas</div>
-              </div>
-              <i class="fas fa-chevron-right config-arrow"></i>
-            </div>
-            
-            <div class="config-toggle" onclick="toggleAutoResponse()">
-              <div class="config-content">
-                <div class="config-label">Respostas Automáticas</div>
-                <div class="config-description">Responder fora do horário</div>
-              </div>
-              <div class="toggle-switch active" id="auto-response-toggle">
-                <div class="toggle-slider"></div>
+              <div class="config-item" onclick="openProfessionals()">
+                <div class="config-icon"><i class="fas fa-users"></i></div>
+                <div class="config-content">
+                  <div class="config-label">Profissionais</div>
+                  <div class="config-description">Gerenciar equipe</div>
+                </div>
+                <i class="fas fa-chevron-right config-arrow"></i>
               </div>
             </div>
           </div>
         </div>
-      </div>
 
-      <!-- NOTIFICAÇÕES -->
-      <div class="config-section">
-        <h2 class="section-title">
-          <i class="fas fa-bell section-icon"></i>
-          Notificações
-        </h2>
-        
-        <div class="config-cards">
-          <div class="config-card">
-            <div class="config-toggle" onclick="toggleNotifications('new-appointments')">
-              <div class="config-content">
-                <div class="config-label">Novos Agendamentos</div>
-                <div class="config-description">Notificar quando cliente agendar</div>
+        <div class="config-section">
+          <h2 class="section-title"><i class="fab fa-whatsapp section-icon"></i> WhatsApp</h2>
+          <div class="config-cards">
+            <div class="config-card">
+              <div class="config-item" onclick="openWhatsAppConfig()">
+                <div class="config-icon"><i class="fab fa-whatsapp"></i></div>
+                <div class="config-content">
+                  <div class="config-label">Número do WhatsApp</div>
+                  <div class="config-value">(67) 99999-0000</div>
+                </div>
+                <i class="fas fa-chevron-right config-arrow"></i>
               </div>
-              <div class="toggle-switch active" id="new-appointments-toggle">
-                <div class="toggle-slider"></div>
+              <div class="config-item" onclick="openBotMessages()">
+                <div class="config-icon"><i class="fas fa-robot"></i></div>
+                <div class="config-content">
+                  <div class="config-label">Mensagens do Bot</div>
+                  <div class="config-description">Personalizar respostas automáticas</div>
+                </div>
+                <i class="fas fa-chevron-right config-arrow"></i>
               </div>
-            </div>
-            
-            <div class="config-toggle" onclick="toggleNotifications('reminders')">
-              <div class="config-content">
-                <div class="config-label">Lembretes</div>
-                <div class="config-description">Lembrar agendamentos do dia</div>
-              </div>
-              <div class="toggle-switch active" id="reminders-toggle">
-                <div class="toggle-slider"></div>
-              </div>
-            </div>
-            
-            <div class="config-toggle" onclick="toggleNotifications('cancellations')">
-              <div class="config-content">
-                <div class="config-label">Cancelamentos</div>
-                <div class="config-description">Notificar cancelamentos</div>
-              </div>
-              <div class="toggle-switch active" id="cancellations-toggle">
-                <div class="toggle-slider"></div>
+              <div class="config-toggle" onclick="toggleAutoResponse()">
+                <div class="config-content">
+                  <div class="config-label">Respostas Automáticas</div>
+                  <div class="config-description">Responder fora do horário</div>
+                </div>
+                <div class="toggle-switch active" id="auto-response-toggle"><div class="toggle-slider"></div></div>
               </div>
             </div>
           </div>
         </div>
-      </div>
 
-      <!-- SISTEMA -->
-      <div class="config-section">
-        <h2 class="section-title">
-          <i class="fas fa-cogs section-icon"></i>
-          Sistema
-        </h2>
-        
-        <div class="config-cards">
-          <div class="config-card">
-            <div class="config-item" onclick="openBackup()">
-              <div class="config-icon">
-                <i class="fas fa-cloud-upload-alt"></i>
+        <div class="config-section">
+          <h2 class="section-title"><i class="fas fa-bell section-icon"></i> Notificações</h2>
+          <div class="config-cards">
+            <div class="config-card">
+              <div class="config-toggle" onclick="toggleNotifications('new-appointments')">
+                <div class="config-content">
+                  <div class="config-label">Novos Agendamentos</div>
+                  <div class="config-description">Notificar quando cliente agendar</div>
+                </div>
+                <div class="toggle-switch active" id="new-appointments-toggle"><div class="toggle-slider"></div></div>
               </div>
-              <div class="config-content">
-                <div class="config-label">Backup & Restauração</div>
-                <div class="config-value">Último: Hoje, 06:00</div>
+              <div class="config-toggle" onclick="toggleNotifications('reminders')">
+                <div class="config-content">
+                  <div class="config-label">Lembretes</div>
+                  <div class="config-description">Lembrar agendamentos do dia</div>
+                </div>
+                <div class="toggle-switch active" id="reminders-toggle"><div class="toggle-slider"></div></div>
               </div>
-              <i class="fas fa-chevron-right config-arrow"></i>
-            </div>
-            
-            <div class="config-item" onclick="openReports()">
-              <div class="config-icon">
-                <i class="fas fa-chart-bar"></i>
+              <div class="config-toggle" onclick="toggleNotifications('cancellations')">
+                <div class="config-content">
+                  <div class="config-label">Cancelamentos</div>
+                  <div class="config-description">Notificar cancelamentos</div>
+                </div>
+                <div class="toggle-switch active" id="cancellations-toggle"><div class="toggle-slider"></div></div>
               </div>
-              <div class="config-content">
-                <div class="config-label">Relatórios</div>
-                <div class="config-description">Exportar dados e relatórios</div>
-              </div>
-              <i class="fas fa-chevron-right config-arrow"></i>
-            </div>
-            
-            <div class="config-item" onclick="openIntegrations()">
-              <div class="config-icon">
-                <i class="fas fa-plug"></i>
-              </div>
-              <div class="config-content">
-                <div class="config-label">Integrações</div>
-                <div class="config-description">APIs e conectores externos</div>
-              </div>
-              <i class="fas fa-chevron-right config-arrow"></i>
             </div>
           </div>
         </div>
-      </div>
 
-      <!-- CONTA -->
-      <div class="config-section">
-        <h2 class="section-title">
-          <i class="fas fa-user-circle section-icon"></i>
-          Conta
-        </h2>
-        
-        <div class="config-cards">
-          <div class="config-card">
-            <div class="config-item" onclick="openSubscription()">
-              <div class="config-icon">
-                <i class="fas fa-credit-card"></i>
+        <div class="config-section">
+          <h2 class="section-title"><i class="fas fa-cogs section-icon"></i> Sistema</h2>
+          <div class="config-cards">
+            <div class="config-card">
+              <div class="config-item" onclick="openBackup()">
+                <div class="config-icon"><i class="fas fa-cloud-upload-alt"></i></div>
+                <div class="config-content">
+                  <div class="config-label">Backup & Restauração</div>
+                  <div class="config-value">Último: Hoje, 06:00</div>
+                </div>
+                <i class="fas fa-chevron-right config-arrow"></i>
               </div>
-              <div class="config-content">
-                <div class="config-label">Plano & Cobrança</div>
-                <div class="config-value">Plano Pro - R$ 197/mês</div>
+              <div class="config-item" onclick="openReports()">
+                <div class="config-icon"><i class="fas fa-chart-bar"></i></div>
+                <div class="config-content">
+                  <div class="config-label">Relatórios</div>
+                  <div class="config-description">Exportar dados e relatórios</div>
+                </div>
+                <i class="fas fa-chevron-right config-arrow"></i>
               </div>
-              <i class="fas fa-chevron-right config-arrow"></i>
+              <div class="config-item" onclick="openIntegrations()">
+                <div class="config-icon"><i class="fas fa-plug"></i></div>
+                <div class="config-content">
+                  <div class="config-label">Integrações</div>
+                  <div class="config-description">APIs e conectores externos</div>
+                </div>
+                <i class="fas fa-chevron-right config-arrow"></i>
+              </div>
             </div>
-            
-            <div class="config-item" onclick="openSupport()">
-              <div class="config-icon">
-                <i class="fas fa-headset"></i>
+          </div>
+        </div>
+
+        <div class="config-section full-width">
+          <h2 class="section-title"><i class="fas fa-user-circle section-icon"></i> Conta</h2>
+          <div class="config-cards">
+            <div class="config-card">
+              <div class="config-item" onclick="openSubscription()">
+                <div class="config-icon"><i class="fas fa-credit-card"></i></div>
+                <div class="config-content">
+                  <div class="config-label">Plano & Cobrança</div>
+                  <div class="config-value">Plano Pro - R$ 197/mês</div>
+                </div>
+                <i class="fas fa-chevron-right config-arrow"></i>
               </div>
-              <div class="config-content">
-                <div class="config-label">Suporte</div>
-                <div class="config-description">Ajuda e documentação</div>
+              <div class="config-item" onclick="openSupport()">
+                <div class="config-icon"><i class="fas fa-headset"></i></div>
+                <div class="config-content">
+                  <div class="config-label">Suporte</div>
+                  <div class="config-description">Ajuda e documentação</div>
+                </div>
+                <i class="fas fa-chevron-right config-arrow"></i>
               </div>
-              <i class="fas fa-chevron-right config-arrow"></i>
-            </div>
-            
-            <div class="config-item" onclick="logout()">
-              <div class="config-icon" style="background: var(--error-light); color: var(--error);">
-                <i class="fas fa-sign-out-alt"></i>
+              <div class="config-item" onclick="API.logout()">
+                <div class="config-icon" style="background: var(--error-light); color: var(--error);"><i class="fas fa-sign-out-alt"></i></div>
+                <div class="config-content">
+                  <div class="config-label" style="color: var(--error);">Sair</div>
+                  <div class="config-description">Fazer logout da conta</div>
+                </div>
+                <i class="fas fa-chevron-right config-arrow"></i>
               </div>
-              <div class="config-content">
-                <div class="config-label" style="color: var(--error);">Sair</div>
-                <div class="config-description">Fazer logout da conta</div>
-              </div>
-              <i class="fas fa-chevron-right config-arrow"></i>
             </div>
           </div>
         </div>
       </div>
     </main>
 
-    <!-- BOTTOM NAV -->
     <nav class="bottom-nav">
       <div class="nav-items">
-        <a href="dashboard-mobile.html" class="nav-item">
-          <i class="nav-icon fas fa-home"></i>
-          <span class="nav-label">Dashboard</span>
-        </a>
-        
-        <a href="agenda-mobile.html" class="nav-item">
-          <i class="nav-icon fas fa-calendar"></i>
-          <span class="nav-label">Agenda</span>
-        </a>
-        
-        <a href="clientes-mobile.html" class="nav-item">
-          <i class="nav-icon fas fa-users"></i>
-          <span class="nav-label">Clientes</span>
-        </a>
-        
-        <a href="#" class="nav-item active">
-          <i class="nav-icon fas fa-cog"></i>
-          <span class="nav-label">Config</span>
-        </a>
-        
-        <a href="#" class="nav-item">
-          <i class="nav-icon fas fa-comments"></i>
-          <span class="nav-label">Chat</span>
-        </a>
+        <a href="dashboard-mobile.html" class="nav-item"><i class="nav-icon fas fa-home"></i><span class="nav-label">Dashboard</span></a>
+        <a href="agenda-mobile.html" class="nav-item"><i class="nav-icon fas fa-calendar"></i><span class="nav-label">Agenda</span></a>
+        <a href="clientes-mobile.html" class="nav-item"><i class="nav-icon fas fa-users"></i><span class="nav-label">Clientes</span></a>
+        <a href="#" class="nav-item active"><i class="nav-icon fas fa-cog"></i><span class="nav-label">Config</span></a>
+        <a href="chat-mobile.html" class="nav-item"><i class="nav-icon fas fa-comments"></i><span class="nav-label">Chat</span></a>
       </div>
     </nav>
+      </div>
+    </div>
   </div>
 
+  <script src="api.js"></script>
   <script>
-    // TOGGLE TEMA
     function toggleTheme() {
       const html = document.documentElement;
-      const themeIcon = document.getElementById('theme-icon');
-      
-      if (html.getAttribute('data-theme') === 'dark') {
-        html.removeAttribute('data-theme');
-        themeIcon.className = 'fas fa-moon';
-        localStorage.setItem('theme', 'light');
-      } else {
-        html.setAttribute('data-theme', 'dark');
-        themeIcon.className = 'fas fa-sun';
-        localStorage.setItem('theme', 'dark');
-      }
+      const isDark = html.getAttribute('data-theme') === 'dark';
+      if (isDark) { html.removeAttribute('data-theme'); localStorage.setItem('theme','light'); }
+      else { html.setAttribute('data-theme','dark'); localStorage.setItem('theme','dark'); }
+      const cls = isDark ? 'fa-moon' : 'fa-sun';
+      document.querySelectorAll('#theme-icon, #theme-icon-desk').forEach(el => el.className = 'fas ' + cls);
     }
 
-    // TOGGLES
     function toggleNotifications(type) {
-      const toggle = document.getElementById(`${type}-toggle`);
-      toggle.classList.toggle('active');
-      
-      const isActive = toggle.classList.contains('active');
-      console.log(`${type} notifications:`, isActive ? 'ON' : 'OFF');
+      document.getElementById(`${type}-toggle`).classList.toggle('active');
     }
 
     function toggleAutoResponse() {
-      const toggle = document.getElementById('auto-response-toggle');
-      toggle.classList.toggle('active');
-      
-      const isActive = toggle.classList.contains('active');
-      console.log('Auto response:', isActive ? 'ON' : 'OFF');
+      document.getElementById('auto-response-toggle').classList.toggle('active');
     }
 
-    // NAVEGAÇÃO
     function editBusinessProfile() {
       alert('Editar Perfil da Empresa\n\nAqui você abriria um formulário para editar:\n- Nome da empresa\n- Logo\n- Endereço\n- Telefones\n- Redes sociais');
     }
+    function openBusinessInfo() { alert('Informações da Empresa\n\nConfigurar dados básicos da barbearia.'); }
+    function openBusinessHours() { alert('Horário de Funcionamento\n\nDefinir horários de abertura e fechamento por dia da semana.'); }
+    function openServices() { alert('Gerenciar Serviços\n\nAdicionar, editar e remover serviços e seus preços.'); }
+    function openProfessionals() { alert('Gerenciar Profissionais\n\nAdicionar barbeiros e definir suas especialidades.'); }
+    function openWhatsAppConfig() { alert('Configurar WhatsApp\n\nConectar número do WhatsApp Business.'); }
+    function openBotMessages() { alert('Mensagens do Bot\n\nPersonalizar mensagens automáticas do assistente IA.'); }
+    function openBackup() { alert('Backup & Restauração\n\nGerenciar backups automáticos dos dados.'); }
+    function openReports() { alert('Relatórios\n\nGerar e exportar relatórios de agendamentos e faturamento.'); }
+    function openIntegrations() { alert('Integrações\n\nConectar com sistemas externos (POS, contabilidade, etc).'); }
+    function openSubscription() { alert('Plano & Cobrança\n\nGerenciar assinatura e métodos de pagamento.'); }
+    function openSupport() { alert('Suporte\n\nAcessar documentação, tutoriais e contatar suporte.'); }
 
-    function openBusinessInfo() {
-      alert('Informações da Empresa\n\nConfigurar dados básicos da barbearia.');
-    }
-
-    function openBusinessHours() {
-      alert('Horário de Funcionamento\n\nDefinir horários de abertura e fechamento por dia da semana.');
-    }
-
-    function openServices() {
-      alert('Gerenciar Serviços\n\nAdicionar, editar e remover serviços e seus preços.');
-    }
-
-    function openProfessionals() {
-      alert('Gerenciar Profissionais\n\nAdicionar barbeiros e definir suas especialidades.');
-    }
-
-    function openWhatsAppConfig() {
-      alert('Configurar WhatsApp\n\nConectar número do WhatsApp Business.');
-    }
-
-    function openBotMessages() {
-      alert('Mensagens do Bot\n\nPersonalizar mensagens automáticas do assistente IA.');
-    }
-
-    function openBackup() {
-      alert('Backup & Restauração\n\nGerenciar backups automáticos dos dados.');
-    }
-
-    function openReports() {
-      alert('Relatórios\n\nGerar e exportar relatórios de agendamentos e faturamento.');
-    }
-
-    function openIntegrations() {
-      alert('Integrações\n\nConectar com sistemas externos (POS, contabilidade, etc).');
-    }
-
-    function openSubscription() {
-      alert('Plano & Cobrança\n\nGerenciar assinatura e métodos de pagamento.');
-    }
-
-    function openSupport() {
-      alert('Suporte\n\nAcessar documentação, tutoriais e contatar suporte.');
-    }
-
-    function logout() {
-      if (confirm('Tem certeza que deseja sair da sua conta?')) {
-        alert('Logout realizado!\n\nRedirecionando para tela de login...');
-      }
-    }
-
-    // INICIALIZAÇÃO
     document.addEventListener('DOMContentLoaded', function() {
-      // Tema
       const savedTheme = localStorage.getItem('theme');
       if (savedTheme === 'dark') {
         document.documentElement.setAttribute('data-theme', 'dark');
-        document.getElementById('theme-icon').className = 'fas fa-sun';
+        document.querySelectorAll('#theme-icon, #theme-icon-desk').forEach(el => el.className = 'fas fa-sun');
       }
-
-      // Animações
+      const user = API.getUser();
+      if (user) {
+        const avatar = document.getElementById('sidebar-avatar');
+        const name = document.getElementById('sidebar-name');
+        const role = document.getElementById('sidebar-role');
+        if (avatar) avatar.textContent = (user.nome || 'U').charAt(0).toUpperCase();
+        if (name) name.textContent = user.nome || 'Usuário';
+        if (role) role.textContent = user.role === 'owner' ? 'Proprietário' : user.role;
+      }
       const sections = document.querySelectorAll('.config-section');
       sections.forEach((section, index) => {
         section.style.opacity = '0';
         section.style.transform = 'translateY(20px)';
-        
         setTimeout(() => {
           section.style.transition = 'all 0.4s ease-out';
           section.style.opacity = '1';

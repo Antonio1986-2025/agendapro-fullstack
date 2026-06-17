@@ -492,36 +492,434 @@ body {
 
 
 /* ============================================================
-   AJUSTE PARA DESKTOP (telas grandes)
-   As telas sao mobile-first; aqui adaptamos para PC/tablet.
-   Usa !important para sobrepor os estilos inline de cada pagina.
+   LAYOUT DESKTOP PROFISSIONAL (>= 1024px)
+   Sidebar fixa + area de conteudo expansiva.
+   Mobile continua 100% inalterado.
    ============================================================ */
-@media (min-width: 768px) {
-  .mobile-app {
-    max-width: 1000px !important;
-    box-shadow: var(--shadow-md);
-    border-left: 1px solid var(--border-color);
+
+/* Utilitarios de exibicao por dispositivo */
+@media (max-width: 1023px) {
+  .desktop-only { display: none !important; }
+}
+@media (min-width: 1024px) {
+  .mobile-only { display: none !important; }
+}
+
+/* Largura da sidebar */
+:root {
+  --sidebar-width: 240px;
+  --sidebar-collapsed: 64px;
+}
+
+/* === LAYOUT PRINCIPAL DESKTOP === */
+@media (min-width: 1024px) {
+  /* Forca body a ocupar tela cheia */
+  body {
+    overflow-x: hidden;
+  }
+
+  /* Wrapper do layout: sidebar + conteudo */
+  .desktop-layout {
+    display: grid;
+    grid-template-columns: var(--sidebar-width) 1fr;
+    min-height: 100vh;
+  }
+
+  /* ========== SIDEBAR ========== */
+  .sidebar {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: var(--sidebar-width);
+    height: 100vh;
+    background: var(--bg-card);
     border-right: 1px solid var(--border-color);
+    display: flex;
+    flex-direction: column;
+    z-index: var(--z-fixed);
+    transition: background var(--transition-normal);
+    overflow-y: auto;
   }
 
-  /* Barra de navegacao inferior acompanha a largura do container e fica centralizada */
+  /* Logo na sidebar */
+  .sidebar-logo {
+    display: flex;
+    align-items: center;
+    gap: var(--space-sm);
+    padding: var(--space-lg) var(--space-md);
+    border-bottom: 1px solid var(--border-color);
+    font-size: var(--text-lg);
+    font-weight: var(--font-bold);
+    color: var(--primary);
+  }
+  .sidebar-logo i {
+    font-size: var(--text-2xl);
+  }
+
+  /* Navegacao da sidebar */
+  .sidebar-nav {
+    flex: 1;
+    padding: var(--space-md) var(--space-sm);
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+  }
+  .sidebar-nav .nav-section {
+    font-size: var(--text-xs);
+    font-weight: var(--font-semibold);
+    color: var(--text-muted);
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    padding: var(--space-md) var(--space-md) var(--space-xs);
+    margin-top: var(--space-sm);
+  }
+
+  /* Item da sidebar */
+  .sidebar-item {
+    display: flex;
+    align-items: center;
+    gap: var(--space-md);
+    padding: var(--space-sm) var(--space-md);
+    border-radius: var(--radius-md);
+    color: var(--text-secondary);
+    text-decoration: none;
+    font-size: var(--text-sm);
+    font-weight: var(--font-medium);
+    transition: all var(--transition-fast);
+    cursor: pointer;
+    border: none;
+    background: none;
+    width: 100%;
+    text-align: left;
+  }
+  .sidebar-item i {
+    width: 20px;
+    text-align: center;
+    font-size: var(--text-base);
+    flex-shrink: 0;
+  }
+  .sidebar-item:hover {
+    background: var(--bg-secondary);
+    color: var(--text-primary);
+  }
+  .sidebar-item.active {
+    background: var(--primary-light);
+    color: var(--primary);
+    font-weight: var(--font-semibold);
+  }
+  .sidebar-item.active i {
+    color: var(--primary);
+  }
+  .sidebar-item .badge-count {
+    margin-left: auto;
+    background: var(--error);
+    color: #fff;
+    font-size: 10px;
+    padding: 1px 7px;
+    border-radius: var(--radius-full);
+    font-weight: var(--font-bold);
+  }
+
+  /* Separador */
+  .sidebar-divider {
+    height: 1px;
+    background: var(--border-color);
+    margin: var(--space-sm) var(--space-md);
+  }
+
+  /* Rodape da sidebar (usuario/sair) */
+  .sidebar-footer {
+    padding: var(--space-md);
+    border-top: 1px solid var(--border-color);
+  }
+  .sidebar-user {
+    display: flex;
+    align-items: center;
+    gap: var(--space-sm);
+    padding: var(--space-sm);
+    border-radius: var(--radius-md);
+    cursor: pointer;
+    transition: background var(--transition-fast);
+  }
+  .sidebar-user:hover {
+    background: var(--bg-secondary);
+  }
+  .sidebar-user .avatar {
+    width: 36px;
+    height: 36px;
+    background: var(--primary-light);
+    color: var(--primary);
+    border-radius: var(--radius-full);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: var(--font-bold);
+    font-size: var(--text-sm);
+    flex-shrink: 0;
+  }
+  .sidebar-user .user-info {
+    flex: 1;
+    min-width: 0;
+  }
+  .sidebar-user .user-name {
+    font-size: var(--text-sm);
+    font-weight: var(--font-medium);
+    color: var(--text-primary);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+  .sidebar-user .user-role {
+    font-size: var(--text-xs);
+    color: var(--text-muted);
+  }
+
+  /* ========== CONTEUDO ========== */
+  .desktop-content {
+    grid-column: 2;
+    padding: var(--space-xl);
+    min-height: 100vh;
+    background: var(--bg-secondary);
+  }
+
+  /* Header desktop */
+  .desktop-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: var(--space-xl);
+  }
+  .desktop-header .page-title {
+    font-size: var(--text-2xl);
+    font-weight: var(--font-bold);
+    color: var(--text-primary);
+  }
+  .desktop-header .page-subtitle {
+    font-size: var(--text-sm);
+    color: var(--text-secondary);
+    margin-top: var(--space-xs);
+  }
+  .desktop-header .header-actions {
+    display: flex;
+    align-items: center;
+    gap: var(--space-md);
+  }
+
+  /* Ajustes no .mobile-app para desktop */
+  .mobile-app {
+    max-width: none !important;
+    margin: 0 !important;
+    min-height: 100vh;
+    border: none !important;
+    box-shadow: none !important;
+  }
+
+  /* Bottom nav desaparece */
   .bottom-nav {
-    max-width: 1000px !important;
+    display: none !important;
   }
 
-  /* Botao flutuante ancorado a borda direita do container centralizado.
-     max() evita que ele saia da tela em larguras intermediarias (768-1000px). */
+  /* Botao FAB ajustado */
   .fab {
-    right: max(24px, calc(50% - 500px + 24px)) !important;
+    right: var(--space-lg) !important;
+    bottom: var(--space-lg) !important;
   }
 
-  /* Grids de metricas/cards ganham mais colunas no desktop */
+  /* Header interno some no desktop (cada pagina define o seu via desktop-header) */
+  .mobile-app > .header {
+    display: none !important;
+  }
+
+  /* Conteudo principal perde o padding extra do mobile */
+  .main-content {
+    padding: 0 !important;
+    padding-bottom: 0 !important;
+    max-width: none !important;
+  }
+
+  /* ========== METRICAS EM GRID ========== */
   .metrics-grid {
+    grid-template-columns: repeat(4, 1fr) !important;
+    gap: var(--space-lg) !important;
+  }
+  .metric-card {
+    margin-bottom: 0;
+  }
+
+  /* ========== TABELA DATA-TABLE ========== */
+  .data-table {
+    width: 100%;
+    border-collapse: collapse;
+    background: var(--bg-card);
+    border-radius: var(--radius-lg);
+    overflow: hidden;
+    box-shadow: var(--shadow-sm);
+    border: 1px solid var(--border-color);
+  }
+  .data-table thead {
+    background: var(--bg-secondary);
+  }
+  .data-table th {
+    padding: var(--space-sm) var(--space-md);
+    text-align: left;
+    font-size: var(--text-sm);
+    font-weight: var(--font-semibold);
+    color: var(--text-secondary);
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    white-space: nowrap;
+    border-bottom: 1px solid var(--border-color);
+  }
+  .data-table td {
+    padding: var(--space-sm) var(--space-md);
+    font-size: var(--text-sm);
+    color: var(--text-primary);
+    border-bottom: 1px solid var(--border-color);
+    vertical-align: middle;
+  }
+  .data-table tbody tr {
+    transition: background var(--transition-fast);
+  }
+  .data-table tbody tr:hover {
+    background: var(--bg-secondary);
+  }
+  .data-table tbody tr:last-child td {
+    border-bottom: none;
+  }
+  .data-table .cell-actions {
+    display: flex;
+    gap: var(--space-xs);
+    justify-content: flex-end;
+  }
+  .data-table .cell-actions .icon-btn {
+    width: 32px;
+    height: 32px;
+    background: var(--bg-secondary);
+    border: none;
+    border-radius: var(--radius-md);
+    cursor: pointer;
+    color: var(--text-secondary);
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    transition: all var(--transition-fast);
+  }
+  .data-table .cell-actions .icon-btn:hover {
+    background: var(--primary-light);
+    color: var(--primary);
+  }
+  .data-table .cell-actions .icon-btn.danger:hover {
+    background: var(--error-light);
+    color: var(--error);
+  }
+  .data-table .cell-actions .icon-btn.wa:hover {
+    background: var(--success-light);
+    color: var(--success);
+  }
+
+  /* Badge dentro da tabela */
+  .data-table .badge-tag {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    padding: 2px 10px;
+    border-radius: var(--radius-full);
+    font-size: var(--text-xs);
+    font-weight: var(--font-medium);
+    white-space: nowrap;
+  }
+  .data-table .badge-agendado {
+    background: var(--warning-light);
+    color: var(--warning);
+  }
+  .data-table .badge-confirmado {
+    background: var(--success-light);
+    color: var(--success);
+  }
+  .data-table .badge-concluido {
+    background: var(--primary-light);
+    color: var(--primary);
+  }
+  .data-table .badge-cancelado {
+    background: var(--error-light);
+    color: var(--error);
+    opacity: 0.7;
+  }
+
+  /* ========== SECOES NO DESKTOP ========== */
+  .section-card {
+    background: var(--bg-card);
+    border: 1px solid var(--border-color);
+    border-radius: var(--radius-lg);
+    box-shadow: var(--shadow-sm);
+    overflow: hidden;
+  }
+  .section-card .section-card-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: var(--space-md) var(--space-lg);
+    border-bottom: 1px solid var(--border-color);
+  }
+  .section-card .section-card-title {
+    font-size: var(--text-base);
+    font-weight: var(--font-semibold);
+    color: var(--text-primary);
+  }
+  .section-card .section-card-body {
+    padding: var(--space-md) var(--space-lg);
+  }
+
+  /* ========== CONFIG: GRID 2 COLUNAS ========== */
+  .config-desktop-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: var(--space-lg);
+  }
+  .config-desktop-grid .config-section {
+    margin-bottom: 0;
+  }
+  .config-desktop-grid .config-section.full-width {
+    grid-column: 1 / -1;
+  }
+
+  /* ========== RELATORIOS: CHARTS MAIORES ========== */
+  .simple-bar-chart {
+    height: 200px !important;
+  }
+
+  /* ========== GRID DE ACOES RAPIDAS ========== */
+  .quick-actions {
+    display: grid;
     grid-template-columns: repeat(4, 1fr) !important;
   }
 
-  /* MODAIS: no mobile sobem do rodape (bottom sheet); no desktop ficam
-     centralizados como uma janela, com cantos arredondados e largura menor. */
+  /* ========== ONBOARDING ========== */
+  .onboarding-container {
+    max-width: 640px;
+    margin: var(--space-3xl) auto;
+    padding: var(--space-xl);
+    background: var(--bg-card);
+    border-radius: var(--radius-xl);
+    box-shadow: var(--shadow-lg);
+    border: 1px solid var(--border-color);
+  }
+
+  /* MODAIS centralizados */
+  .modal-overlay {
+    align-items: center !important;
+  }
+  .modal {
+    border-radius: var(--radius-xl) !important;
+    box-shadow: var(--shadow-xl);
+  }
+}
+
+/* ========== TABLET (768px - 1023px) ========== */
+@media (min-width: 768px) and (max-width: 1023px) {
+  .metrics-grid {
+    grid-template-columns: repeat(4, 1fr) !important;
+  }
   .modal-overlay {
     align-items: center !important;
   }
@@ -529,15 +927,5 @@ body {
     max-width: 460px !important;
     border-radius: var(--radius-xl) !important;
     box-shadow: var(--shadow-xl);
-  }
-}
-
-/* Telas bem largas: limita e centraliza o conteudo das listas para leitura confortavel.
-   (Nao afeta a grade de metricas do dashboard, que usa largura total.) */
-@media (min-width: 1100px) {
-  .main-content {
-    max-width: 820px;
-    margin-left: auto;
-    margin-right: auto;
   }
 }

@@ -357,7 +357,52 @@
   </style>
 </head>
 <body>
-  <div class="mobile-app">
+  <div class="desktop-layout">
+    <aside class="sidebar desktop-only">
+      <div class="sidebar-logo">
+        <i class="fas fa-calendar-check"></i>
+        <span>AgendaPro</span>
+      </div>
+      <nav class="sidebar-nav">
+        <div class="nav-section">Principal</div>
+        <a href="dashboard-mobile.html" class="sidebar-item"><i class="fas fa-home"></i> Dashboard</a>
+        <a href="agenda-mobile.html" class="sidebar-item"><i class="fas fa-calendar"></i> Agenda</a>
+        <a href="clientes-mobile.html" class="sidebar-item"><i class="fas fa-users"></i> Clientes</a>
+        <div class="nav-section">Gestão</div>
+        <a href="servicos-mobile.html" class="sidebar-item"><i class="fas fa-cut"></i> Serviços</a>
+        <a href="profissionais-mobile.html" class="sidebar-item"><i class="fas fa-user-tie"></i> Profissionais</a>
+        <a href="financeiro-mobile.html" class="sidebar-item"><i class="fas fa-chart-line"></i> Financeiro</a>
+        <div class="nav-section">Outros</div>
+        <a href="relatorios-mobile.html" class="sidebar-item"><i class="fas fa-chart-bar"></i> Relatórios</a>
+        <a href="horarios-especiais.html" class="sidebar-item"><i class="fas fa-clock"></i> Horários Especiais</a>
+        <a href="configuracoes-mobile.html" class="sidebar-item"><i class="fas fa-cog"></i> Configurações</a>
+      </nav>
+      <div class="sidebar-footer">
+        <div class="sidebar-user" id="sidebar-user" onclick="API.logout()" title="Sair">
+          <div class="avatar" id="sidebar-avatar">A</div>
+          <div class="user-info">
+            <div class="user-name" id="sidebar-name">Usuário</div>
+            <div class="user-role" id="sidebar-role">Proprietário</div>
+          </div>
+          <i class="fas fa-sign-out-alt" style="color: var(--text-muted); font-size: var(--text-sm);"></i>
+        </div>
+      </div>
+    </aside>
+
+    <div class="desktop-content">
+      <div class="desktop-header desktop-only">
+        <div>
+          <h1 class="page-title">Chat & Suporte</h1>
+          <p class="page-subtitle">Comunicação com clientes e suporte</p>
+        </div>
+        <div class="header-actions">
+          <button class="theme-toggle" onclick="toggleTheme()" style="background: var(--bg-card); border: 1px solid var(--border-color); padding: var(--space-sm) var(--space-md); border-radius: var(--radius-md); cursor: pointer; color: var(--text-secondary);">
+            <i class="fas fa-moon" id="theme-icon-desk"></i>
+          </button>
+        </div>
+      </div>
+
+      <div class="mobile-app">
     <!-- HEADER -->
     <header class="header">
       <div class="header-content">
@@ -593,75 +638,73 @@
         </a>
       </div>
     </nav>
+      </div>
+    </div>
   </div>
 
+  <script src="api.js"></script>
   <script>
-    // TOGGLE TEMA
     function toggleTheme() {
       const html = document.documentElement;
-      const themeIcon = document.getElementById('theme-icon');
-      
-      if (html.getAttribute('data-theme') === 'dark') {
-        html.removeAttribute('data-theme');
-        themeIcon.className = 'fas fa-moon';
-        localStorage.setItem('theme', 'light');
-      } else {
-        html.setAttribute('data-theme', 'dark');
-        themeIcon.className = 'fas fa-sun';
-        localStorage.setItem('theme', 'dark');
-      }
+      const isDark = html.getAttribute('data-theme') === 'dark';
+      if (isDark) { html.removeAttribute('data-theme'); localStorage.setItem('theme','light'); }
+      else { html.setAttribute('data-theme','dark'); localStorage.setItem('theme','dark'); }
+      const cls = isDark ? 'fa-moon' : 'fa-sun';
+      document.querySelectorAll('#theme-icon, #theme-icon-desk').forEach(el => el.className = 'fas ' + cls);
     }
 
-    // CONVERSAS
     function openConversation(clientId) {
-      alert(`Abrir conversa com: ${clientId}\n\nAqui você seria redirecionado para o WhatsApp Web ou um chat integrado mostrando todo o histórico de mensagens com este cliente.`);
+      alert(`Abrir conversa com: ${clientId}`);
     }
 
     function openWhatsAppWeb() {
-      // Em produção, abriria o WhatsApp Web
-      alert('Abrindo WhatsApp Web...\n\nEm produção, isso abriria o WhatsApp Web em uma nova aba com o número da barbearia já conectado.');
+      alert('Abrindo WhatsApp Web...');
     }
 
     function openBroadcast() {
-      alert('Transmissão em Massa\n\nAqui você poderia:\n- Selecionar múltiplos clientes\n- Enviar promoções\n- Lembretes de agendamento\n- Comunicados importantes');
+      alert('Transmissão em Massa\n\nSelecione clientes, envie promoções, lembretes e comunicados.');
     }
 
-    // SUPORTE
     function openFAQ() {
-      alert('Perguntas Frequentes\n\nAqui você encontraria respostas para:\n- Como conectar o WhatsApp?\n- Como personalizar mensagens?\n- Como fazer backup?\n- Problemas comuns e soluções');
+      alert('Perguntas Frequentes\n\nComo conectar WhatsApp? Como personalizar mensagens? Como fazer backup?');
     }
 
     function openDocumentation() {
-      alert('Documentação\n\nAcesso à documentação completa:\n- Guia de primeiros passos\n- Configurações avançadas\n- Integrações disponíveis\n- Best practices');
+      alert('Documentação\n\nGuias de primeiros passos, configurações avançadas, integrações.');
     }
 
     function openVideoTutorials() {
-      alert('Vídeo Tutoriais\n\nBiblioteca de vídeos:\n- Configuração inicial\n- Como usar a agenda\n- Gerenciar clientes\n- Relatórios financeiros');
+      alert('Vídeo Tutoriais\n\nConfiguração inicial, agenda, clientes, relatórios financeiros.');
     }
 
     function contactSupport() {
-      alert('Contatar Suporte\n\nFormas de contato:\n- Email: suporte@agendapro.com\n- WhatsApp: (11) 99999-0000\n- Chat ao vivo (horário comercial)\n- Ticket de suporte');
+      alert('Contatar Suporte\n\nEmail: suporte@agendapro.com\nWhatsApp: (11) 99999-0000\nChat ao vivo.');
     }
 
     function reportBug() {
-      alert('Reportar Problema\n\nNos ajude a melhorar:\n- Descreva o problema\n- Passos para reproduzir\n- Screenshots (se aplicável)\n- Informações do dispositivo');
+      alert('Reportar Problema\n\nDescreva o problema e como reproduzi-lo.');
     }
 
-    // INICIALIZAÇÃO
     document.addEventListener('DOMContentLoaded', function() {
-      // Tema
       const savedTheme = localStorage.getItem('theme');
       if (savedTheme === 'dark') {
         document.documentElement.setAttribute('data-theme', 'dark');
-        document.getElementById('theme-icon').className = 'fas fa-sun';
+        document.querySelectorAll('#theme-icon, #theme-icon-desk').forEach(el => el.className = 'fas fa-sun');
+      }
+      const user = API.getUser();
+      if (user) {
+        const avatar = document.getElementById('sidebar-avatar');
+        const name = document.getElementById('sidebar-name');
+        const role = document.getElementById('sidebar-role');
+        if (avatar) avatar.textContent = (user.nome || 'U').charAt(0).toUpperCase();
+        if (name) name.textContent = user.nome || 'Usuário';
+        if (role) role.textContent = user.role === 'owner' ? 'Proprietário' : user.role;
       }
 
-      // Animações
       const cards = document.querySelectorAll('.conversation-card, .action-card, .support-card');
       cards.forEach((card, index) => {
         card.style.opacity = '0';
         card.style.transform = 'translateY(20px)';
-        
         setTimeout(() => {
           card.style.transition = 'all 0.3s ease-out';
           card.style.opacity = '1';

@@ -430,7 +430,52 @@
   </style>
 </head>
 <body>
-  <div class="mobile-app">
+  <div class="desktop-layout">
+    <aside class="sidebar desktop-only">
+      <div class="sidebar-logo">
+        <i class="fas fa-calendar-check"></i>
+        <span>AgendaPro</span>
+      </div>
+      <nav class="sidebar-nav">
+        <div class="nav-section">Principal</div>
+        <a href="dashboard-mobile.html" class="sidebar-item"><i class="fas fa-home"></i> Dashboard</a>
+        <a href="agenda-mobile.html" class="sidebar-item"><i class="fas fa-calendar"></i> Agenda</a>
+        <a href="clientes-mobile.html" class="sidebar-item"><i class="fas fa-users"></i> Clientes</a>
+        <div class="nav-section">Gestão</div>
+        <a href="servicos-mobile.html" class="sidebar-item"><i class="fas fa-cut"></i> Serviços</a>
+        <a href="profissionais-mobile.html" class="sidebar-item"><i class="fas fa-user-tie"></i> Profissionais</a>
+        <a href="financeiro-mobile.html" class="sidebar-item active"><i class="fas fa-chart-line"></i> Financeiro</a>
+        <div class="nav-section">Outros</div>
+        <a href="relatorios-mobile.html" class="sidebar-item"><i class="fas fa-chart-bar"></i> Relatórios</a>
+        <a href="horarios-especiais.html" class="sidebar-item"><i class="fas fa-clock"></i> Horários Especiais</a>
+        <a href="configuracoes-mobile.html" class="sidebar-item"><i class="fas fa-cog"></i> Configurações</a>
+      </nav>
+      <div class="sidebar-footer">
+        <div class="sidebar-user" id="sidebar-user" onclick="API.logout()" title="Sair">
+          <div class="avatar" id="sidebar-avatar">A</div>
+          <div class="user-info">
+            <div class="user-name" id="sidebar-name">Usuário</div>
+            <div class="user-role" id="sidebar-role">Proprietário</div>
+          </div>
+          <i class="fas fa-sign-out-alt" style="color: var(--text-muted); font-size: var(--text-sm);"></i>
+        </div>
+      </div>
+    </aside>
+
+    <div class="desktop-content">
+      <div class="desktop-header desktop-only">
+        <div>
+          <h1 class="page-title">Financeiro</h1>
+          <p class="page-subtitle">Gestão financeira e comandas</p>
+        </div>
+        <div class="header-actions">
+          <button class="theme-toggle" onclick="toggleTheme()" style="background: var(--bg-card); border: 1px solid var(--border-color); padding: var(--space-sm) var(--space-md); border-radius: var(--radius-md); cursor: pointer; color: var(--text-secondary);">
+            <i class="fas fa-moon" id="theme-icon-desk"></i>
+          </button>
+        </div>
+      </div>
+
+      <div class="mobile-app">
     <!-- HEADER -->
     <header class="header">
       <div class="header-content">
@@ -690,38 +735,27 @@
         </a>
       </div>
     </nav>
+      </div>
+    </div>
   </div>
 
+  <script src="api.js"></script>
   <script>
     let currentPeriod = 'month';
 
-    // TOGGLE TEMA
     function toggleTheme() {
       const html = document.documentElement;
-      const themeIcon = document.getElementById('theme-icon');
-      
-      if (html.getAttribute('data-theme') === 'dark') {
-        html.removeAttribute('data-theme');
-        themeIcon.className = 'fas fa-moon';
-        localStorage.setItem('theme', 'light');
-      } else {
-        html.setAttribute('data-theme', 'dark');
-        themeIcon.className = 'fas fa-sun';
-        localStorage.setItem('theme', 'dark');
-      }
+      const isDark = html.getAttribute('data-theme') === 'dark';
+      if (isDark) { html.removeAttribute('data-theme'); localStorage.setItem('theme','light'); }
+      else { html.setAttribute('data-theme','dark'); localStorage.setItem('theme','dark'); }
+      const cls = isDark ? 'fa-moon' : 'fa-sun';
+      document.querySelectorAll('#theme-icon, #theme-icon-desk').forEach(el => el.className = 'fas ' + cls);
     }
 
-    // PERÍODO
     function setPeriod(period) {
       currentPeriod = period;
-      
-      // Atualizar botões
-      document.querySelectorAll('.period-btn').forEach(btn => {
-        btn.classList.remove('active');
-      });
+      document.querySelectorAll('.period-btn').forEach(btn => btn.classList.remove('active'));
       event.target.classList.add('active');
-      
-      // Simular atualização de dados
       updateFinancialData(period);
     }
 
@@ -732,35 +766,36 @@
         month: { value: 'R$ 8.450,00', label: 'Junho 2026', count: 156 },
         year: { value: 'R$ 95.600,00', label: 'Ano 2026', count: 1842 }
       };
-      
       const selected = data[period];
       document.querySelector('.summary-value').textContent = selected.value;
       document.querySelector('.summary-period').textContent = `Faturamento - ${selected.label}`;
       document.querySelector('.summary-stat-value').textContent = selected.count;
-      
-      console.log(`Período alterado para: ${period}`);
     }
 
-    // COMANDAS
     function openCommand(commandId) {
-      alert(`Abrir Comanda #${commandId}\n\nAqui você veria:\n- Detalhes dos serviços\n- Histórico de pagamentos\n- Ações: imprimir, reabrir, etc.`);
+      alert(`Abrir Comanda #${commandId}`);
     }
 
-    // INICIALIZAÇÃO
     document.addEventListener('DOMContentLoaded', function() {
-      // Tema
       const savedTheme = localStorage.getItem('theme');
       if (savedTheme === 'dark') {
         document.documentElement.setAttribute('data-theme', 'dark');
-        document.getElementById('theme-icon').className = 'fas fa-sun';
+        document.querySelectorAll('#theme-icon, #theme-icon-desk').forEach(el => el.className = 'fas fa-sun');
+      }
+      const user = API.getUser();
+      if (user) {
+        const avatar = document.getElementById('sidebar-avatar');
+        const name = document.getElementById('sidebar-name');
+        const role = document.getElementById('sidebar-role');
+        if (avatar) avatar.textContent = (user.nome || 'U').charAt(0).toUpperCase();
+        if (name) name.textContent = user.nome || 'Usuário';
+        if (role) role.textContent = user.role === 'owner' ? 'Proprietário' : user.role;
       }
 
-      // Animações
       const cards = document.querySelectorAll('.metric-card, .command-card, .payment-card');
       cards.forEach((card, index) => {
         card.style.opacity = '0';
         card.style.transform = 'translateY(20px)';
-        
         setTimeout(() => {
           card.style.transition = 'all 0.3s ease-out';
           card.style.opacity = '1';

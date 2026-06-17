@@ -47,7 +47,52 @@
   </style>
 </head>
 <body>
-  <div class="mobile-app">
+  <div class="desktop-layout">
+    <aside class="sidebar desktop-only">
+      <div class="sidebar-logo">
+        <i class="fas fa-calendar-check"></i>
+        <span>AgendaPro</span>
+      </div>
+      <nav class="sidebar-nav">
+        <div class="nav-section">Principal</div>
+        <a href="dashboard-mobile.html" class="sidebar-item"><i class="fas fa-home"></i> Dashboard</a>
+        <a href="agenda-mobile.html" class="sidebar-item"><i class="fas fa-calendar"></i> Agenda</a>
+        <a href="clientes-mobile.html" class="sidebar-item active"><i class="fas fa-users"></i> Clientes</a>
+        <div class="nav-section">Gestão</div>
+        <a href="servicos-mobile.html" class="sidebar-item"><i class="fas fa-cut"></i> Serviços</a>
+        <a href="profissionais-mobile.html" class="sidebar-item"><i class="fas fa-user-tie"></i> Profissionais</a>
+        <a href="financeiro-mobile.html" class="sidebar-item"><i class="fas fa-chart-line"></i> Financeiro</a>
+        <div class="nav-section">Outros</div>
+        <a href="relatorios-mobile.html" class="sidebar-item"><i class="fas fa-chart-bar"></i> Relatórios</a>
+        <a href="horarios-especiais.html" class="sidebar-item"><i class="fas fa-clock"></i> Horários Especiais</a>
+        <a href="configuracoes-mobile.html" class="sidebar-item"><i class="fas fa-cog"></i> Configurações</a>
+      </nav>
+      <div class="sidebar-footer">
+        <div class="sidebar-user" id="sidebar-user" onclick="API.logout()" title="Sair">
+          <div class="avatar" id="sidebar-avatar">A</div>
+          <div class="user-info">
+            <div class="user-name" id="sidebar-name">Usuário</div>
+            <div class="user-role" id="sidebar-role">Proprietário</div>
+          </div>
+          <i class="fas fa-sign-out-alt" style="color: var(--text-muted); font-size: var(--text-sm);"></i>
+        </div>
+      </div>
+    </aside>
+
+    <div class="desktop-content">
+      <div class="desktop-header desktop-only">
+        <div>
+          <h1 class="page-title">Clientes</h1>
+          <p class="page-subtitle">Gerencie sua base de clientes</p>
+        </div>
+        <div class="header-actions">
+          <button class="theme-toggle" onclick="toggleTheme()" style="background: var(--bg-card); border: 1px solid var(--border-color); padding: var(--space-sm) var(--space-md); border-radius: var(--radius-md); cursor: pointer; color: var(--text-secondary);">
+            <i class="fas fa-moon" id="theme-icon-desk"></i>
+          </button>
+        </div>
+      </div>
+
+      <div class="mobile-app">
     <header class="header">
       <div class="header-content">
         <div class="header-title">
@@ -65,6 +110,7 @@
 
     <main class="main-content">
       <div id="lista"><div class="empty"><i class="fas fa-spinner fa-spin"></i> Carregando...</div></div>
+      <div id="lista-tabela" class="desktop-only" style="margin-top: var(--space-md);"></div>
     </main>
 
     <button class="fab" onclick="abrirModal()" title="Adicionar cliente"><i class="fas fa-plus"></i></button>
@@ -78,6 +124,8 @@
         <a href="configuracoes-mobile.html" class="nav-item"><i class="nav-icon fas fa-cog"></i><span class="nav-label">Config</span></a>
       </div>
     </nav>
+      </div>
+    </div>
   </div>
 
   <div class="modal-overlay" id="modal">
@@ -100,11 +148,25 @@
   <script>
     API.exigirLogin();
     function toggleTheme() {
-      const html = document.documentElement, icon = document.getElementById('theme-icon');
-      if (html.getAttribute('data-theme') === 'dark') { html.removeAttribute('data-theme'); icon.className='fas fa-moon'; localStorage.setItem('theme','light'); }
-      else { html.setAttribute('data-theme','dark'); icon.className='fas fa-sun'; localStorage.setItem('theme','dark'); }
+      const html = document.documentElement;
+      const isDark = html.getAttribute('data-theme') === 'dark';
+      if (isDark) { html.removeAttribute('data-theme'); localStorage.setItem('theme','light'); }
+      else { html.setAttribute('data-theme','dark'); localStorage.setItem('theme','dark'); }
+      const cls = isDark ? 'fa-moon' : 'fa-sun';
+      document.querySelectorAll('#theme-icon, #theme-icon-desk').forEach(el => el.className = 'fas ' + cls);
     }
-    if (localStorage.getItem('theme') === 'dark') document.documentElement.setAttribute('data-theme','dark');
+    if (localStorage.getItem('theme') === 'dark') { document.documentElement.setAttribute('data-theme','dark'); document.querySelectorAll('#theme-icon, #theme-icon-desk').forEach(el => el.className = 'fas fa-sun'); }
+    document.addEventListener('DOMContentLoaded', function() {
+      const user = API.getUser();
+      if (user) {
+        const avatar = document.getElementById('sidebar-avatar');
+        const name = document.getElementById('sidebar-name');
+        const role = document.getElementById('sidebar-role');
+        if (avatar) avatar.textContent = (user.nome || 'U').charAt(0).toUpperCase();
+        if (name) name.textContent = user.nome || 'Usuário';
+        if (role) role.textContent = user.role === 'owner' ? 'Proprietário' : user.role;
+      }
+    });
 
     let clientes = [];
 
@@ -122,22 +184,61 @@
       const cont = document.getElementById('lista');
       if (!lista.length) {
         cont.innerHTML = `<div class="empty"><i class="fas fa-users"></i>Nenhum cliente encontrado.<br>Toque no + para adicionar.</div>`;
-        return;
+      } else {
+        cont.innerHTML = lista.map(c => `
+          <div class="cli-card">
+            <div class="cli-avatar">${c.nome.charAt(0).toUpperCase()}</div>
+            <div class="cli-info">
+              <div class="cli-nome">${c.nome}</div>
+              <div class="cli-meta"><i class="fas fa-phone" style="font-size:11px"></i> ${c.telefone || 'sem telefone'}
+                ${c.total_visitas > 0 ? `<span class="cli-badge">${c.total_visitas} visita(s)</span>` : ''}</div>
+            </div>
+            <div class="cli-actions">
+              ${c.telefone ? `<button class="icon-btn wa" onclick="abrirWhats('${c.telefone}')"><i class="fab fa-whatsapp"></i></button>` : ''}
+              <button class="icon-btn" onclick='editar(${JSON.stringify(c)})'><i class="fas fa-pen"></i></button>
+              <button class="icon-btn danger" onclick="excluir('${c.id}','${c.nome.replace(/'/g,"")}')"><i class="fas fa-trash"></i></button>
+            </div>
+          </div>`).join('');
       }
-      cont.innerHTML = lista.map(c => `
-        <div class="cli-card">
-          <div class="cli-avatar">${c.nome.charAt(0).toUpperCase()}</div>
-          <div class="cli-info">
-            <div class="cli-nome">${c.nome}</div>
-            <div class="cli-meta"><i class="fas fa-phone" style="font-size:11px"></i> ${c.telefone || 'sem telefone'}
-              ${c.total_visitas > 0 ? `<span class="cli-badge">${c.total_visitas} visita(s)</span>` : ''}</div>
-          </div>
-          <div class="cli-actions">
-            ${c.telefone ? `<button class="icon-btn wa" onclick="abrirWhats('${c.telefone}')"><i class="fab fa-whatsapp"></i></button>` : ''}
-            <button class="icon-btn" onclick='editar(${JSON.stringify(c)})'><i class="fas fa-pen"></i></button>
-            <button class="icon-btn danger" onclick="excluir('${c.id}','${c.nome.replace(/'/g,"")}')"><i class="fas fa-trash"></i></button>
-          </div>
-        </div>`).join('');
+      renderTabela(lista);
+    }
+
+    function renderTabela(lista) {
+      const cont = document.getElementById('lista-tabela');
+      if (!lista.length) { cont.innerHTML = ''; return; }
+      cont.innerHTML = `
+      <div class="section-card">
+        <div class="section-card-header">
+          <div class="section-card-title">${lista.length} cliente(s)</div>
+          <button class="btn btn-primary btn-sm" onclick="abrirModal()"><i class="fas fa-plus"></i> Novo</button>
+        </div>
+        <div class="section-card-body" style="padding:0;">
+          <table class="data-table">
+            <thead>
+              <tr>
+                <th>Nome</th>
+                <th>Telefone</th>
+                <th>Email</th>
+                <th>Visitas</th>
+                <th style="text-align:right;">Ações</th>
+              </tr>
+            </thead>
+            <tbody>
+              ${lista.map(c => `<tr>
+                <td><strong>${c.nome}</strong></td>
+                <td>${c.telefone || '-'}</td>
+                <td>${c.email || '-'}</td>
+                <td>${c.total_visitas || 0}</td>
+                <td class="cell-actions">
+                  ${c.telefone ? `<button class="icon-btn wa" onclick="abrirWhats('${c.telefone}')" title="WhatsApp"><i class="fab fa-whatsapp" style="color:var(--success)"></i></button>` : ''}
+                  <button class="icon-btn" onclick='editar(${JSON.stringify(c)})' title="Editar"><i class="fas fa-pen"></i></button>
+                  <button class="icon-btn danger" onclick="excluir('${c.id}','${c.nome.replace(/'/g,"")}')" title="Excluir"><i class="fas fa-trash"></i></button>
+                </td>
+              </tr>`).join('')}
+            </tbody>
+          </table>
+        </div>
+      </div>`;
     }
 
     function abrirWhats(tel) {

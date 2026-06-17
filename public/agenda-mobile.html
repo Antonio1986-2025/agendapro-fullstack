@@ -55,7 +55,55 @@
   </style>
 </head>
 <body>
-  <div class="mobile-app">
+  <div class="desktop-layout">
+    <!-- SIDEBAR (desktop only) -->
+    <aside class="sidebar desktop-only">
+      <div class="sidebar-logo">
+        <i class="fas fa-calendar-check"></i>
+        <span>AgendaPro</span>
+      </div>
+      <nav class="sidebar-nav">
+        <div class="nav-section">Principal</div>
+        <a href="dashboard-mobile.html" class="sidebar-item"><i class="fas fa-home"></i> Dashboard</a>
+        <a href="agenda-mobile.html" class="sidebar-item active"><i class="fas fa-calendar"></i> Agenda</a>
+        <a href="clientes-mobile.html" class="sidebar-item"><i class="fas fa-users"></i> Clientes</a>
+        <div class="nav-section">Gestão</div>
+        <a href="servicos-mobile.html" class="sidebar-item"><i class="fas fa-cut"></i> Serviços</a>
+        <a href="profissionais-mobile.html" class="sidebar-item"><i class="fas fa-user-tie"></i> Profissionais</a>
+        <a href="financeiro-mobile.html" class="sidebar-item"><i class="fas fa-chart-line"></i> Financeiro</a>
+        <div class="nav-section">Outros</div>
+        <a href="relatorios-mobile.html" class="sidebar-item"><i class="fas fa-chart-bar"></i> Relatórios</a>
+        <a href="horarios-especiais.html" class="sidebar-item"><i class="fas fa-clock"></i> Horários Especiais</a>
+        <a href="configuracoes-mobile.html" class="sidebar-item"><i class="fas fa-cog"></i> Configurações</a>
+      </nav>
+      <div class="sidebar-footer">
+        <div class="sidebar-user" id="sidebar-user" onclick="API.logout()" title="Sair">
+          <div class="avatar" id="sidebar-avatar">A</div>
+          <div class="user-info">
+            <div class="user-name" id="sidebar-name">Usuário</div>
+            <div class="user-role" id="sidebar-role">Proprietário</div>
+          </div>
+          <i class="fas fa-sign-out-alt" style="color: var(--text-muted); font-size: var(--text-sm);"></i>
+        </div>
+      </div>
+    </aside>
+
+    <!-- CONTEUDO DESKTOP -->
+    <div class="desktop-content">
+      <!-- HEADER DESKTOP -->
+      <div class="desktop-header desktop-only">
+        <div>
+          <h1 class="page-title">Agenda</h1>
+          <p class="page-subtitle">Gerencie os agendamentos do dia</p>
+        </div>
+        <div class="header-actions">
+          <button class="theme-toggle" onclick="toggleTheme()" style="background: var(--bg-card); border: 1px solid var(--border-color); padding: var(--space-sm) var(--space-md); border-radius: var(--radius-md); cursor: pointer; color: var(--text-secondary);">
+            <i class="fas fa-moon" id="theme-icon-desk"></i>
+          </button>
+        </div>
+      </div>
+
+      <div class="mobile-app">
     <header class="header">
       <div class="header-content">
         <div class="header-title">
@@ -76,6 +124,8 @@
 
     <main class="main-content">
       <div id="lista"><div class="empty"><i class="fas fa-spinner fa-spin"></i> Carregando...</div></div>
+      <!-- Tabela desktop (escondida no mobile) -->
+      <div id="lista-tabela" class="desktop-only" style="margin-top: var(--space-md);"></div>
     </main>
 
     <button class="fab" onclick="abrirModal()" title="Novo agendamento"><i class="fas fa-plus"></i></button>
@@ -89,6 +139,8 @@
         <a href="configuracoes-mobile.html" class="nav-item"><i class="nav-icon fas fa-cog"></i><span class="nav-label">Config</span></a>
       </div>
     </nav>
+      </div>
+    </div>
   </div>
 
   <!-- MODAL NOVO AGENDAMENTO -->
@@ -125,11 +177,25 @@
   <script>
     API.exigirLogin();
     function toggleTheme() {
-      const html = document.documentElement, icon = document.getElementById('theme-icon');
-      if (html.getAttribute('data-theme') === 'dark') { html.removeAttribute('data-theme'); icon.className='fas fa-moon'; localStorage.setItem('theme','light'); }
-      else { html.setAttribute('data-theme','dark'); icon.className='fas fa-sun'; localStorage.setItem('theme','dark'); }
+      const html = document.documentElement;
+      const isDark = html.getAttribute('data-theme') === 'dark';
+      if (isDark) { html.removeAttribute('data-theme'); localStorage.setItem('theme','light'); }
+      else { html.setAttribute('data-theme','dark'); localStorage.setItem('theme','dark'); }
+      const cls = isDark ? 'fa-moon' : 'fa-sun';
+      document.querySelectorAll('#theme-icon, #theme-icon-desk').forEach(el => el.className = 'fas ' + cls);
     }
-    if (localStorage.getItem('theme') === 'dark') document.documentElement.setAttribute('data-theme','dark');
+    if (localStorage.getItem('theme') === 'dark') { document.documentElement.setAttribute('data-theme','dark'); document.querySelectorAll('#theme-icon, #theme-icon-desk').forEach(el => el.className = 'fas fa-sun'); }
+    document.addEventListener('DOMContentLoaded', function() {
+      const user = API.getUser();
+      if (user) {
+        const avatar = document.getElementById('sidebar-avatar');
+        const name = document.getElementById('sidebar-name');
+        const role = document.getElementById('sidebar-role');
+        if (avatar) avatar.textContent = (user.nome || 'U').charAt(0).toUpperCase();
+        if (name) name.textContent = user.nome || 'Usuário';
+        if (role) role.textContent = user.role === 'owner' ? 'Proprietário' : user.role;
+      }
+    });
 
     let dataAtual = new Date();
     let profissionais = [], servicos = [], clientes = [];
@@ -170,29 +236,78 @@
       const cont = document.getElementById('lista');
       if (!ags.length) {
         cont.innerHTML = `<div class="empty"><i class="fas fa-calendar-check"></i>Nenhum agendamento neste dia.<br>Toque no + para criar.</div>`;
-        return;
-      }
-      cont.innerHTML = ags.map(a => {
-        const hora = new Date(a.data_hora).toLocaleTimeString('pt-BR', { hour:'2-digit', minute:'2-digit' });
-        return `
-        <div class="ag-card st-${a.status}">
-          <div class="ag-hora">${hora}</div>
-          <div class="ag-info">
-            <div class="ag-cliente">${a.cliente_nome || 'Cliente'} ${a.is_especial ? '<span class="ag-especial">+50%</span>' : ''}</div>
-            <div class="ag-serv">${a.servico_nome || 'Atendimento'} • R$ ${Number(a.preco).toFixed(2)}</div>
-            <div class="ag-prof"><i class="fas fa-user-tie"></i> ${a.profissional_nome || ''} • ${statusLabel(a.status)}</div>
-          </div>
-          <div class="ag-menu">
-            <button class="menu-btn" onclick="toggleMenu('${a.id}', event)"><i class="fas fa-ellipsis-v"></i></button>
-            <div class="menu-pop" id="menu-${a.id}">
-              ${a.status !== 'confirmado' ? `<button onclick="setStatus('${a.id}','confirmado')"><i class="fas fa-check" style="color:var(--success)"></i> Confirmar</button>` : ''}
-              ${a.status !== 'concluido' ? `<button onclick="setStatus('${a.id}','concluido')"><i class="fas fa-flag-checkered" style="color:var(--primary)"></i> Concluir</button>` : ''}
-              ${a.status !== 'cancelado' ? `<button onclick="setStatus('${a.id}','cancelado')"><i class="fas fa-ban" style="color:var(--warning)"></i> Cancelar</button>` : ''}
-              <button onclick="excluir('${a.id}')"><i class="fas fa-trash" style="color:var(--error)"></i> Excluir</button>
+      } else {
+        cont.innerHTML = ags.map(a => {
+          const hora = new Date(a.data_hora).toLocaleTimeString('pt-BR', { hour:'2-digit', minute:'2-digit' });
+          return `
+          <div class="ag-card st-${a.status}">
+            <div class="ag-hora">${hora}</div>
+            <div class="ag-info">
+              <div class="ag-cliente">${a.cliente_nome || 'Cliente'} ${a.is_especial ? '<span class="ag-especial">+50%</span>' : ''}</div>
+              <div class="ag-serv">${a.servico_nome || 'Atendimento'} • R$ ${Number(a.preco).toFixed(2)}</div>
+              <div class="ag-prof"><i class="fas fa-user-tie"></i> ${a.profissional_nome || ''} • ${statusLabel(a.status)}</div>
             </div>
-          </div>
-        </div>`;
-      }).join('');
+            <div class="ag-menu">
+              <button class="menu-btn" onclick="toggleMenu('${a.id}', event)"><i class="fas fa-ellipsis-v"></i></button>
+              <div class="menu-pop" id="menu-${a.id}">
+                ${a.status !== 'confirmado' ? `<button onclick="setStatus('${a.id}','confirmado')"><i class="fas fa-check" style="color:var(--success)"></i> Confirmar</button>` : ''}
+                ${a.status !== 'concluido' ? `<button onclick="setStatus('${a.id}','concluido')"><i class="fas fa-flag-checkered" style="color:var(--primary)"></i> Concluir</button>` : ''}
+                ${a.status !== 'cancelado' ? `<button onclick="setStatus('${a.id}','cancelado')"><i class="fas fa-ban" style="color:var(--warning)"></i> Cancelar</button>` : ''}
+                <button onclick="excluir('${a.id}')"><i class="fas fa-trash" style="color:var(--error)"></i> Excluir</button>
+              </div>
+            </div>
+          </div>`;
+        }).join('');
+      }
+      // Tabela desktop
+      renderTabela(ags);
+    }
+
+    function renderTabela(ags) {
+      const cont = document.getElementById('lista-tabela');
+      if (!ags.length) { cont.innerHTML = ''; return; }
+      const statusClass = { agendado: 'badge-agendado', confirmado: 'badge-confirmado', concluido: 'badge-concluido', cancelado: 'badge-cancelado' };
+      cont.innerHTML = `
+      <div class="section-card">
+        <div class="section-card-header">
+          <div class="section-card-title">Agendamentos do dia</div>
+          <button class="btn btn-primary btn-sm" onclick="abrirModal()"><i class="fas fa-plus"></i> Novo</button>
+        </div>
+        <div class="section-card-body" style="padding:0;">
+          <table class="data-table">
+            <thead>
+              <tr>
+                <th>Horário</th>
+                <th>Cliente</th>
+                <th>Serviço</th>
+                <th>Profissional</th>
+                <th>Valor</th>
+                <th>Status</th>
+                <th style="text-align:right;">Ações</th>
+              </tr>
+            </thead>
+            <tbody>
+              ${ags.map(a => {
+                const hora = new Date(a.data_hora).toLocaleTimeString('pt-BR', { hour:'2-digit', minute:'2-digit' });
+                return `<tr>
+                  <td><strong>${hora}</strong></td>
+                  <td>${a.cliente_nome || 'Cliente'} ${a.is_especial ? '<span class="badge-tag" style="background:var(--warning-light);color:var(--warning);font-size:10px;">+50%</span>' : ''}</td>
+                  <td>${a.servico_nome || 'Atendimento'}</td>
+                  <td>${a.profissional_nome || '-'}</td>
+                  <td><strong>R$ ${Number(a.preco).toFixed(2)}</strong></td>
+                  <td><span class="badge-tag ${statusClass[a.status] || 'badge-agendado'}">${statusLabel(a.status)}</span></td>
+                  <td class="cell-actions">
+                    ${a.status !== 'confirmado' ? `<button class="icon-btn" onclick="setStatus('${a.id}','confirmado')" title="Confirmar"><i class="fas fa-check" style="color:var(--success)"></i></button>` : ''}
+                    ${a.status !== 'concluido' ? `<button class="icon-btn" onclick="setStatus('${a.id}','concluido')" title="Concluir"><i class="fas fa-flag-checkered" style="color:var(--primary)"></i></button>` : ''}
+                    ${a.status !== 'cancelado' ? `<button class="icon-btn" onclick="setStatus('${a.id}','cancelado')" title="Cancelar"><i class="fas fa-ban" style="color:var(--warning)"></i></button>` : ''}
+                    <button class="icon-btn danger" onclick="excluir('${a.id}')" title="Excluir"><i class="fas fa-trash"></i></button>
+                  </td>
+                </tr>`;
+              }).join('')}
+            </tbody>
+          </table>
+        </div>
+      </div>`;
     }
 
     let menuAberto = null;

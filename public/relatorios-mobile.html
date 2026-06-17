@@ -477,28 +477,65 @@
   </style>
 </head>
 <body>
-  <div class="mobile-app">
-    <!-- HEADER -->
+  <div class="desktop-layout">
+    <aside class="sidebar desktop-only">
+      <div class="sidebar-logo">
+        <i class="fas fa-calendar-check"></i>
+        <span>AgendaPro</span>
+      </div>
+      <nav class="sidebar-nav">
+        <div class="nav-section">Principal</div>
+        <a href="dashboard-mobile.html" class="sidebar-item"><i class="fas fa-home"></i> Dashboard</a>
+        <a href="agenda-mobile.html" class="sidebar-item"><i class="fas fa-calendar"></i> Agenda</a>
+        <a href="clientes-mobile.html" class="sidebar-item"><i class="fas fa-users"></i> Clientes</a>
+        <div class="nav-section">Gestão</div>
+        <a href="servicos-mobile.html" class="sidebar-item"><i class="fas fa-cut"></i> Serviços</a>
+        <a href="profissionais-mobile.html" class="sidebar-item"><i class="fas fa-user-tie"></i> Profissionais</a>
+        <a href="financeiro-mobile.html" class="sidebar-item"><i class="fas fa-chart-line"></i> Financeiro</a>
+        <div class="nav-section">Outros</div>
+        <a href="relatorios-mobile.html" class="sidebar-item active"><i class="fas fa-chart-bar"></i> Relatórios</a>
+        <a href="horarios-especiais.html" class="sidebar-item"><i class="fas fa-clock"></i> Horários Especiais</a>
+        <a href="configuracoes-mobile.html" class="sidebar-item"><i class="fas fa-cog"></i> Configurações</a>
+      </nav>
+      <div class="sidebar-footer">
+        <div class="sidebar-user" id="sidebar-user" onclick="API.logout()" title="Sair">
+          <div class="avatar" id="sidebar-avatar">A</div>
+          <div class="user-info">
+            <div class="user-name" id="sidebar-name">Usuário</div>
+            <div class="user-role" id="sidebar-role">Proprietário</div>
+          </div>
+          <i class="fas fa-sign-out-alt" style="color: var(--text-muted); font-size: var(--text-sm);"></i>
+        </div>
+      </div>
+    </aside>
+
+    <div class="desktop-content">
+      <div class="desktop-header desktop-only">
+        <div>
+          <h1 class="page-title">Relatórios</h1>
+          <p class="page-subtitle">Métricas e desempenho do negócio</p>
+        </div>
+        <div class="header-actions">
+          <button class="theme-toggle" onclick="toggleTheme()" style="background: var(--bg-card); border: 1px solid var(--border-color); padding: var(--space-sm) var(--space-md); border-radius: var(--radius-md); cursor: pointer; color: var(--text-secondary);">
+            <i class="fas fa-moon" id="theme-icon-desk"></i>
+          </button>
+        </div>
+      </div>
+
+      <div class="mobile-app">
     <header class="header">
       <div class="header-content">
         <div class="header-title">
-          <button class="back-btn" onclick="history.back()">
-            <i class="fas fa-arrow-left"></i>
-          </button>
+          <button class="back-btn" onclick="history.back()"><i class="fas fa-arrow-left"></i></button>
           <h1 class="page-title">Relatórios</h1>
         </div>
-        
         <div class="header-actions">
-          <button class="theme-toggle" onclick="toggleTheme()">
-            <i class="fas fa-moon" id="theme-icon"></i>
-          </button>
+          <button class="theme-toggle" onclick="toggleTheme()"><i class="fas fa-moon" id="theme-icon"></i></button>
         </div>
       </div>
     </header>
 
-    <!-- CONTEÚDO PRINCIPAL -->
     <main class="main-content">
-      <!-- SELETOR DE PERÍODO -->
       <div class="period-selector">
         <div class="period-tabs">
           <button class="period-tab">Hoje</button>
@@ -506,7 +543,6 @@
           <button class="period-tab active">30 dias</button>
           <button class="period-tab">3 meses</button>
         </div>
-        
         <div class="custom-period" style="display: none;">
           <input type="date" class="date-input" value="2026-05-17">
           <span style="color: var(--text-secondary);">até</span>
@@ -514,7 +550,6 @@
         </div>
       </div>
 
-      <!-- RESUMO FINANCEIRO -->
       <div class="financial-summary">
         <div class="summary-title">Faturamento Total (30 dias)</div>
         <div class="summary-amount">R$ 12.450,00</div>
@@ -524,94 +559,49 @@
         </div>
       </div>
 
-      <!-- MÉTRICAS PRINCIPAIS -->
       <div class="metrics-grid">
         <div class="metric-card">
-          <div class="metric-icon">
-            <i class="fas fa-calendar-check"></i>
-          </div>
+          <div class="metric-icon"><i class="fas fa-calendar-check"></i></div>
           <div class="metric-value">284</div>
           <div class="metric-label">Agendamentos</div>
-          <div class="metric-change change-positive">
-            <i class="fas fa-arrow-up"></i>
-            <span>+12%</span>
-          </div>
+          <div class="metric-change change-positive"><i class="fas fa-arrow-up"></i><span>+12%</span></div>
         </div>
-        
         <div class="metric-card">
-          <div class="metric-icon">
-            <i class="fas fa-users"></i>
-          </div>
+          <div class="metric-icon"><i class="fas fa-users"></i></div>
           <div class="metric-value">156</div>
           <div class="metric-label">Clientes</div>
-          <div class="metric-change change-positive">
-            <i class="fas fa-arrow-up"></i>
-            <span>+8%</span>
-          </div>
+          <div class="metric-change change-positive"><i class="fas fa-arrow-up"></i><span>+8%</span></div>
         </div>
-        
         <div class="metric-card">
-          <div class="metric-icon">
-            <i class="fas fa-percent"></i>
-          </div>
+          <div class="metric-icon"><i class="fas fa-percent"></i></div>
           <div class="metric-value">89%</div>
           <div class="metric-label">Taxa Presença</div>
-          <div class="metric-change change-negative">
-            <i class="fas fa-arrow-down"></i>
-            <span>-3%</span>
-          </div>
+          <div class="metric-change change-negative"><i class="fas fa-arrow-down"></i><span>-3%</span></div>
         </div>
-        
         <div class="metric-card">
-          <div class="metric-icon">
-            <i class="fas fa-clock"></i>
-          </div>
+          <div class="metric-icon"><i class="fas fa-clock"></i></div>
           <div class="metric-value">96%</div>
           <div class="metric-label">Ocupação</div>
-          <div class="metric-change change-positive">
-            <i class="fas fa-arrow-up"></i>
-            <span>+5%</span>
-          </div>
+          <div class="metric-change change-positive"><i class="fas fa-arrow-up"></i><span>+5%</span></div>
         </div>
       </div>
 
-      <!-- GRÁFICO DE FATURAMENTO -->
       <section class="chart-section">
-        <h2 class="section-title">
-          <i class="fas fa-chart-line" style="color: var(--primary);"></i>
-          Faturamento Diário
-        </h2>
-        
+        <h2 class="section-title"><i class="fas fa-chart-line" style="color: var(--primary);"></i> Faturamento Diário</h2>
         <div class="chart-card">
           <div class="chart-header">
             <div class="chart-title">Últimos 7 dias</div>
             <div class="chart-period">10-16 Jun</div>
           </div>
-          
           <div class="simple-bar-chart">
-            <div class="bar" style="height: 60%;">
-              <span class="bar-value">420</span>
-            </div>
-            <div class="bar" style="height: 80%;">
-              <span class="bar-value">560</span>
-            </div>
-            <div class="bar" style="height: 45%;">
-              <span class="bar-value">315</span>
-            </div>
-            <div class="bar" style="height: 90%;">
-              <span class="bar-value">630</span>
-            </div>
-            <div class="bar" style="height: 75%;">
-              <span class="bar-value">525</span>
-            </div>
-            <div class="bar" style="height: 65%;">
-              <span class="bar-value">455</span>
-            </div>
-            <div class="bar active" style="height: 85%;">
-              <span class="bar-value">595</span>
-            </div>
+            <div class="bar" style="height: 60%;"><span class="bar-value">420</span></div>
+            <div class="bar" style="height: 80%;"><span class="bar-value">560</span></div>
+            <div class="bar" style="height: 45%;"><span class="bar-value">315</span></div>
+            <div class="bar" style="height: 90%;"><span class="bar-value">630</span></div>
+            <div class="bar" style="height: 75%;"><span class="bar-value">525</span></div>
+            <div class="bar" style="height: 65%;"><span class="bar-value">455</span></div>
+            <div class="bar active" style="height: 85%;"><span class="bar-value">595</span></div>
           </div>
-          
           <div class="chart-labels">
             <div class="chart-label">Seg</div>
             <div class="chart-label">Ter</div>
@@ -624,247 +614,115 @@
         </div>
       </section>
 
-      <!-- TOP SERVIÇOS -->
       <section class="top-services">
-        <h2 class="section-title">
-          <i class="fas fa-trophy" style="color: var(--warning);"></i>
-          Serviços Mais Vendidos
-        </h2>
-        
+        <h2 class="section-title"><i class="fas fa-trophy" style="color: var(--warning);"></i> Serviços Mais Vendidos</h2>
         <div class="service-item">
-          <div class="service-info">
-            <div class="service-rank">1</div>
-            <div class="service-details">
-              <h4>Corte Masculino</h4>
-              <div class="service-stats">124 agendamentos</div>
-            </div>
-          </div>
-          <div class="service-revenue">
-            <div class="revenue-amount">R$ 3.100,00</div>
-            <div class="revenue-count">43% do total</div>
-          </div>
+          <div class="service-info"><div class="service-rank">1</div><div class="service-details"><h4>Corte Masculino</h4><div class="service-stats">124 agendamentos</div></div></div>
+          <div class="service-revenue"><div class="revenue-amount">R$ 3.100,00</div><div class="revenue-count">43% do total</div></div>
         </div>
-        
         <div class="service-item">
-          <div class="service-info">
-            <div class="service-rank">2</div>
-            <div class="service-details">
-              <h4>Corte + Escova</h4>
-              <div class="service-stats">67 agendamentos</div>
-            </div>
-          </div>
-          <div class="service-revenue">
-            <div class="revenue-amount">R$ 3.350,00</div>
-            <div class="revenue-count">27% do total</div>
-          </div>
+          <div class="service-info"><div class="service-rank">2</div><div class="service-details"><h4>Corte + Escova</h4><div class="service-stats">67 agendamentos</div></div></div>
+          <div class="service-revenue"><div class="revenue-amount">R$ 3.350,00</div><div class="revenue-count">27% do total</div></div>
         </div>
-        
         <div class="service-item">
-          <div class="service-info">
-            <div class="service-rank">3</div>
-            <div class="service-details">
-              <h4>Barba Completa</h4>
-              <div class="service-stats">89 agendamentos</div>
-            </div>
-          </div>
-          <div class="service-revenue">
-            <div class="revenue-amount">R$ 1.335,00</div>
-            <div class="revenue-count">18% do total</div>
-          </div>
+          <div class="service-info"><div class="service-rank">3</div><div class="service-details"><h4>Barba Completa</h4><div class="service-stats">89 agendamentos</div></div></div>
+          <div class="service-revenue"><div class="revenue-amount">R$ 1.335,00</div><div class="revenue-count">18% do total</div></div>
         </div>
-        
         <div class="service-item">
-          <div class="service-info">
-            <div class="service-rank">4</div>
-            <div class="service-details">
-              <h4>Design Sobrancelha</h4>
-              <div class="service-stats">34 agendamentos</div>
-            </div>
-          </div>
-          <div class="service-revenue">
-            <div class="revenue-amount">R$ 680,00</div>
-            <div class="revenue-count">7% do total</div>
-          </div>
+          <div class="service-info"><div class="service-rank">4</div><div class="service-details"><h4>Design Sobrancelha</h4><div class="service-stats">34 agendamentos</div></div></div>
+          <div class="service-revenue"><div class="revenue-amount">R$ 680,00</div><div class="revenue-count">7% do total</div></div>
         </div>
       </section>
 
-      <!-- AÇÕES RÁPIDAS -->
       <div class="quick-actions">
-        <a href="#" class="action-btn">
-          <div class="action-icon">
-            <i class="fas fa-download"></i>
-          </div>
-          <div class="action-title">Exportar</div>
-        </a>
-        
-        <a href="#" class="action-btn">
-          <div class="action-icon">
-            <i class="fas fa-share"></i>
-          </div>
-          <div class="action-title">Compartilhar</div>
-        </a>
-        
-        <a href="#" class="action-btn">
-          <div class="action-icon">
-            <i class="fas fa-print"></i>
-          </div>
-          <div class="action-title">Imprimir</div>
-        </a>
+        <a href="#" class="action-btn"><div class="action-icon"><i class="fas fa-download"></i></div><div class="action-title">Exportar</div></a>
+        <a href="#" class="action-btn"><div class="action-icon"><i class="fas fa-share"></i></div><div class="action-title">Compartilhar</div></a>
+        <a href="#" class="action-btn"><div class="action-icon"><i class="fas fa-print"></i></div><div class="action-title">Imprimir</div></a>
       </div>
     </main>
 
-    <!-- BOTTOM NAVIGATION -->
     <nav class="bottom-nav">
       <div class="nav-items">
-        <a href="dashboard-mobile.html" class="nav-item">
-          <i class="nav-icon fas fa-home"></i>
-          <span class="nav-label">Dashboard</span>
-        </a>
-        
-        <a href="agenda-mobile.html" class="nav-item">
-          <i class="nav-icon fas fa-calendar"></i>
-          <span class="nav-label">Agenda</span>
-        </a>
-        
-        <a href="#" class="nav-item active">
-          <i class="nav-icon fas fa-chart-bar"></i>
-          <span class="nav-label">Relatórios</span>
-        </a>
-        
-        <a href="clientes-mobile.html" class="nav-item">
-          <i class="nav-icon fas fa-users"></i>
-          <span class="nav-label">Clientes</span>
-        </a>
-        
-        <a href="configuracoes-mobile.html" class="nav-item">
-          <i class="nav-icon fas fa-cog"></i>
-          <span class="nav-label">Config</span>
-        </a>
+        <a href="dashboard-mobile.html" class="nav-item"><i class="nav-icon fas fa-home"></i><span class="nav-label">Dashboard</span></a>
+        <a href="agenda-mobile.html" class="nav-item"><i class="nav-icon fas fa-calendar"></i><span class="nav-label">Agenda</span></a>
+        <a href="#" class="nav-item active"><i class="nav-icon fas fa-chart-bar"></i><span class="nav-label">Relatórios</span></a>
+        <a href="clientes-mobile.html" class="nav-item"><i class="nav-icon fas fa-users"></i><span class="nav-label">Clientes</span></a>
+        <a href="configuracoes-mobile.html" class="nav-item"><i class="nav-icon fas fa-cog"></i><span class="nav-label">Config</span></a>
       </div>
     </nav>
+      </div>
+    </div>
   </div>
 
+  <script src="api.js"></script>
   <script>
-    // TOGGLE TEMA CLARO/ESCURO
     function toggleTheme() {
       const html = document.documentElement;
-      const themeIcon = document.getElementById('theme-icon');
-      
-      if (html.getAttribute('data-theme') === 'dark') {
-        html.removeAttribute('data-theme');
-        themeIcon.className = 'fas fa-moon';
-        localStorage.setItem('theme', 'light');
-      } else {
-        html.setAttribute('data-theme', 'dark');
-        themeIcon.className = 'fas fa-sun';
-        localStorage.setItem('theme', 'dark');
-      }
+      const isDark = html.getAttribute('data-theme') === 'dark';
+      if (isDark) { html.removeAttribute('data-theme'); localStorage.setItem('theme','light'); }
+      else { html.setAttribute('data-theme','dark'); localStorage.setItem('theme','dark'); }
+      const cls = isDark ? 'fa-moon' : 'fa-sun';
+      document.querySelectorAll('#theme-icon, #theme-icon-desk').forEach(el => el.className = 'fas ' + cls);
     }
 
-    // CARREGA TEMA SALVO
     document.addEventListener('DOMContentLoaded', function() {
       const savedTheme = localStorage.getItem('theme');
-      const themeIcon = document.getElementById('theme-icon');
-      
       if (savedTheme === 'dark') {
         document.documentElement.setAttribute('data-theme', 'dark');
-        themeIcon.className = 'fas fa-sun';
+        document.querySelectorAll('#theme-icon, #theme-icon-desk').forEach(el => el.className = 'fas fa-sun');
       }
-    });
+      const user = API.getUser();
+      if (user) {
+        const avatar = document.getElementById('sidebar-avatar');
+        const name = document.getElementById('sidebar-name');
+        const role = document.getElementById('sidebar-role');
+        if (avatar) avatar.textContent = (user.nome || 'U').charAt(0).toUpperCase();
+        if (name) name.textContent = user.nome || 'Usuário';
+        if (role) role.textContent = user.role === 'owner' ? 'Proprietário' : user.role;
+      }
 
-    // SELETOR DE PERÍODO
-    document.addEventListener('DOMContentLoaded', function() {
+      // Period tabs
       const periodTabs = document.querySelectorAll('.period-tab');
       const customPeriod = document.querySelector('.custom-period');
-      
       periodTabs.forEach(tab => {
         tab.addEventListener('click', function() {
           periodTabs.forEach(t => t.classList.remove('active'));
           this.classList.add('active');
-          
           const period = this.textContent.toLowerCase();
-          updateReportsData(period);
-          
-          // Mostrar campos customizados se necessário
-          if (period === 'personalizado') {
-            customPeriod.style.display = 'flex';
-          } else {
-            customPeriod.style.display = 'none';
-          }
+          if (period === 'personalizado') customPeriod.style.display = 'flex';
+          else customPeriod.style.display = 'none';
         });
       });
-    });
-    
-    // FUNÇÃO PARA ATUALIZAR DADOS DOS RELATÓRIOS
-    function updateReportsData(period) {
-      // Simular carregamento de dados baseado no período
-      console.log('Atualizando relatórios para período:', period);
-      
-      // Aqui seria implementada a lógica real de busca de dados
-      // Por enquanto, apenas simula uma atualização visual
-      const metrics = document.querySelectorAll('.metric-value');
-      metrics.forEach(metric => {
-        metric.style.opacity = '0.5';
-        setTimeout(() => {
-          metric.style.opacity = '1';
-        }, 300);
-      });
-    }
 
-    // ANIMAÇÕES DE ENTRADA
-    document.addEventListener('DOMContentLoaded', function() {
-      const cards = document.querySelectorAll('.metric-card, .chart-card, .service-item');
-      cards.forEach((card, index) => {
+      // Animações
+      document.querySelectorAll('.metric-card, .chart-card, .service-item').forEach((card, index) => {
         card.style.opacity = '0';
         card.style.transform = 'translateY(20px)';
-        
         setTimeout(() => {
           card.style.transition = 'all 0.3s ease-out';
           card.style.opacity = '1';
           card.style.transform = 'translateY(0)';
         }, index * 100);
       });
-    });
 
-    // INTERAÇÃO COM GRÁFICOS
-    document.addEventListener('DOMContentLoaded', function() {
-      const bars = document.querySelectorAll('.bar');
-      
-      bars.forEach(bar => {
+      // Gráficos
+      document.querySelectorAll('.bar').forEach(bar => {
         bar.addEventListener('click', function() {
-          bars.forEach(b => b.classList.remove('active'));
+          document.querySelectorAll('.bar').forEach(b => b.classList.remove('active'));
           this.classList.add('active');
-          
-          // Simular exibição de detalhes do dia
-          const value = this.querySelector('.bar-value').textContent;
-          console.log('Detalhes do dia - Faturamento: R$', value);
         });
       });
-    });
 
-    // AÇÕES DE EXPORTAÇÃO
-    document.addEventListener('DOMContentLoaded', function() {
-      const actionButtons = document.querySelectorAll('.action-btn');
-      
-      actionButtons.forEach(btn => {
+      // Ações
+      document.querySelectorAll('.action-btn').forEach(btn => {
         btn.addEventListener('click', function(e) {
           e.preventDefault();
-          
-          const action = this.querySelector('.action-title').textContent;
-          
-          // Feedback visual
-          const originalIcon = this.querySelector('.action-icon').innerHTML;
+          const original = this.querySelector('.action-icon').innerHTML;
           this.querySelector('.action-icon').innerHTML = '<i class="fas fa-spinner fa-spin"></i>';
-          
           setTimeout(() => {
             this.querySelector('.action-icon').innerHTML = '<i class="fas fa-check"></i>';
-            
-            setTimeout(() => {
-              this.querySelector('.action-icon').innerHTML = originalIcon;
-            }, 1500);
+            setTimeout(() => { this.querySelector('.action-icon').innerHTML = original; }, 1500);
           }, 1000);
-          
-          console.log('Ação executada:', action);
         });
       });
     });

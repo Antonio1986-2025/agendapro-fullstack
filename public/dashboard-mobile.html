@@ -311,178 +311,253 @@
   </style>
 </head>
 <body>
-  <div class="mobile-app">
-    <!-- HEADER -->
-    <header class="header">
-      <div class="header-content">
-        <div class="logo">
-          <i class="fas fa-calendar-check"></i>
-          <span>AgendaPro</span>
+  <div class="desktop-layout">
+    <!-- SIDEBAR (desktop only) -->
+    <aside class="sidebar desktop-only">
+      <div class="sidebar-logo">
+        <i class="fas fa-calendar-check"></i>
+        <span>AgendaPro</span>
+      </div>
+      <nav class="sidebar-nav">
+        <div class="nav-section">Principal</div>
+        <a href="dashboard-mobile.html" class="sidebar-item active">
+          <i class="fas fa-home"></i> Dashboard
+        </a>
+        <a href="agenda-mobile.html" class="sidebar-item">
+          <i class="fas fa-calendar"></i> Agenda
+        </a>
+        <a href="clientes-mobile.html" class="sidebar-item">
+          <i class="fas fa-users"></i> Clientes
+        </a>
+        <div class="nav-section">Gestão</div>
+        <a href="servicos-mobile.html" class="sidebar-item">
+          <i class="fas fa-cut"></i> Serviços
+        </a>
+        <a href="profissionais-mobile.html" class="sidebar-item">
+          <i class="fas fa-user-tie"></i> Profissionais
+        </a>
+        <a href="financeiro-mobile.html" class="sidebar-item">
+          <i class="fas fa-chart-line"></i> Financeiro
+        </a>
+        <div class="nav-section">Outros</div>
+        <a href="relatorios-mobile.html" class="sidebar-item">
+          <i class="fas fa-chart-bar"></i> Relatórios
+        </a>
+        <a href="horarios-especiais.html" class="sidebar-item">
+          <i class="fas fa-clock"></i> Horários Especiais
+        </a>
+        <a href="configuracoes-mobile.html" class="sidebar-item">
+          <i class="fas fa-cog"></i> Configurações
+        </a>
+      </nav>
+      <div class="sidebar-footer">
+        <div class="sidebar-user" id="sidebar-user" onclick="API.logout()" title="Sair">
+          <div class="avatar" id="sidebar-avatar">A</div>
+          <div class="user-info">
+            <div class="user-name" id="sidebar-name">Usuário</div>
+            <div class="user-role" id="sidebar-role">Proprietário</div>
+          </div>
+          <i class="fas fa-sign-out-alt" style="color: var(--text-muted); font-size: var(--text-sm);"></i>
         </div>
-        
+      </div>
+    </aside>
+
+    <!-- CONTEUDO DESKTOP -->
+    <div class="desktop-content">
+      <!-- HEADER DESKTOP -->
+      <div class="desktop-header desktop-only">
+        <div>
+          <h1 class="page-title">Dashboard</h1>
+          <p class="page-subtitle">Visão geral do seu negócio</p>
+        </div>
         <div class="header-actions">
-          <button class="theme-toggle" onclick="toggleTheme()">
-            <i class="fas fa-moon" id="theme-icon"></i>
-          </button>
-          
-          <button class="theme-toggle" onclick="API.logout()" title="Sair">
-            <i class="fas fa-sign-out-alt" style="color: var(--text-secondary);"></i>
+          <button class="theme-toggle" onclick="toggleTheme()" style="background: var(--bg-card); border: 1px solid var(--border-color); padding: var(--space-sm) var(--space-md); border-radius: var(--radius-md); cursor: pointer; color: var(--text-secondary);">
+            <i class="fas fa-moon" id="theme-icon-desk"></i>
           </button>
         </div>
       </div>
-    </header>
 
-    <!-- CONTEÚDO PRINCIPAL -->
-    <main class="main-content">
-      <!-- BOAS-VINDAS -->
-      <div style="margin-bottom: var(--space-lg);">
-        <h1 style="font-size: var(--text-2xl); font-weight: var(--font-bold); color: var(--text-primary); margin-bottom: var(--space-xs);" id="saudacao">
-          Olá! 👋
-        </h1>
-        <p style="color: var(--text-secondary); font-size: var(--text-base);" id="subtitulo">
-          Carregando agendamentos...
-        </p>
+      <div class="mobile-app">
+        <!-- HEADER MOBILE -->
+        <header class="header">
+          <div class="header-content">
+            <div class="logo">
+              <i class="fas fa-calendar-check"></i>
+              <span>AgendaPro</span>
+            </div>
+            
+            <div class="header-actions">
+              <button class="theme-toggle" onclick="toggleTheme()">
+                <i class="fas fa-moon" id="theme-icon"></i>
+              </button>
+              
+              <button class="theme-toggle" onclick="API.logout()" title="Sair">
+                <i class="fas fa-sign-out-alt" style="color: var(--text-secondary);"></i>
+              </button>
+            </div>
+          </div>
+        </header>
+
+        <!-- CONTEÚDO PRINCIPAL -->
+        <main class="main-content">
+          <!-- BOAS-VINDAS -->
+          <div style="margin-bottom: var(--space-lg);">
+            <h1 style="font-size: var(--text-2xl); font-weight: var(--font-bold); color: var(--text-primary); margin-bottom: var(--space-xs);" id="saudacao">
+              Olá! 👋
+            </h1>
+            <p style="color: var(--text-secondary); font-size: var(--text-base);" id="subtitulo">
+              Carregando agendamentos...
+            </p>
+          </div>
+
+          <!-- MÉTRICAS -->
+          <div class="metrics-grid">
+            <div class="metric-card">
+              <div class="metric-icon">
+                <i class="fas fa-calendar-day"></i>
+              </div>
+              <div class="metric-value" id="m-hoje">--</div>
+              <div class="metric-label">Hoje</div>
+            </div>
+            
+            <div class="metric-card">
+              <div class="metric-icon">
+                <i class="fas fa-money-bill-wave"></i>
+              </div>
+              <div class="metric-value" id="m-fat-hoje">R$ --</div>
+              <div class="metric-label">Faturamento hoje</div>
+            </div>
+            
+            <div class="metric-card">
+              <div class="metric-icon">
+                <i class="fas fa-calendar-alt"></i>
+              </div>
+              <div class="metric-value" id="m-mes">--</div>
+              <div class="metric-label">Agend. no mês</div>
+            </div>
+            
+            <div class="metric-card">
+              <div class="metric-icon">
+                <i class="fas fa-users"></i>
+              </div>
+              <div class="metric-value" id="m-clientes">--</div>
+              <div class="metric-label">Clientes</div>
+            </div>
+          </div>
+
+          <!-- AGENDA HOJE -->
+          <section class="agenda-section">
+            <div class="section-header">
+              <h2 class="section-title">Próximos Agendamentos</h2>
+              <a href="agenda-mobile.html" class="view-all">Ver todos</a>
+            </div>
+
+            <div id="lista-proximos">
+              <p style="color: var(--text-muted); font-size: var(--text-sm); text-align: center; padding: var(--space-lg);">Carregando...</p>
+            </div>
+          </section>
+
+          <!-- AÇÕES RÁPIDAS -->
+          <section class="quick-actions">
+            <a href="agenda-mobile.html" class="action-btn">
+              <div class="action-icon">
+                <i class="fas fa-plus"></i>
+              </div>
+              <div class="action-title">Novo Agendamento</div>
+              <div class="action-subtitle">Criar manualmente</div>
+            </a>
+
+            <a href="clientes-mobile.html" class="action-btn">
+              <div class="action-icon">
+                <i class="fas fa-users"></i>
+              </div>
+              <div class="action-title">Clientes</div>
+              <div class="action-subtitle">Gerenciar contatos</div>
+            </a>
+
+            <a href="servicos-mobile.html" class="action-btn">
+              <div class="action-icon">
+                <i class="fas fa-cut"></i>
+              </div>
+              <div class="action-title">Serviços</div>
+              <div class="action-subtitle">Gerenciar catálogo</div>
+            </a>
+
+            <a href="profissionais-mobile.html" class="action-btn">
+              <div class="action-icon">
+                <i class="fas fa-user-tie"></i>
+              </div>
+              <div class="action-title">Profissionais</div>
+              <div class="action-subtitle">Equipe e horários</div>
+            </a>
+          </section>
+        </main>
+
+        <!-- BOTTOM NAVIGATION -->
+        <nav class="bottom-nav">
+          <div class="nav-items">
+            <a href="#" class="nav-item active">
+              <i class="nav-icon fas fa-home"></i>
+              <span class="nav-label">Dashboard</span>
+            </a>
+            
+            <a href="agenda-mobile.html" class="nav-item">
+              <i class="nav-icon fas fa-calendar"></i>
+              <span class="nav-label">Agenda</span>
+            </a>
+            
+            <a href="clientes-mobile.html" class="nav-item">
+              <i class="nav-icon fas fa-users"></i>
+              <span class="nav-label">Clientes</span>
+            </a>
+            
+            <a href="relatorios-mobile.html" class="nav-item">
+              <i class="nav-icon fas fa-chart-bar"></i>
+              <span class="nav-label">Relatórios</span>
+            </a>
+            
+            <a href="configuracoes-mobile.html" class="nav-item">
+              <i class="nav-icon fas fa-cog"></i>
+              <span class="nav-label">Config</span>
+            </a>
+          </div>
+        </nav>
       </div>
-
-      <!-- MÉTRICAS -->
-      <div class="metrics-grid">
-        <div class="metric-card">
-          <div class="metric-icon">
-            <i class="fas fa-calendar-day"></i>
-          </div>
-          <div class="metric-value" id="m-hoje">--</div>
-          <div class="metric-label">Hoje</div>
-        </div>
-        
-        <div class="metric-card">
-          <div class="metric-icon">
-            <i class="fas fa-money-bill-wave"></i>
-          </div>
-          <div class="metric-value" id="m-fat-hoje">R$ --</div>
-          <div class="metric-label">Faturamento hoje</div>
-        </div>
-        
-        <div class="metric-card">
-          <div class="metric-icon">
-            <i class="fas fa-calendar-alt"></i>
-          </div>
-          <div class="metric-value" id="m-mes">--</div>
-          <div class="metric-label">Agend. no mês</div>
-        </div>
-        
-        <div class="metric-card">
-          <div class="metric-icon">
-            <i class="fas fa-users"></i>
-          </div>
-          <div class="metric-value" id="m-clientes">--</div>
-          <div class="metric-label">Clientes</div>
-        </div>
-      </div>
-
-      <!-- AGENDA HOJE -->
-      <section class="agenda-section">
-        <div class="section-header">
-          <h2 class="section-title">Próximos Agendamentos</h2>
-          <a href="agenda-mobile.html" class="view-all">Ver todos</a>
-        </div>
-
-        <div id="lista-proximos">
-          <p style="color: var(--text-muted); font-size: var(--text-sm); text-align: center; padding: var(--space-lg);">Carregando...</p>
-        </div>
-      </section>
-
-      <!-- AÇÕES RÁPIDAS -->
-      <section class="quick-actions">
-        <a href="agenda-mobile.html" class="action-btn">
-          <div class="action-icon">
-            <i class="fas fa-plus"></i>
-          </div>
-          <div class="action-title">Novo Agendamento</div>
-          <div class="action-subtitle">Criar manualmente</div>
-        </a>
-
-        <a href="clientes-mobile.html" class="action-btn">
-          <div class="action-icon">
-            <i class="fas fa-users"></i>
-          </div>
-          <div class="action-title">Clientes</div>
-          <div class="action-subtitle">Gerenciar contatos</div>
-        </a>
-
-        <a href="servicos-mobile.html" class="action-btn">
-          <div class="action-icon">
-            <i class="fas fa-cut"></i>
-          </div>
-          <div class="action-title">Serviços</div>
-          <div class="action-subtitle">Gerenciar catálogo</div>
-        </a>
-
-        <a href="profissionais-mobile.html" class="action-btn">
-          <div class="action-icon">
-            <i class="fas fa-user-tie"></i>
-          </div>
-          <div class="action-title">Profissionais</div>
-          <div class="action-subtitle">Equipe e horários</div>
-        </a>
-      </section>
-    </main>
-
-    <!-- BOTTOM NAVIGATION -->
-    <nav class="bottom-nav">
-      <div class="nav-items">
-        <a href="#" class="nav-item active">
-          <i class="nav-icon fas fa-home"></i>
-          <span class="nav-label">Dashboard</span>
-        </a>
-        
-        <a href="agenda-mobile.html" class="nav-item">
-          <i class="nav-icon fas fa-calendar"></i>
-          <span class="nav-label">Agenda</span>
-        </a>
-        
-        <a href="clientes-mobile.html" class="nav-item">
-          <i class="nav-icon fas fa-users"></i>
-          <span class="nav-label">Clientes</span>
-        </a>
-        
-        <a href="relatorios-mobile.html" class="nav-item">
-          <i class="nav-icon fas fa-chart-bar"></i>
-          <span class="nav-label">Relatórios</span>
-        </a>
-        
-        <a href="configuracoes-mobile.html" class="nav-item">
-          <i class="nav-icon fas fa-cog"></i>
-          <span class="nav-label">Config</span>
-        </a>
-      </div>
-    </nav>
+    </div>
   </div>
 
+  <script src="api.js"></script>
   <script>
-    // TOGGLE TEMA CLARO/ESCURO
+    if (!API.exigirLogin()) { /* redireciona se nao logado */ }
+
     function toggleTheme() {
       const html = document.documentElement;
-      const themeIcon = document.getElementById('theme-icon');
-      
-      if (html.getAttribute('data-theme') === 'dark') {
+      const isDark = html.getAttribute('data-theme') === 'dark';
+      if (isDark) {
         html.removeAttribute('data-theme');
-        themeIcon.className = 'fas fa-moon';
         localStorage.setItem('theme', 'light');
       } else {
         html.setAttribute('data-theme', 'dark');
-        themeIcon.className = 'fas fa-sun';
         localStorage.setItem('theme', 'dark');
       }
+      const cls = isDark ? 'fa-moon' : 'fa-sun';
+      document.querySelectorAll('#theme-icon, #theme-icon-desk').forEach(el => el.className = 'fas ' + cls);
     }
 
-    // CARREGA TEMA SALVO
     document.addEventListener('DOMContentLoaded', function() {
       const savedTheme = localStorage.getItem('theme');
-      const themeIcon = document.getElementById('theme-icon');
-      
       if (savedTheme === 'dark') {
         document.documentElement.setAttribute('data-theme', 'dark');
-        themeIcon.className = 'fas fa-sun';
+        document.querySelectorAll('#theme-icon, #theme-icon-desk').forEach(el => el.className = 'fas fa-sun');
+      }
+      const user = API.getUser();
+      if (user) {
+        const avatar = document.getElementById('sidebar-avatar');
+        const name = document.getElementById('sidebar-name');
+        const role = document.getElementById('sidebar-role');
+        if (avatar) avatar.textContent = (user.nome || 'U').charAt(0).toUpperCase();
+        if (name) name.textContent = user.nome || 'Usuário';
+        if (role) role.textContent = user.role === 'owner' ? 'Proprietário' : user.role;
       }
     });
 
@@ -492,7 +567,6 @@
       cards.forEach((card, index) => {
         card.style.opacity = '0';
         card.style.transform = 'translateY(20px)';
-        
         setTimeout(() => {
           card.style.transition = 'all 0.3s ease-out';
           card.style.opacity = '1';
@@ -500,12 +574,6 @@
         }, index * 100);
       });
     });
-  </script>
-
-  <!-- INTEGRAÇÃO COM A API -->
-  <script src="api.js"></script>
-  <script>
-    if (!API.exigirLogin()) { /* redireciona se nao logado */ }
 
     function saudacaoHora() {
       const h = new Date().getHours();
