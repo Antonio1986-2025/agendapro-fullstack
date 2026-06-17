@@ -504,27 +504,39 @@ body {
     border-right: 1px solid var(--border-color);
   }
 
-  /* Barra de navegacao inferior acompanha a largura do container */
+  /* Barra de navegacao inferior acompanha a largura do container e fica centralizada */
   .bottom-nav {
     max-width: 1000px !important;
   }
 
-  /* Botao flutuante ancorado dentro do container centralizado */
+  /* Botao flutuante ancorado a borda direita do container centralizado.
+     max() evita que ele saia da tela em larguras intermediarias (768-1000px). */
   .fab {
-    right: calc(50% - 500px + 24px) !important;
+    right: max(24px, calc(50% - 500px + 24px)) !important;
   }
 
   /* Grids de metricas/cards ganham mais colunas no desktop */
   .metrics-grid {
     grid-template-columns: repeat(4, 1fr) !important;
   }
+
+  /* MODAIS: no mobile sobem do rodape (bottom sheet); no desktop ficam
+     centralizados como uma janela, com cantos arredondados e largura menor. */
+  .modal-overlay {
+    align-items: center !important;
+  }
+  .modal {
+    max-width: 460px !important;
+    border-radius: var(--radius-xl) !important;
+    box-shadow: var(--shadow-xl);
+  }
 }
 
-/* Telas bem largas: limita e centraliza o conteudo confortavelmente */
+/* Telas bem largas: limita e centraliza o conteudo das listas para leitura confortavel.
+   (Nao afeta a grade de metricas do dashboard, que usa largura total.) */
 @media (min-width: 1100px) {
-  .main-content,
-  .content {
-    max-width: 960px;
+  .main-content {
+    max-width: 820px;
     margin-left: auto;
     margin-right: auto;
   }
