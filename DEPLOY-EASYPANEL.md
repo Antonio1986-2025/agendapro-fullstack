@@ -50,6 +50,7 @@ Na aba **Environment** do app, adicione:
 | `SUPABASE_DB_PASSWORD` | `"Aaa30269041#"` (com aspas para preservar o #) |
 | `SUPABASE_DB_NAME` | `postgres` |
 | `SUPABASE_DB_SSL` | `true` |
+| `NODE_OPTIONS` | `--dns-result-order=ipv4first` |
 | `JWT_SECRET` | um texto aleatorio longo (ex: gere em https://generate-secret.vercel.app/48) |
 | `NODE_ENV` | `production` |
 | `PORT` | `3000` |
