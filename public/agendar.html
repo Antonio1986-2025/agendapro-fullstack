@@ -176,27 +176,20 @@
     }
 
     function gerarSlots() {
-      const cfg = dados.barbearia.horario_config || {};
       const prof = dados.profissionais.find(p => p.id === sel.profissional);
       const profEspeciais = prof?.horarios_especiais || [];
       const slots = [];
-      const addRange = (ini, fim, especial) => {
-        if (!ini || !fim) return;
-        let [h, m] = ini.split(':').map(Number);
-        const [hf, mf] = fim.split(':').map(Number);
-        while (h < hf || (h === hf && m < mf)) {
+      const addRange = (hIni, mIni, hFim, mFim) => {
+        let [h, m] = [hIni, mIni];
+        while (h < hFim || (h === hFim && m < mFim)) {
           const horaStr = `${String(h).padStart(2,'0')}:${String(m).padStart(2,'0')}`;
-          // so adiciona slot especial se o profissional tiver configurado
-          if (!especial || profEspeciais.includes(horaStr)) {
-            slots.push({ hora: horaStr, especial });
-          }
-          m += (cfg.intervalo_minutos || 30);
+          slots.push({ hora: horaStr, especial: false });
+          m += 30;
           if (m >= 60) { m -= 60; h++; }
         }
       };
-      addRange(cfg.manha?.inicio, cfg.manha?.fim, false);
-      addRange(cfg.tarde?.inicio, cfg.tarde?.fim, false);
-      addRange(cfg.especial?.inicio, cfg.especial?.fim, true);
+      addRange(7, 30, 11, 0);
+      addRange(13, 0, 19, 0);
       return slots;
     }
 

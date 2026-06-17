@@ -310,10 +310,16 @@
       const horarios = [];
       const agora = new Date();
       const ehHoje = ymd(dataAtual) === ymd(agora);
-      for (let h = 7; h <= 21; h++) {
-        horarios.push(`${String(h).padStart(2,'0')}:00`);
-        if (h < 21) horarios.push(`${String(h).padStart(2,'0')}:30`);
-      }
+      const addRange = (hIni, mIni, hFim, mFim) => {
+        let [h, m] = [hIni, mIni];
+        while (h < hFim || (h === hFim && m < mFim)) {
+          horarios.push(`${String(h).padStart(2,'0')}:${String(m).padStart(2,'0')}`);
+          m += 30;
+          if (m >= 60) { m -= 60; h++; }
+        }
+      };
+      addRange(7, 30, 11, 0);
+      addRange(13, 0, 19, 0);
       const horariosFiltrados = horarios.filter(hora => {
         if (!ehHoje) return true;
         const [hh, mm] = hora.split(':').map(Number);
@@ -387,13 +393,19 @@
       const ehHojeModal = ymd(dataAtual) === ymd(agoraM);
       const minAgora = agoraM.getHours() * 60 + agoraM.getMinutes();
       const todosHorarios = [];
-      for (let h = 7; h <= 21; h++) {
-        todosHorarios.push(`${String(h).padStart(2,'0')}:00`);
-        if (h < 21) todosHorarios.push(`${String(h).padStart(2,'0')}:30`);
-      }
+      const addRangeModal = (hIni, mIni, hFim, mFim) => {
+        let [h, m] = [hIni, mIni];
+        while (h < hFim || (h === hFim && m < mFim)) {
+          todosHorarios.push(`${String(h).padStart(2,'0')}:${String(m).padStart(2,'0')}`);
+          m += 30;
+          if (m >= 60) { m -= 60; h++; }
+        }
+      };
+      addRangeModal(7, 30, 11, 0);
+      addRangeModal(13, 0, 19, 0);
       const proximaHora = ehHojeModal
-        ? todosHorarios.find(h => { const [hh,mm] = h.split(':').map(Number); return hh*60+mm >= minAgora; }) || '09:00'
-        : '09:00';
+        ? todosHorarios.find(h => { const [hh,mm] = h.split(':').map(Number); return hh*60+mm >= minAgora; }) || '07:30'
+        : '07:30';
       document.getElementById('f-hora').value = proximaHora;
       document.getElementById('f-especial').checked = false;
       document.getElementById('modal').classList.add('open');

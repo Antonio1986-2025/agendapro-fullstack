@@ -96,10 +96,6 @@ router.post('/:slug/agendar', async (req, res) => {
     );
     if (s.rows[0]) { duracao = s.rows[0].duracao_minutos; preco = parseFloat(s.rows[0].preco); }
   }
-  if (is_especial) {
-    const acrescimo = barbearia.horario_config?.especial?.acrescimo_percent ?? 50;
-    preco = preco * (1 + acrescimo / 100);
-  }
 
   // conflito
   const conflito = await query(

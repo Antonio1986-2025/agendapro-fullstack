@@ -60,13 +60,6 @@ router.post('/', async (req, res) => {
     }
   }
 
-  // Acrescimo de horario especial (+50% por padrao)
-  if (is_especial) {
-    const b = await query(`SELECT horario_config FROM barbearias WHERE id = $1`, [req.barbeariaId]);
-    const acrescimo = b.rows[0]?.horario_config?.especial?.acrescimo_percent ?? 50;
-    preco = preco * (1 + acrescimo / 100);
-  }
-
   // Verifica conflito de horario para o mesmo profissional
   const conflito = await query(
     `SELECT 1 FROM agendamentos
