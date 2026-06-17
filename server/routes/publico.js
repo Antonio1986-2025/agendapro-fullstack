@@ -14,7 +14,7 @@ router.get('/:slug', async (req, res) => {
   if (!b.rows[0]) return res.status(404).json({ erro: 'Barbearia nao encontrada' });
   const barbearia = b.rows[0];
 
-  const [profs, servs] = await Promise.all([
+  const [profs, servs, horariosEsp] = await Promise.all([
     query(
       `SELECT id, nome, especialidade, avatar_inicial
          FROM profissionais WHERE barbearia_id = $1 AND ativo = true ORDER BY ordem, nome`,
@@ -25,9 +25,27 @@ router.get('/:slug', async (req, res) => {
          FROM servicos WHERE barbearia_id = $1 AND ativo = true ORDER BY categoria, nome`,
       [barbearia.id]
     ),
+    query(
+      `SELECT profissional_id, horario
+         FROM horarios_especiais WHERE barbearia_id = $1 AND ativo = true`,
+      [barbearia.id]
+    ),
   ]);
 
-  res.json({ barbearia, profissionais: profs.rows, servicos: servs.rows });
+  // agrupa horarios especiais por profissional_id
+  const especiaisMap = {};
+  for (const h of horariosEsp.rows) {
+    if (!especiaisMap[h.profissional_id]) especiaisMap[h.profissional_id] = [];
+    especiaisMap[h.profissional_id].push(h.horario);
+  }
+
+  // acopla os horarios especiais a cada profissional
+  const profissionais = profs.rows.map(p => ({
+    ...p,
+    horarios_especiais: especiaisMap[p.id] || [],
+  }));
+
+  res.json({ barbearia, profissionais, servicos: servs.rows });
 });
 
 // GET /api/publico/:slug/horarios?data=YYYY-MM-DD&profissional_id=

@@ -177,13 +177,19 @@
 
     function gerarSlots() {
       const cfg = dados.barbearia.horario_config || {};
+      const prof = dados.profissionais.find(p => p.id === sel.profissional);
+      const profEspeciais = prof?.horarios_especiais || [];
       const slots = [];
       const addRange = (ini, fim, especial) => {
         if (!ini || !fim) return;
         let [h, m] = ini.split(':').map(Number);
         const [hf, mf] = fim.split(':').map(Number);
         while (h < hf || (h === hf && m < mf)) {
-          slots.push({ hora: `${String(h).padStart(2,'0')}:${String(m).padStart(2,'0')}`, especial });
+          const horaStr = `${String(h).padStart(2,'0')}:${String(m).padStart(2,'0')}`;
+          // so adiciona slot especial se o profissional tiver configurado
+          if (!especial || profEspeciais.includes(horaStr)) {
+            slots.push({ hora: horaStr, especial });
+          }
           m += (cfg.intervalo_minutos || 30);
           if (m >= 60) { m -= 60; h++; }
         }
@@ -198,12 +204,28 @@
       const cont = document.getElementById('lista-horarios');
       if (!sel.profissional) { cont.innerHTML = '<p class="meta" style="grid-column:1/-1; color: var(--text-muted)">Selecione um profissional primeiro</p>'; return; }
       const slots = gerarSlots();
-      cont.innerHTML = slots.map(s => {
+      const hoje = new Date();
+      const dataSel = document.getElementById('data-agendamento').value;
+      const ehHoje = dataSel === hoje.toISOString().split('T')[0];
+      const minAgora = ehHoje ? hoje.getHours() * 60 + hoje.getMinutes() : -1;
+
+      const disponiveis = slots.filter(s => {
+        const [h, m] = s.hora.split(':').map(Number);
+        const slotMin = h * 60 + m;
+        const jaPassou = ehHoje && slotMin < minAgora;
         const ocupado = ocupados.some(o => o.prof === sel.profissional && o.hora === s.hora);
+        return !jaPassou && !ocupado;
+      });
+
+      if (disponiveis.length === 0) {
+        cont.innerHTML = '<div style="grid-column:1/-1; text-align:center; padding:var(--space-xl); color:var(--text-muted)"><i class="fas fa-clock" style="font-size:1.5rem; margin-bottom:var(--space-sm); opacity:.3; display:block"></i>Nenhum horário disponível nesta data</div>';
+        return;
+      }
+
+      cont.innerHTML = disponiveis.map(s => {
         const cls = ['slot'];
         if (s.especial) cls.push('especial');
-        if (ocupado) cls.push('ocupado');
-        return `<div class="${cls.join(' ')}" ${ocupado ? '' : `onclick="selHora('${s.hora}', ${s.especial}, this)"`}>${s.hora}</div>`;
+        return `<div class="${cls.join(' ')}" onclick="selHora('${s.hora}', ${s.especial}, this)">${s.hora}</div>`;
       }).join('');
     }
 
