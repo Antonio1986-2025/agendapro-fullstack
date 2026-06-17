@@ -7,833 +7,203 @@
   <link rel="stylesheet" href="design-system.css">
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
   <style>
-    /* LAYOUT MOBILE ESPECÍFICO */
-    .mobile-app {
-      max-width: 430px;
-      margin: 0 auto;
-      min-height: 100vh;
-      background: var(--bg-primary);
-      position: relative;
-    }
-    
-    /* HEADER FIXO */
-    .header {
-      position: sticky;
-      top: 0;
-      z-index: var(--z-sticky);
-      background: var(--bg-card);
-      border-bottom: 1px solid var(--border-color);
-      padding: var(--space-md);
-    }
-    
-    .header-content {
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-    }
-    
-    .header-title {
-      display: flex;
-      align-items: center;
-      gap: var(--space-md);
-    }
-    
-    .back-btn {
-      background: none;
-      border: none;
-      padding: var(--space-sm);
-      border-radius: var(--radius-md);
-      cursor: pointer;
-      color: var(--text-secondary);
-      transition: all var(--transition-fast);
-    }
-    
-    .back-btn:hover {
-      background: var(--bg-secondary);
-      color: var(--primary);
-    }
-    
-    .page-title {
-      font-size: var(--text-lg);
-      font-weight: var(--font-semibold);
-      color: var(--text-primary);
-    }
-    
-    .header-actions {
-      display: flex;
-      align-items: center;
-      gap: var(--space-sm);
-    }
-    
-    /* TOGGLE THEME */
-    .theme-toggle {
-      background: none;
-      border: none;
-      padding: var(--space-sm);
-      border-radius: var(--radius-md);
-      cursor: pointer;
-      color: var(--text-secondary);
-      transition: all var(--transition-fast);
-    }
-    
-    .theme-toggle:hover {
-      background: var(--bg-secondary);
-      color: var(--primary);
-    }
-    
-    /* CONTEÚDO PRINCIPAL */
-    .main-content {
-      padding: var(--space-md);
-      padding-bottom: 80px; /* Espaço para bottom nav */
-    }
-    
-    /* ESTATÍSTICAS RÁPIDAS */
-    .stats-section {
-      display: grid;
-      grid-template-columns: repeat(3, 1fr);
-      gap: var(--space-md);
-      margin-bottom: var(--space-lg);
-    }
-    
-    .stat-card {
-      background: var(--bg-card);
-      border: 1px solid var(--border-color);
-      border-radius: var(--radius-lg);
-      padding: var(--space-md);
-      text-align: center;
-    }
-    
-    .stat-value {
-      font-size: var(--text-xl);
-      font-weight: var(--font-bold);
-      color: var(--primary);
-      margin-bottom: var(--space-xs);
-    }
-    
-    .stat-label {
-      font-size: var(--text-sm);
-      color: var(--text-secondary);
-    }
-    
-    /* BUSCA */
-    .search-section {
-      margin-bottom: var(--space-lg);
-    }
-    
-    .search-bar {
-      position: relative;
-    }
-    
-    .search-input {
-      width: 100%;
-      padding: var(--space-sm) var(--space-md);
-      padding-left: 40px;
-      border: 1px solid var(--border-color);
-      border-radius: var(--radius-md);
-      background: var(--bg-card);
-      color: var(--text-primary);
-      font-size: var(--text-base);
-    }
-    
-    .search-icon {
-      position: absolute;
-      left: var(--space-md);
-      top: 50%;
-      transform: translateY(-50%);
-      color: var(--text-muted);
-    }
-    
-    /* CARDS DE PROFISSIONAIS */
-    .professional-card {
-      background: var(--bg-card);
-      border: 1px solid var(--border-color);
-      border-radius: var(--radius-lg);
-      padding: var(--space-lg);
-      margin-bottom: var(--space-md);
-      transition: all var(--transition-fast);
-      position: relative;
-    }
-    
-    .professional-card:hover {
-      transform: translateY(-2px);
-      box-shadow: var(--shadow-md);
-      border-color: var(--primary);
-    }
-    
-    .professional-header {
-      display: flex;
-      align-items: center;
-      gap: var(--space-md);
-      margin-bottom: var(--space-md);
-    }
-    
-    .professional-avatar {
-      width: 60px;
-      height: 60px;
-      border-radius: var(--radius-full);
-      background: linear-gradient(135deg, var(--primary), var(--primary-hover));
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      font-size: var(--text-xl);
-      font-weight: var(--font-bold);
-      color: var(--text-inverse);
-      position: relative;
-    }
-    
-    .status-indicator {
-      position: absolute;
-      bottom: 2px;
-      right: 2px;
-      width: 16px;
-      height: 16px;
-      border-radius: var(--radius-full);
-      border: 2px solid var(--bg-card);
-    }
-    
-    .status-online {
-      background: var(--success);
-    }
-    
-    .status-busy {
-      background: var(--warning);
-    }
-    
-    .status-offline {
-      background: var(--gray-400);
-    }
-    
-    .professional-info {
-      flex: 1;
-    }
-    
-    .professional-name {
-      font-size: var(--text-lg);
-      font-weight: var(--font-semibold);
-      color: var(--text-primary);
-      margin-bottom: var(--space-xs);
-    }
-    
-    .professional-role {
-      color: var(--text-secondary);
-      font-size: var(--text-sm);
-      margin-bottom: var(--space-xs);
-    }
-    
-    .professional-rating {
-      display: flex;
-      align-items: center;
-      gap: var(--space-xs);
-      color: var(--warning);
-      font-size: var(--text-sm);
-    }
-    
-    .professional-stats {
-      display: grid;
-      grid-template-columns: repeat(3, 1fr);
-      gap: var(--space-md);
-      margin-bottom: var(--space-md);
-      padding-top: var(--space-md);
-      border-top: 1px solid var(--border-color);
-    }
-    
-    .stat-item {
-      text-align: center;
-    }
-    
-    .stat-number {
-      font-size: var(--text-lg);
-      font-weight: var(--font-bold);
-      color: var(--text-primary);
-      display: block;
-    }
-    
-    .stat-text {
-      font-size: var(--text-xs);
-      color: var(--text-secondary);
-      margin-top: var(--space-xs);
-    }
-    
-    /* ESPECIALIDADES */
-    .specialties {
-      display: flex;
-      flex-wrap: wrap;
-      gap: var(--space-sm);
-      margin-bottom: var(--space-md);
-    }
-    
-    .specialty-tag {
-      padding: var(--space-xs) var(--space-sm);
-      background: var(--primary-light);
-      color: var(--primary-dark);
-      border-radius: var(--radius-full);
-      font-size: var(--text-xs);
-      font-weight: var(--font-medium);
-    }
-    
-    /* AÇÕES DOS PROFISSIONAIS */
-    .professional-actions {
-      display: flex;
-      gap: var(--space-sm);
-    }
-    
-    .action-btn {
-      flex: 1;
-      padding: var(--space-sm) var(--space-md);
-      border: 1px solid var(--border-color);
-      border-radius: var(--radius-md);
-      background: var(--bg-card);
-      color: var(--text-secondary);
-      font-size: var(--text-sm);
-      cursor: pointer;
-      transition: all var(--transition-fast);
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      gap: var(--space-xs);
-    }
-    
-    .action-btn:hover {
-      border-color: var(--primary);
-      color: var(--primary);
-    }
-    
-    .action-btn.primary {
-      background: var(--primary);
-      color: var(--text-inverse);
-      border-color: var(--primary);
-    }
-    
-    /* HORÁRIO DE FUNCIONAMENTO */
-    .working-hours {
-      background: var(--bg-secondary);
-      border-radius: var(--radius-md);
-      padding: var(--space-sm) var(--space-md);
-      margin-bottom: var(--space-md);
-    }
-    
-    .hours-title {
-      font-size: var(--text-sm);
-      font-weight: var(--font-medium);
-      color: var(--text-secondary);
-      margin-bottom: var(--space-xs);
-    }
-    
-    .hours-text {
-      font-size: var(--text-sm);
-      color: var(--text-primary);
-    }
-    
-    /* FLOATING ACTION BUTTON */
-    .fab {
-      position: fixed;
-      bottom: 90px;
-      right: 20px;
-      width: 56px;
-      height: 56px;
-      background: var(--primary);
-      color: var(--text-inverse);
-      border: none;
-      border-radius: var(--radius-full);
-      font-size: var(--text-lg);
-      cursor: pointer;
-      box-shadow: var(--shadow-lg);
-      transition: all var(--transition-fast);
-      z-index: var(--z-fixed);
-    }
-    
-    .fab:hover {
-      transform: scale(1.1);
-      box-shadow: var(--shadow-xl);
-    }
-    
-    /* BOTTOM NAVIGATION */
-    .bottom-nav {
-      position: fixed;
-      bottom: 0;
-      left: 50%;
-      transform: translateX(-50%);
-      width: 100%;
-      max-width: 430px;
-      background: var(--bg-card);
-      border-top: 1px solid var(--border-color);
-      padding: var(--space-sm) 0;
-      z-index: var(--z-sticky);
-    }
-    
-    .nav-items {
-      display: flex;
-      justify-content: space-around;
-      align-items: center;
-    }
-    
-    .nav-item {
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      padding: var(--space-sm);
-      text-decoration: none;
-      color: var(--text-secondary);
-      transition: all var(--transition-fast);
-      border-radius: var(--radius-md);
-      min-width: 60px;
-    }
-    
-    .nav-item.active {
-      color: var(--primary);
-      background: var(--primary-light);
-    }
-    
-    .nav-icon {
-      font-size: var(--text-lg);
-      margin-bottom: var(--space-xs);
-    }
-    
-    .nav-label {
-      font-size: var(--text-xs);
-      font-weight: var(--font-medium);
-    }
-    
-    /* RESPONSIVO TABLET+ */
-    @media (min-width: 768px) {
-      .mobile-app {
-        max-width: 100%;
-        padding: 0 var(--space-lg);
-      }
-      
-      .bottom-nav {
-        display: none;
-      }
-      
-      .main-content {
-        padding-bottom: var(--space-md);
-      }
-      
-      .fab {
-        bottom: 20px;
-      }
-    }
+    .mobile-app { max-width: 480px; margin: 0 auto; min-height: 100vh; background: var(--bg-primary); position: relative; }
+    .header { position: sticky; top: 0; z-index: var(--z-sticky); background: var(--bg-card); border-bottom: 1px solid var(--border-color); padding: var(--space-md); }
+    .header-content { display: flex; align-items: center; justify-content: space-between; }
+    .header-title { display: flex; align-items: center; gap: var(--space-sm); font-size: var(--text-lg); font-weight: var(--font-bold); color: var(--text-primary); }
+    .back-btn { background: none; border: none; padding: var(--space-sm); border-radius: var(--radius-md); cursor: pointer; color: var(--text-secondary); }
+    .main-content { padding: var(--space-md); padding-bottom: 100px; }
+    .prof-card { background: var(--bg-card); border: 1px solid var(--border-color); border-radius: var(--radius-lg); padding: var(--space-md); margin-bottom: var(--space-md); display: flex; align-items: center; gap: var(--space-md); }
+    .prof-avatar { width: 48px; height: 48px; background: var(--primary); color: #fff; border-radius: var(--radius-full); display: flex; align-items: center; justify-content: center; font-size: var(--text-lg); font-weight: var(--font-bold); flex-shrink: 0; }
+    .prof-info { flex: 1; min-width: 0; }
+    .prof-nome { font-weight: var(--font-semibold); color: var(--text-primary); }
+    .prof-meta { font-size: var(--text-sm); color: var(--text-secondary); }
+    .prof-tel { font-size: var(--text-xs); color: var(--text-muted); display: flex; align-items: center; gap: 4px; margin-top: 2px; }
+    .prof-actions { display: flex; gap: var(--space-xs); }
+    .icon-btn { background: var(--bg-secondary); border: none; width: 36px; height: 36px; border-radius: var(--radius-md); cursor: pointer; color: var(--text-secondary); }
+    .icon-btn:hover { background: var(--primary-light); color: var(--primary); }
+    .icon-btn.danger:hover { background: var(--error-light); color: var(--error); }
+    .empty { text-align: center; padding: var(--space-2xl); color: var(--text-muted); }
+    .empty i { font-size: 2.5rem; margin-bottom: var(--space-md); display: block; opacity: .5; }
+    .fab { position: fixed; bottom: 90px; right: calc(50% - 240px + 20px); width: 56px; height: 56px; background: var(--primary); color: #fff; border: none; border-radius: var(--radius-full); box-shadow: var(--shadow-lg); cursor: pointer; font-size: var(--text-xl); z-index: var(--z-fixed); }
+    @media (max-width: 520px) { .fab { right: 20px; } }
+    /* MODAL */
+    .modal-overlay { position: fixed; inset: 0; background: var(--bg-overlay); display: none; align-items: flex-end; justify-content: center; z-index: var(--z-modal); }
+    .modal-overlay.open { display: flex; }
+    .modal { background: var(--bg-card); border-radius: var(--radius-xl) var(--radius-xl) 0 0; width: 100%; max-width: 480px; padding: var(--space-lg); max-height: 90vh; overflow-y: auto; }
+    .modal-title { font-size: var(--text-lg); font-weight: var(--font-bold); margin-bottom: var(--space-lg); }
+    .field { margin-bottom: var(--space-md); }
+    .field label { display: block; font-size: var(--text-sm); font-weight: var(--font-medium); margin-bottom: var(--space-xs); color: var(--text-secondary); }
+    .switch-row { display: flex; align-items: center; justify-content: space-between; padding: var(--space-sm) 0; }
+    .alert { padding: var(--space-sm) var(--space-md); border-radius: var(--radius-md); font-size: var(--text-sm); margin-bottom: var(--space-md); display: none; }
+    .alert.error { background: var(--error-light); color: var(--error); display: block; }
+    .bottom-nav { position: fixed; bottom: 0; left: 50%; transform: translateX(-50%); width: 100%; max-width: 480px; background: var(--bg-card); border-top: 1px solid var(--border-color); padding: var(--space-sm) 0; z-index: var(--z-sticky); }
+    .nav-items { display: flex; justify-content: space-around; }
+    .nav-item { display: flex; flex-direction: column; align-items: center; padding: var(--space-sm); text-decoration: none; color: var(--text-secondary); border-radius: var(--radius-md); min-width: 60px; }
+    .nav-item.active { color: var(--primary); background: var(--primary-light); }
+    .nav-icon { font-size: var(--text-lg); margin-bottom: var(--space-xs); }
+    .nav-label { font-size: var(--text-xs); font-weight: var(--font-medium); }
   </style>
 </head>
 <body>
   <div class="mobile-app">
-    <!-- HEADER -->
     <header class="header">
       <div class="header-content">
         <div class="header-title">
-          <button class="back-btn" onclick="history.back()">
-            <i class="fas fa-arrow-left"></i>
-          </button>
-          <h1 class="page-title">Profissionais</h1>
+          <button class="back-btn" onclick="location.href='dashboard-mobile.html'"><i class="fas fa-arrow-left"></i></button>
+          <i class="fas fa-user-tie"></i>
+          <span>Profissionais</span>
         </div>
-        
-        <div class="header-actions">
-          <button class="theme-toggle" onclick="toggleTheme()">
-            <i class="fas fa-moon" id="theme-icon"></i>
-          </button>
-        </div>
+        <button class="back-btn" onclick="toggleTheme()"><i class="fas fa-moon" id="theme-icon"></i></button>
       </div>
     </header>
 
-    <!-- CONTEÚDO PRINCIPAL -->
     <main class="main-content">
-      <!-- ESTATÍSTICAS RÁPIDAS -->
-      <div class="stats-section">
-        <div class="stat-card">
-          <div class="stat-value">4</div>
-          <div class="stat-label">Total</div>
-        </div>
-        
-        <div class="stat-card">
-          <div class="stat-value">3</div>
-          <div class="stat-label">Ativos</div>
-        </div>
-        
-        <div class="stat-card">
-          <div class="stat-value">2</div>
-          <div class="stat-label">Trabalhando</div>
-        </div>
-      </div>
-
-      <!-- BUSCA -->
-      <div class="search-section">
-        <div class="search-bar">
-          <i class="fas fa-search search-icon"></i>
-          <input type="text" class="search-input" placeholder="Buscar profissionais...">
-        </div>
-      </div>
-
-      <!-- PROFISSIONAL 1 -->
-      <div class="professional-card">
-        <div class="professional-header">
-          <div class="professional-avatar">
-            J
-            <div class="status-indicator status-online"></div>
-          </div>
-          <div class="professional-info">
-            <h3 class="professional-name">João Silva</h3>
-            <p class="professional-role">Barbeiro Sênior</p>
-            <div class="professional-rating">
-              <i class="fas fa-star"></i>
-              <span>4.8 (127 avaliações)</span>
-            </div>
-          </div>
-        </div>
-        
-        <div class="specialties">
-          <span class="specialty-tag">Corte Masculino</span>
-          <span class="specialty-tag">Barba</span>
-          <span class="specialty-tag">Bigode</span>
-        </div>
-        
-        <div class="working-hours">
-          <div class="hours-title">Horário de Hoje</div>
-          <div class="hours-text">08:00 - 18:00 (Disponível)</div>
-        </div>
-        
-        <div class="professional-stats">
-          <div class="stat-item">
-            <span class="stat-number">12</span>
-            <span class="stat-text">Hoje</span>
-          </div>
-          <div class="stat-item">
-            <span class="stat-number">234</span>
-            <span class="stat-text">Este mês</span>
-          </div>
-          <div class="stat-item">
-            <span class="stat-number">R$ 2.8k</span>
-            <span class="stat-text">Faturamento</span>
-          </div>
-        </div>
-        
-        <div class="professional-actions">
-          <button class="action-btn">
-            <i class="fas fa-calendar"></i>
-            Agenda
-          </button>
-          <button class="action-btn">
-            <i class="fas fa-chart-line"></i>
-            Relatórios
-          </button>
-          <button class="action-btn primary">
-            <i class="fas fa-edit"></i>
-            Editar
-          </button>
-        </div>
-      </div>
-
-      <!-- PROFISSIONAL 2 -->
-      <div class="professional-card">
-        <div class="professional-header">
-          <div class="professional-avatar">
-            D
-            <div class="status-indicator status-busy"></div>
-          </div>
-          <div class="professional-info">
-            <h3 class="professional-name">Diogo Santos</h3>
-            <p class="professional-role">Cabeleireiro</p>
-            <div class="professional-rating">
-              <i class="fas fa-star"></i>
-              <span>4.6 (89 avaliações)</span>
-            </div>
-          </div>
-        </div>
-        
-        <div class="specialties">
-          <span class="specialty-tag">Corte Feminino</span>
-          <span class="specialty-tag">Escova</span>
-          <span class="specialty-tag">Coloração</span>
-        </div>
-        
-        <div class="working-hours">
-          <div class="hours-title">Horário de Hoje</div>
-          <div class="hours-text">09:00 - 17:00 (Ocupado até 11:30)</div>
-        </div>
-        
-        <div class="professional-stats">
-          <div class="stat-item">
-            <span class="stat-number">8</span>
-            <span class="stat-text">Hoje</span>
-          </div>
-          <div class="stat-item">
-            <span class="stat-number">156</span>
-            <span class="stat-text">Este mês</span>
-          </div>
-          <div class="stat-item">
-            <span class="stat-number">R$ 3.2k</span>
-            <span class="stat-text">Faturamento</span>
-          </div>
-        </div>
-        
-        <div class="professional-actions">
-          <button class="action-btn">
-            <i class="fas fa-calendar"></i>
-            Agenda
-          </button>
-          <button class="action-btn">
-            <i class="fas fa-chart-line"></i>
-            Relatórios
-          </button>
-          <button class="action-btn primary">
-            <i class="fas fa-edit"></i>
-            Editar
-          </button>
-        </div>
-      </div>
-
-      <!-- PROFISSIONAL 3 -->
-      <div class="professional-card">
-        <div class="professional-header">
-          <div class="professional-avatar">
-            F
-            <div class="status-indicator status-online"></div>
-          </div>
-          <div class="professional-info">
-            <h3 class="professional-name">Felipe Costa</h3>
-            <p class="professional-role">Barbeiro Júnior</p>
-            <div class="professional-rating">
-              <i class="fas fa-star"></i>
-              <span>4.4 (45 avaliações)</span>
-            </div>
-          </div>
-        </div>
-        
-        <div class="specialties">
-          <span class="specialty-tag">Corte Masculino</span>
-          <span class="specialty-tag">Barba</span>
-          <span class="specialty-tag">Sobrancelha</span>
-        </div>
-        
-        <div class="working-hours">
-          <div class="hours-title">Horário de Hoje</div>
-          <div class="hours-text">08:00 - 16:00 (Disponível)</div>
-        </div>
-        
-        <div class="professional-stats">
-          <div class="stat-item">
-            <span class="stat-number">6</span>
-            <span class="stat-text">Hoje</span>
-          </div>
-          <div class="stat-item">
-            <span class="stat-number">124</span>
-            <span class="stat-text">Este mês</span>
-          </div>
-          <div class="stat-item">
-            <span class="stat-number">R$ 1.8k</span>
-            <span class="stat-text">Faturamento</span>
-          </div>
-        </div>
-        
-        <div class="professional-actions">
-          <button class="action-btn">
-            <i class="fas fa-calendar"></i>
-            Agenda
-          </button>
-          <button class="action-btn">
-            <i class="fas fa-chart-line"></i>
-            Relatórios
-          </button>
-          <button class="action-btn primary">
-            <i class="fas fa-edit"></i>
-            Editar
-          </button>
-        </div>
-      </div>
-
-      <!-- PROFISSIONAL 4 (INATIVO) -->
-      <div class="professional-card" style="opacity: 0.7;">
-        <div class="professional-header">
-          <div class="professional-avatar">
-            M
-            <div class="status-indicator status-offline"></div>
-          </div>
-          <div class="professional-info">
-            <h3 class="professional-name">Maria Oliveira</h3>
-            <p class="professional-role">Manicure (Inativa)</p>
-            <div class="professional-rating">
-              <i class="fas fa-star"></i>
-              <span>4.9 (201 avaliações)</span>
-            </div>
-          </div>
-        </div>
-        
-        <div class="specialties">
-          <span class="specialty-tag">Manicure</span>
-          <span class="specialty-tag">Pedicure</span>
-          <span class="specialty-tag">Unha Gel</span>
-        </div>
-        
-        <div class="working-hours">
-          <div class="hours-title">Status</div>
-          <div class="hours-text">Profissional inativo</div>
-        </div>
-        
-        <div class="professional-stats">
-          <div class="stat-item">
-            <span class="stat-number">0</span>
-            <span class="stat-text">Hoje</span>
-          </div>
-          <div class="stat-item">
-            <span class="stat-number">0</span>
-            <span class="stat-text">Este mês</span>
-          </div>
-          <div class="stat-item">
-            <span class="stat-number">R$ 0</span>
-            <span class="stat-text">Faturamento</span>
-          </div>
-        </div>
-        
-        <div class="professional-actions">
-          <button class="action-btn" disabled>
-            <i class="fas fa-calendar"></i>
-            Agenda
-          </button>
-          <button class="action-btn">
-            <i class="fas fa-toggle-on"></i>
-            Ativar
-          </button>
-          <button class="action-btn primary">
-            <i class="fas fa-edit"></i>
-            Editar
-          </button>
-        </div>
+      <div id="lista">
+        <div class="empty"><i class="fas fa-spinner fa-spin"></i> Carregando...</div>
       </div>
     </main>
 
-    <!-- FLOATING ACTION BUTTON -->
-    <button class="fab" onclick="addNewProfessional()">
-      <i class="fas fa-user-plus"></i>
-    </button>
+    <button class="fab" onclick="abrirModal()" title="Adicionar profissional"><i class="fas fa-plus"></i></button>
 
-    <!-- BOTTOM NAVIGATION -->
     <nav class="bottom-nav">
       <div class="nav-items">
-        <a href="dashboard-mobile.html" class="nav-item">
-          <i class="nav-icon fas fa-home"></i>
-          <span class="nav-label">Dashboard</span>
-        </a>
-        
-        <a href="agenda-mobile.html" class="nav-item">
-          <i class="nav-icon fas fa-calendar"></i>
-          <span class="nav-label">Agenda</span>
-        </a>
-        
-        <a href="#" class="nav-item active">
-          <i class="nav-icon fas fa-user-tie"></i>
-          <span class="nav-label">Profissionais</span>
-        </a>
-        
-        <a href="clientes-mobile.html" class="nav-item">
-          <i class="nav-icon fas fa-users"></i>
-          <span class="nav-label">Clientes</span>
-        </a>
-        
-        <a href="configuracoes-mobile.html" class="nav-item">
-          <i class="nav-icon fas fa-cog"></i>
-          <span class="nav-label">Config</span>
-        </a>
+        <a href="dashboard-mobile.html" class="nav-item"><i class="nav-icon fas fa-home"></i><span class="nav-label">Dashboard</span></a>
+        <a href="agenda-mobile.html" class="nav-item"><i class="nav-icon fas fa-calendar"></i><span class="nav-label">Agenda</span></a>
+        <a href="clientes-mobile.html" class="nav-item"><i class="nav-icon fas fa-users"></i><span class="nav-label">Clientes</span></a>
+        <a href="profissionais-mobile.html" class="nav-item active"><i class="nav-icon fas fa-user-tie"></i><span class="nav-label">Equipe</span></a>
+        <a href="configuracoes-mobile.html" class="nav-item"><i class="nav-icon fas fa-cog"></i><span class="nav-label">Config</span></a>
       </div>
     </nav>
   </div>
 
+  <!-- MODAL ADICIONAR/EDITAR -->
+  <div class="modal-overlay" id="modal">
+    <div class="modal">
+      <div class="modal-title" id="modal-title">Novo profissional</div>
+      <div id="modal-alerta" class="alert"></div>
+      <input type="hidden" id="f-id">
+      <div class="field">
+        <label>Nome *</label>
+        <input class="input" id="f-nome" placeholder="Ex: João Silva">
+      </div>
+      <div class="field">
+        <label>Especialidade</label>
+        <input class="input" id="f-especialidade" placeholder="Ex: Barbeiro Sênior">
+      </div>
+      <div class="field">
+        <label>Telefone (WhatsApp) — recebe avisos de novos agendamentos</label>
+        <input class="input" id="f-telefone" placeholder="Ex: 67999990000">
+      </div>
+      <div class="switch-row">
+        <label style="margin:0">Receber avisos no WhatsApp</label>
+        <input type="checkbox" id="f-notificar" checked style="width:20px;height:20px;">
+      </div>
+      <div style="display:flex; gap: var(--space-sm); margin-top: var(--space-lg);">
+        <button class="btn btn-secondary btn-full" onclick="fecharModal()">Cancelar</button>
+        <button class="btn btn-primary btn-full" id="btn-salvar" onclick="salvar()">Salvar</button>
+      </div>
+    </div>
+  </div>
+
+  <script src="api.js"></script>
   <script>
-    // TOGGLE TEMA CLARO/ESCURO
+    API.exigirLogin();
+
     function toggleTheme() {
       const html = document.documentElement;
-      const themeIcon = document.getElementById('theme-icon');
-      
-      if (html.getAttribute('data-theme') === 'dark') {
-        html.removeAttribute('data-theme');
-        themeIcon.className = 'fas fa-moon';
-        localStorage.setItem('theme', 'light');
-      } else {
-        html.setAttribute('data-theme', 'dark');
-        themeIcon.className = 'fas fa-sun';
-        localStorage.setItem('theme', 'dark');
+      const icon = document.getElementById('theme-icon');
+      if (html.getAttribute('data-theme') === 'dark') { html.removeAttribute('data-theme'); icon.className='fas fa-moon'; localStorage.setItem('theme','light'); }
+      else { html.setAttribute('data-theme','dark'); icon.className='fas fa-sun'; localStorage.setItem('theme','dark'); }
+    }
+    if (localStorage.getItem('theme') === 'dark') { document.documentElement.setAttribute('data-theme','dark'); }
+
+    let profissionais = [];
+
+    async function carregar() {
+      try {
+        profissionais = await API.get('/profissionais');
+        render();
+      } catch (e) {
+        document.getElementById('lista').innerHTML = `<div class="empty"><i class="fas fa-triangle-exclamation"></i> Erro ao carregar: ${e.message}</div>`;
       }
     }
 
-    // CARREGA TEMA SALVO
-    document.addEventListener('DOMContentLoaded', function() {
-      const savedTheme = localStorage.getItem('theme');
-      const themeIcon = document.getElementById('theme-icon');
-      
-      if (savedTheme === 'dark') {
-        document.documentElement.setAttribute('data-theme', 'dark');
-        themeIcon.className = 'fas fa-sun';
+    function render() {
+      const cont = document.getElementById('lista');
+      if (!profissionais.length) {
+        cont.innerHTML = `<div class="empty"><i class="fas fa-user-tie"></i>Nenhum profissional cadastrado.<br>Toque no + para adicionar.</div>`;
+        return;
       }
-    });
-
-    // FUNÇÃO DE BUSCA
-    const searchInput = document.querySelector('.search-input');
-    searchInput.addEventListener('input', function(e) {
-      const searchTerm = e.target.value.toLowerCase();
-      const professionalCards = document.querySelectorAll('.professional-card');
-      
-      professionalCards.forEach(card => {
-        const professionalName = card.querySelector('.professional-name').textContent.toLowerCase();
-        const professionalRole = card.querySelector('.professional-role').textContent.toLowerCase();
-        const specialties = Array.from(card.querySelectorAll('.specialty-tag')).map(tag => tag.textContent.toLowerCase()).join(' ');
-        
-        if (professionalName.includes(searchTerm) || 
-            professionalRole.includes(searchTerm) || 
-            specialties.includes(searchTerm)) {
-          card.style.display = 'block';
-        } else {
-          card.style.display = 'none';
-        }
-      });
-    });
-    
-    // FUNÇÃO ADICIONAR PROFISSIONAL
-    function addNewProfessional() {
-      // Implementar modal ou navegação para adicionar profissional
-      alert('Funcionalidade de adicionar profissional será implementada');
+      cont.innerHTML = profissionais.map(p => `
+        <div class="prof-card">
+          <div class="prof-avatar">${(p.avatar_inicial || p.nome.charAt(0)).toUpperCase()}</div>
+          <div class="prof-info">
+            <div class="prof-nome">${p.nome}</div>
+            <div class="prof-meta">${p.especialidade || 'Profissional'}</div>
+            ${p.telefone ? `<div class="prof-tel"><i class="fab fa-whatsapp" style="color:var(--success)"></i> ${p.telefone}</div>` : '<div class="prof-tel"><i class="fas fa-phone-slash"></i> sem telefone</div>'}
+          </div>
+          <div class="prof-actions">
+            <button class="icon-btn" onclick='editar(${JSON.stringify(p)})'><i class="fas fa-pen"></i></button>
+            <button class="icon-btn danger" onclick="excluir('${p.id}','${p.nome.replace(/'/g,"")}')"><i class="fas fa-trash"></i></button>
+          </div>
+        </div>`).join('');
     }
 
-    // ANIMAÇÕES DE ENTRADA
-    document.addEventListener('DOMContentLoaded', function() {
-      const cards = document.querySelectorAll('.professional-card');
-      cards.forEach((card, index) => {
-        card.style.opacity = '0';
-        card.style.transform = 'translateY(20px)';
-        
-        setTimeout(() => {
-          card.style.transition = 'all 0.3s ease-out';
-          card.style.opacity = card.style.opacity === '0.7' ? '0.7' : '1';
-          card.style.transform = 'translateY(0)';
-        }, index * 100);
-      });
-    });
+    function abrirModal() {
+      document.getElementById('modal-title').textContent = 'Novo profissional';
+      document.getElementById('f-id').value = '';
+      document.getElementById('f-nome').value = '';
+      document.getElementById('f-especialidade').value = '';
+      document.getElementById('f-telefone').value = '';
+      document.getElementById('f-notificar').checked = true;
+      document.getElementById('modal-alerta').className = 'alert';
+      document.getElementById('modal').classList.add('open');
+    }
+    function editar(p) {
+      document.getElementById('modal-title').textContent = 'Editar profissional';
+      document.getElementById('f-id').value = p.id;
+      document.getElementById('f-nome').value = p.nome;
+      document.getElementById('f-especialidade').value = p.especialidade || '';
+      document.getElementById('f-telefone').value = p.telefone || '';
+      document.getElementById('f-notificar').checked = p.notificar_whatsapp !== false;
+      document.getElementById('modal-alerta').className = 'alert';
+      document.getElementById('modal').classList.add('open');
+    }
+    function fecharModal() { document.getElementById('modal').classList.remove('open'); }
 
-    // INTERAÇÕES DOS CARDS
-    document.addEventListener('DOMContentLoaded', function() {
-      const actionButtons = document.querySelectorAll('.action-btn');
-      
-      actionButtons.forEach(btn => {
-        btn.addEventListener('click', function(e) {
-          e.preventDefault();
-          
-          const action = this.textContent.trim();
-          const professionalName = this.closest('.professional-card').querySelector('.professional-name').textContent;
-          
-          // Implementar ações específicas aqui
-          console.log(`Ação: ${action} para profissional: ${professionalName}`);
-          
-          // Exemplo de feedback visual
-          const originalText = this.innerHTML;
-          this.innerHTML = '<i class="fas fa-check"></i> Feito!';
-          this.style.background = 'var(--success)';
-          this.style.color = 'var(--text-inverse)';
-          
-          setTimeout(() => {
-            this.innerHTML = originalText;
-            this.style.background = '';
-            this.style.color = '';
-          }, 1500);
-        });
-      });
-    });
+    async function salvar() {
+      const id = document.getElementById('f-id').value;
+      const dados = {
+        nome: document.getElementById('f-nome').value.trim(),
+        especialidade: document.getElementById('f-especialidade').value.trim(),
+        telefone: document.getElementById('f-telefone').value.trim(),
+        notificar_whatsapp: document.getElementById('f-notificar').checked,
+      };
+      if (!dados.nome) {
+        const a = document.getElementById('modal-alerta'); a.textContent = 'Informe o nome'; a.className = 'alert error'; return;
+      }
+      const btn = document.getElementById('btn-salvar');
+      btn.disabled = true; btn.textContent = 'Salvando...';
+      try {
+        if (id) await API.put('/profissionais/' + id, dados);
+        else await API.post('/profissionais', dados);
+        fecharModal();
+        await carregar();
+      } catch (e) {
+        const a = document.getElementById('modal-alerta'); a.textContent = e.message; a.className = 'alert error';
+      } finally {
+        btn.disabled = false; btn.textContent = 'Salvar';
+      }
+    }
+
+    async function excluir(id, nome) {
+      if (!confirm(`Excluir o profissional "${nome}"?`)) return;
+      try { await API.del('/profissionais/' + id); await carregar(); }
+      catch (e) { alert('Erro ao excluir: ' + e.message); }
+    }
+
+    carregar();
   </script>
 </body>
 </html>
