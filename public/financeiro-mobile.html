@@ -427,6 +427,22 @@
         grid-template-columns: repeat(4, 1fr);
       }
     }
+    
+    /* CAIXA */
+    .caixa-card { background: var(--bg-card); border: 2px solid var(--border-color); border-radius: var(--radius-lg); padding: var(--space-md); margin-bottom: var(--space-lg); }
+    .caixa-card.aberto { border-color: var(--success); }
+    .caixa-card.fechado { border-color: var(--text-muted); }
+    .caixa-row { display: flex; justify-content: space-between; align-items: center; padding: var(--space-xs) 0; }
+    .caixa-label { font-size: var(--text-sm); color: var(--text-secondary); }
+    .caixa-valor { font-weight: var(--font-semibold); }
+    .caixa-total { font-size: var(--text-xl); font-weight: var(--font-bold); text-align: center; padding: var(--space-md); }
+    .caixa-total.positivo { color: var(--success); }
+    .caixa-total.negativo { color: var(--error); }
+    .caixa-mov { display: flex; justify-content: space-between; padding: var(--space-xs) 0; font-size: var(--text-sm); border-bottom: 1px solid var(--border-color); }
+    .caixa-mov:last-child { border: none; }
+    .caixa-mov-tipo { font-weight: var(--font-medium); }
+    .caixa-mov-tipo.entrada { color: var(--success); }
+    .caixa-mov-tipo.saida { color: var(--error); }
   </style>
 </head>
 <body>
@@ -444,6 +460,7 @@
         <div class="nav-section">Gestão</div>
         <a href="servicos-mobile.html" class="sidebar-item"><i class="fas fa-cut"></i> Serviços</a>
         <a href="profissionais-mobile.html" class="sidebar-item"><i class="fas fa-user-tie"></i> Profissionais</a>
+        <a href="estoque-mobile.html" class="sidebar-item"><i class="fas fa-boxes"></i> Estoque</a>
         <a href="financeiro-mobile.html" class="sidebar-item active"><i class="fas fa-chart-line"></i> Financeiro</a>
         <div class="nav-section">Outros</div>
         <a href="relatorios-mobile.html" class="sidebar-item"><i class="fas fa-chart-bar"></i> Relatórios</a>
@@ -553,6 +570,19 @@
         </div>
       </div>
 
+      <!-- CAIXA DO DIA -->
+      <section class="section">
+        <div class="section-header">
+          <h2 class="section-title"><i class="fas fa-cash-register"></i> Caixa do Dia</h2>
+          <button class="btn btn-primary btn-sm" id="btn-caixa" onclick="toggleCaixa()" style="display:none;">Abrir Caixa</button>
+        </div>
+        <div class="caixa-card" id="caixa-card">
+          <div id="caixa-status" style="text-align:center;padding:var(--space-lg);color:var(--text-muted);">
+            <i class="fas fa-spinner fa-spin"></i> Carregando...
+          </div>
+        </div>
+      </section>
+
       <!-- COMANDAS RECENTES -->
       <section class="section">
         <div class="section-header">
@@ -611,6 +641,7 @@
   <script src="api.js"></script>
   <script>
     let currentPeriod = 'month';
+    let caixaAtual = null;
 
     function toggleTheme() {
       const html = document.documentElement;
@@ -640,6 +671,74 @@
         renderTransacoes(transacoes);
       } catch (e) {
         console.error('Erro ao carregar dados financeiros:', e);
+      }
+    }
+
+    async function carregarCaixa() {
+      try {
+        const data = await API.get('/caixa');
+        caixaAtual = data;
+        const card = document.getElementById('caixa-card');
+        const btn = document.getElementById('btn-caixa');
+        
+        if (data && data.status === 'aberto') {
+          card.className = 'caixa-card aberto';
+          btn.textContent = 'Fechar Caixa';
+          btn.style.display = 'block';
+          
+          const entrada = data.total_entradas || 0;
+          const saida = data.total_saidas || 0;
+          const saldo = entrada - saida;
+          
+          document.getElementById('caixa-status').innerHTML = `
+            <div class="caixa-total ${saldo >= 0 ? 'positivo' : 'negativo'}">R$ ${saldo.toFixed(2)}</div>
+            <div class="caixa-row"><span class="caixa-label">Abertura</span><span>${new Date(data.abertura).toLocaleString('pt-BR')}</span></div>
+            <div class="caixa-row"><span class="caixa-label">Total Entradas</span><span class="caixa-valor" style="color:var(--success);">R$ ${entrada.toFixed(2)}</span></div>
+            <div class="caixa-row"><span class="caixa-label">Total Saídas</span><span class="caixa-valor" style="color:var(--error);">R$ ${saida.toFixed(2)}</span></div>
+            <hr style="border-color:var(--border-color);margin:var(--space-sm) 0;">
+            <div style="margin-top:var(--space-sm);">
+              ${(data.movimentos || []).map(m => `
+                <div class="caixa-mov">
+                  <div>
+                    <div class="caixa-mov-tipo ${m.tipo}">${m.tipo === 'entrada' ? '+' : '-'} R$ ${parseFloat(m.valor).toFixed(2)}</div>
+                    <div style="font-size:var(--text-xs);color:var(--text-muted);">${m.descricao || ''}</div>
+                  </div>
+                  <div style="font-size:var(--text-xs);color:var(--text-muted);">${m.forma_pagamento || ''}</div>
+                </div>
+              `).join('')}
+            </div>
+          `;
+        } else {
+          card.className = 'caixa-card fechado';
+          btn.textContent = 'Abrir Caixa';
+          btn.style.display = 'block';
+          document.getElementById('caixa-status').innerHTML = `
+            <div style="text-align:center;padding:var(--space-md);color:var(--text-muted);">
+              <i class="fas fa-cash-register" style="font-size:2rem;margin-bottom:var(--space-sm);"></i><br>
+              Caixa fechado
+            </div>
+          `;
+        }
+      } catch (e) {
+        console.error('Erro ao carregar caixa:', e);
+        document.getElementById('caixa-status').innerHTML = '<div style="text-align:center;padding:var(--space-lg);color:var(--error);">Erro ao carregar caixa</div>';
+      }
+    }
+
+    async function toggleCaixa() {
+      try {
+        if (caixaAtual && caixaAtual.status === 'aberto') {
+          if (!confirm('Fechar o caixa do dia?')) return;
+          await API.post('/caixa/fechar', { id: caixaAtual.id });
+          alert('Caixa fechado com sucesso!');
+        } else {
+          await API.post('/caixa/abrir', {});
+          alert('Caixa aberto com sucesso!');
+        }
+        await carregarCaixa();
+      } catch (e) {
+        console.error('Erro ao alternar caixa:', e);
+        alert('Erro ao ' + (caixaAtual && caixaAtual.status === 'aberto' ? 'fechar' : 'abrir') + ' caixa');
       }
     }
 
@@ -737,6 +836,7 @@
       }
 
       await carregarDados();
+      await carregarCaixa();
     });
   </script>
 </body>
