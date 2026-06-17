@@ -7,1454 +7,276 @@
   <link rel="stylesheet" href="design-system.css">
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
   <style>
-    /* LAYOUT AGENDA ESPECÍFICO */
-    .mobile-app {
-      max-width: 430px;
-      margin: 0 auto;
-      min-height: 100vh;
-      background: var(--bg-primary);
-      position: relative;
-    }
-    
-    /* HEADER AGENDA */
-    .header {
-      position: sticky;
-      top: 0;
-      z-index: var(--z-sticky);
-      background: var(--bg-card);
-      border-bottom: 1px solid var(--border-color);
-      padding: var(--space-md);
-    }
-    
-    .header-content {
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      margin-bottom: var(--space-md);
-    }
-    
-    .header-title {
-      display: flex;
-      align-items: center;
-      gap: var(--space-sm);
-      font-size: var(--text-lg);
-      font-weight: var(--font-bold);
-      color: var(--text-primary);
-    }
-    
-    .date-navigation {
-      display: flex;
-      align-items: center;
-      gap: var(--space-sm);
-    }
-    
-    .nav-btn {
-      background: none;
-      border: none;
-      padding: var(--space-sm);
-      border-radius: var(--radius-md);
-      cursor: pointer;
-      color: var(--text-secondary);
-      transition: all var(--transition-fast);
-    }
-    
-    .nav-btn:hover {
-      background: var(--bg-secondary);
-      color: var(--primary);
-    }
-    
-    .current-date {
-      font-size: var(--text-base);
-      font-weight: var(--font-medium);
-      color: var(--text-primary);
-      min-width: 140px;
-      text-align: center;
-    }
-    
-    /* CONTROLES */
-    .controls {
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      gap: var(--space-md);
-    }
-    
-    .view-toggle {
-      display: flex;
-      background: var(--bg-secondary);
-      border-radius: var(--radius-md);
-      padding: 2px;
-    }
-    
-    .toggle-btn {
-      background: none;
-      border: none;
-      padding: var(--space-xs) var(--space-sm);
-      border-radius: var(--radius-sm);
-      font-size: var(--text-sm);
-      font-weight: var(--font-medium);
-      cursor: pointer;
-      color: var(--text-secondary);
-      transition: all var(--transition-fast);
-    }
-    
-    .toggle-btn.active {
-      background: var(--primary);
-      color: var(--text-inverse);
-      box-shadow: var(--shadow-sm);
-    }
-    
-    .professional-filter {
-      display: flex;
-      align-items: center;
-      gap: var(--space-xs);
-      background: var(--bg-card);
-      border: 1px solid var(--border-color);
-      border-radius: var(--radius-md);
-      padding: var(--space-xs) var(--space-sm);
-      cursor: pointer;
-      transition: all var(--transition-fast);
-    }
-    
-    .professional-filter:hover {
-      border-color: var(--primary);
-    }
-    
-    .filter-text {
-      font-size: var(--text-sm);
-      color: var(--text-secondary);
-    }
-    
-    /* CONTEÚDO PRINCIPAL */
-    .main-content {
-      padding: var(--space-md);
-      padding-bottom: 80px; /* Espaço para bottom nav */
-    }
-    
-    /* GRID DE AGENDA COMPLETA */
-    .schedule-grid {
-      position: relative;
-      background: var(--bg-card);
-      border-radius: var(--radius-lg);
-      border: 1px solid var(--border-color);
-      overflow: hidden;
-    }
-    
-    .timeline-header {
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      margin-bottom: var(--space-md);
-    }
-    
-    .today-indicator {
-      background: var(--primary-light);
-      color: var(--primary);
-      padding: var(--space-xs) var(--space-sm);
-      border-radius: var(--radius-full);
-      font-size: var(--text-sm);
-      font-weight: var(--font-medium);
-    }
-    
-    .availability-summary {
-      font-size: var(--text-sm);
-      color: var(--text-secondary);
-    }
-    
-    /* CABEÇALHO COM PROFISSIONAIS */
-    .professionals-header {
-      display: grid;
-      grid-template-columns: 80px repeat(4, 1fr);
-      gap: 1px;
-      background: var(--border-color);
-      border-bottom: 2px solid var(--border-color);
-    }
-    
-    .time-header {
-      background: var(--bg-secondary);
-      padding: var(--space-md);
-      text-align: center;
-      font-size: var(--text-sm);
-      font-weight: var(--font-semibold);
-      color: var(--text-secondary);
-    }
-    
-    .professional-header {
-      background: var(--bg-card);
-      padding: var(--space-md);
-      text-align: center;
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      gap: var(--space-xs);
-    }
-    
-    .professional-avatar {
-      width: 32px;
-      height: 32px;
-      background: var(--primary);
-      color: var(--text-inverse);
-      border-radius: var(--radius-full);
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      font-size: var(--text-sm);
-      font-weight: var(--font-bold);
-    }
-    
-    .professional-name {
-      font-size: var(--text-sm);
-      font-weight: var(--font-medium);
-      color: var(--text-primary);
-    }
-    
-    .professional-status {
-      font-size: 10px;
-      color: var(--success);
-    }
-    
-    /* SLOTS DE HORÁRIO EM GRID */
-    .time-slots {
-      display: flex;
-      flex-direction: column;
-      gap: 1px;
-      background: var(--border-color);
-    }
-    
-    .time-slot-row {
-      display: grid;
-      grid-template-columns: 80px repeat(4, 1fr);
-      gap: 1px;
-      background: var(--border-color);
-    }
-    
-    .slot-time {
-      background: var(--bg-secondary);
-      padding: var(--space-sm);
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      font-size: var(--text-xs);
-      font-weight: var(--font-medium);
-      color: var(--text-secondary);
-    }
-    
-    .slot-cell {
-      background: var(--bg-card);
-      min-height: 50px;
-      padding: var(--space-xs);
-      position: relative;
-      cursor: pointer;
-      transition: all var(--transition-fast);
-    }
-    
-    
-    .slot-cell:hover {
-      background: var(--primary-light);
-    }
-    
-    .slot-empty {
-      border: 2px dashed transparent;
-    }
-    
-    .slot-empty:hover {
-      border-color: var(--primary);
-      background: var(--primary-light);
-    }
-    
-    .slot-occupied {
-      background: var(--primary-light);
-      border: 2px solid var(--primary);
-      border-radius: var(--radius-md);
-    }
-    
-    .appointment-mini {
-      padding: var(--space-xs);
-      border-radius: var(--radius-sm);
-      font-size: 10px;
-      line-height: 1.2;
-    }
-    
-    .appointment-client {
-      font-weight: var(--font-semibold);
-      color: var(--primary-dark);
-      margin-bottom: var(--space-xs);
-    }
-    
-    .appointment-service {
-      color: var(--text-secondary);
-      font-size: 9px;
-    }
-    
-    .appointment-status {
-      position: absolute;
-      top: 2px;
-      right: 2px;
-      width: 8px;
-      height: 8px;
-      border-radius: var(--radius-full);
-    }
-    
-    .status-confirmed { background: var(--success); }
-    .status-pending { background: var(--warning); }
-    .status-cancelled { background: var(--error); }
-    
-    /* LEGENDA */
-    .schedule-legend {
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      gap: var(--space-lg);
-      margin: var(--space-lg) 0;
-      padding: var(--space-md);
-      background: var(--bg-secondary);
-      border-radius: var(--radius-md);
-      font-size: var(--text-xs);
-    }
-    
-    .legend-item {
-      display: flex;
-      align-items: center;
-      gap: var(--space-xs);
-    }
-    
-    .legend-color {
-      width: 12px;
-      height: 12px;
-      border-radius: var(--radius-sm);
-    }
-    
-    .legend-free { background: var(--bg-card); border: 1px dashed var(--border-color); }
-    .legend-busy { background: var(--primary-light); border: 1px solid var(--primary); }
-    .legend-confirmed { background: var(--success); }
-    .legend-pending { background: var(--warning); }
-    
-    /* HORÁRIOS ESPECIAIS */
-    .special-hours-divider {
-      display: flex;
-      align-items: center;
-      margin: var(--space-xl) 0 var(--space-lg);
-      gap: var(--space-md);
-    }
-    
-    .divider-line {
-      flex: 1;
-      height: 2px;
-      background: linear-gradient(90deg, var(--warning), var(--primary));
-      border-radius: var(--radius-full);
-    }
-    
-    .divider-text {
-      background: var(--bg-card);
-      padding: var(--space-sm) var(--space-lg);
-      border: 2px solid var(--warning);
-      border-radius: var(--radius-full);
-      font-size: var(--text-sm);
-      font-weight: var(--font-semibold);
-      color: var(--warning);
-      display: flex;
-      align-items: center;
-      gap: var(--space-sm);
-      white-space: nowrap;
-    }
-    
-    .toggle-special-hours {
-      background: var(--warning);
-      color: var(--text-inverse);
-      border: none;
-      width: 24px;
-      height: 24px;
-      border-radius: var(--radius-full);
-      cursor: pointer;
-      font-size: 10px;
-      margin-left: var(--space-sm);
-    }
-    
-    .special-time .slot-time {
-      background: var(--warning-light);
-      color: var(--warning);
-      font-weight: var(--font-bold);
-    }
-    
-    .slot-time.special {
-      background: var(--warning-light);
-      color: var(--warning);
-      font-weight: var(--font-bold);
-    }
-    
-    .special-available {
-      background: linear-gradient(135deg, var(--warning-light), var(--primary-light));
-      border: 2px dashed var(--warning);
-      cursor: pointer;
-      transition: all var(--transition-fast);
-    }
-    
-    .special-available:hover {
-      border-color: var(--primary);
-      background: linear-gradient(135deg, var(--primary-light), var(--warning-light));
-      transform: scale(1.02);
-    }
-    
-    .special-toggle {
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      justify-content: center;
-      height: 100%;
-      gap: var(--space-xs);
-      font-size: 10px;
-      font-weight: var(--font-medium);
-      color: var(--warning);
-    }
-    
-    .special-disabled {
-      background: var(--gray-100);
-      border: 1px solid var(--gray-300);
-      cursor: not-allowed;
-    }
-    
-    .disabled-text {
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      justify-content: center;
-      height: 100%;
-      gap: var(--space-xs);
-      font-size: 9px;
-      color: var(--text-muted);
-    }
-    
-    .special-occupied {
-      background: linear-gradient(135deg, var(--warning-light), var(--success-light));
-      border: 2px solid var(--warning);
-      border-radius: var(--radius-md);
-    }
-    
-    .appointment-mini.special {
-      background: rgba(217, 119, 6, 0.1);
-      border-radius: var(--radius-sm);
-      position: relative;
-    }
-    
-    .special-price {
-      position: absolute;
-      top: 2px;
-      left: 2px;
-      background: var(--warning);
-      color: var(--text-inverse);
-      font-size: 8px;
-      font-weight: var(--font-bold);
-      padding: 1px 4px;
-      border-radius: var(--radius-sm);
-    }
-    
-    /* MODO ESCURO - HORÁRIOS ESPECIAIS */
-    [data-theme="dark"] .special-available {
-      background: linear-gradient(135deg, rgba(217, 119, 6, 0.2), rgba(30, 64, 175, 0.2));
-      border-color: var(--warning);
-    }
-    
-    [data-theme="dark"] .special-occupied {
-      background: linear-gradient(135deg, rgba(217, 119, 6, 0.3), rgba(5, 150, 105, 0.2));
-    }
-    
-    [data-theme="dark"] .special-disabled {
-      background: var(--gray-800);
-      border-color: var(--gray-700);
-    }
-    
-    /* FAB BUTTON */
-    .fab {
-      position: fixed;
-      bottom: 90px;
-      right: 20px;
-      width: 56px;
-      height: 56px;
-      background: var(--primary);
-      color: var(--text-inverse);
-      border: none;
-      border-radius: var(--radius-full);
-      box-shadow: var(--shadow-lg);
-      cursor: pointer;
-      transition: all var(--transition-fast);
-      z-index: var(--z-fixed);
-    }
-    
-    .fab:hover {
-      transform: translateY(-2px);
-      box-shadow: var(--shadow-xl);
-    }
-    
-    /* BOTTOM NAVIGATION */
-    .bottom-nav {
-      position: fixed;
-      bottom: 0;
-      left: 50%;
-      transform: translateX(-50%);
-      width: 100%;
-      max-width: 430px;
-      background: var(--bg-card);
-      border-top: 1px solid var(--border-color);
-      padding: var(--space-sm) 0;
-      z-index: var(--z-sticky);
-    }
-    
-    .nav-items {
-      display: flex;
-      justify-content: space-around;
-      align-items: center;
-    }
-    
-    .nav-item {
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      padding: var(--space-sm);
-      text-decoration: none;
-      color: var(--text-secondary);
-      transition: all var(--transition-fast);
-      border-radius: var(--radius-md);
-      min-width: 60px;
-    }
-    
-    .nav-item.active {
-      color: var(--primary);
-      background: var(--primary-light);
-    }
-    
-    .nav-icon {
-      font-size: var(--text-lg);
-      margin-bottom: var(--space-xs);
-    }
-    
-    .nav-label {
-      font-size: var(--text-xs);
-      font-weight: var(--font-medium);
-    }
-    
-    /* RESPONSIVO */
-    @media (min-width: 768px) {
-      .mobile-app {
-        max-width: 100%;
-        padding: 0 var(--space-lg);
-      }
-      
-      .bottom-nav {
-        display: none;
-      }
-      
-      .fab {
-        bottom: 20px;
-      }
-      
-      .main-content {
-        padding-bottom: var(--space-md);
-      }
-    }
-    
-    /* MOBILE ESPECÍFICO */
-    @media (max-width: 767px) {
-      .professionals-header {
-        grid-template-columns: 60px repeat(4, 1fr);
-        font-size: var(--text-xs);
-      }
-      
-      .time-slot-row {
-        grid-template-columns: 60px repeat(4, 1fr);
-      }
-      
-      .professional-name {
-        font-size: 10px;
-      }
-      
-      .professional-status {
-        font-size: 8px;
-      }
-      
-      .professional-avatar {
-        width: 24px;
-        height: 24px;
-        font-size: 10px;
-      }
-      
-      .appointment-client {
-        font-size: 9px;
-      }
-      
-      .appointment-service {
-        font-size: 8px;
-      }
-      
-      .slot-cell {
-        min-height: 40px;
-        padding: 2px;
-      }
-      
-      .schedule-legend {
-        flex-wrap: wrap;
-        gap: var(--space-sm);
-      }
-    }
+    .mobile-app { max-width: 480px; margin: 0 auto; min-height: 100vh; background: var(--bg-primary); position: relative; }
+    .header { position: sticky; top: 0; z-index: var(--z-sticky); background: var(--bg-card); border-bottom: 1px solid var(--border-color); padding: var(--space-md); }
+    .header-content { display: flex; align-items: center; justify-content: space-between; margin-bottom: var(--space-md); }
+    .header-title { display: flex; align-items: center; gap: var(--space-sm); font-size: var(--text-lg); font-weight: var(--font-bold); color: var(--text-primary); }
+    .back-btn { background: none; border: none; padding: var(--space-sm); border-radius: var(--radius-md); cursor: pointer; color: var(--text-secondary); }
+    .date-nav { display: flex; align-items: center; justify-content: space-between; gap: var(--space-sm); }
+    .date-atual { flex: 1; text-align: center; font-weight: var(--font-semibold); color: var(--text-primary); text-transform: capitalize; }
+    .resumo { font-size: var(--text-sm); color: var(--text-secondary); text-align: center; margin-top: var(--space-sm); }
+    .main-content { padding: var(--space-md); padding-bottom: 100px; }
+    .ag-card { background: var(--bg-card); border: 1px solid var(--border-color); border-radius: var(--radius-lg); padding: var(--space-md); margin-bottom: var(--space-sm); display: flex; align-items: center; gap: var(--space-md); border-left: 4px solid var(--border-color); }
+    .ag-card.st-agendado { border-left-color: var(--warning); }
+    .ag-card.st-confirmado { border-left-color: var(--success); }
+    .ag-card.st-concluido { border-left-color: var(--primary); }
+    .ag-card.st-cancelado { border-left-color: var(--error); opacity: .55; }
+    .ag-hora { background: var(--primary-light); color: var(--primary-dark); padding: var(--space-sm); border-radius: var(--radius-md); font-weight: var(--font-bold); min-width: 56px; text-align: center; }
+    .ag-info { flex: 1; min-width: 0; }
+    .ag-cliente { font-weight: var(--font-semibold); color: var(--text-primary); }
+    .ag-serv { font-size: var(--text-sm); color: var(--text-secondary); }
+    .ag-prof { font-size: var(--text-xs); color: var(--text-muted); }
+    .ag-especial { font-size: 10px; background: var(--warning); color:#fff; padding:1px 6px; border-radius: var(--radius-full); margin-left:4px; }
+    .ag-menu { position: relative; }
+    .menu-btn { background: var(--bg-secondary); border: none; width: 36px; height: 36px; border-radius: var(--radius-md); cursor: pointer; color: var(--text-secondary); }
+    .menu-pop { position: absolute; right: 0; top: 40px; background: var(--bg-card); border: 1px solid var(--border-color); border-radius: var(--radius-md); box-shadow: var(--shadow-lg); z-index: 10; display: none; min-width: 150px; overflow: hidden; }
+    .menu-pop.open { display: block; }
+    .menu-pop button { display: flex; align-items: center; gap: var(--space-sm); width: 100%; background: none; border: none; padding: var(--space-sm) var(--space-md); cursor: pointer; color: var(--text-primary); font-size: var(--text-sm); text-align: left; }
+    .menu-pop button:hover { background: var(--bg-secondary); }
+    .empty { text-align: center; padding: var(--space-2xl); color: var(--text-muted); }
+    .empty i { font-size: 2.5rem; margin-bottom: var(--space-md); display: block; opacity: .5; }
+    .fab { position: fixed; bottom: 90px; right: 24px; width: 56px; height: 56px; background: var(--primary); color: #fff; border: none; border-radius: var(--radius-full); box-shadow: var(--shadow-lg); cursor: pointer; font-size: var(--text-xl); z-index: var(--z-fixed); }
+    .modal-overlay { position: fixed; inset: 0; background: var(--bg-overlay); display: none; align-items: flex-end; justify-content: center; z-index: var(--z-modal); }
+    .modal-overlay.open { display: flex; }
+    .modal { background: var(--bg-card); border-radius: var(--radius-xl) var(--radius-xl) 0 0; width: 100%; max-width: 480px; padding: var(--space-lg); max-height: 92vh; overflow-y: auto; }
+    .modal-title { font-size: var(--text-lg); font-weight: var(--font-bold); margin-bottom: var(--space-lg); }
+    .field { margin-bottom: var(--space-md); }
+    .field label { display: block; font-size: var(--text-sm); font-weight: var(--font-medium); margin-bottom: var(--space-xs); color: var(--text-secondary); }
+    .row2 { display: grid; grid-template-columns: 1fr 1fr; gap: var(--space-md); }
+    .switch-row { display: flex; align-items: center; justify-content: space-between; padding: var(--space-sm) 0; }
+    .alert { padding: var(--space-sm) var(--space-md); border-radius: var(--radius-md); font-size: var(--text-sm); margin-bottom: var(--space-md); display: none; }
+    .alert.error { background: var(--error-light); color: var(--error); display: block; }
+    .bottom-nav { position: fixed; bottom: 0; left: 50%; transform: translateX(-50%); width: 100%; max-width: 480px; background: var(--bg-card); border-top: 1px solid var(--border-color); padding: var(--space-sm) 0; z-index: var(--z-sticky); }
+    .nav-items { display: flex; justify-content: space-around; }
+    .nav-item { display: flex; flex-direction: column; align-items: center; padding: var(--space-sm); text-decoration: none; color: var(--text-secondary); border-radius: var(--radius-md); min-width: 56px; }
+    .nav-item.active { color: var(--primary); background: var(--primary-light); }
+    .nav-icon { font-size: var(--text-lg); margin-bottom: var(--space-xs); }
+    .nav-label { font-size: var(--text-xs); font-weight: var(--font-medium); }
   </style>
 </head>
 <body>
   <div class="mobile-app">
-    <!-- HEADER -->
     <header class="header">
       <div class="header-content">
         <div class="header-title">
+          <button class="back-btn" onclick="location.href='dashboard-mobile.html'"><i class="fas fa-arrow-left"></i></button>
           <i class="fas fa-calendar-alt"></i>
           <span>Agenda</span>
         </div>
-        
-        <button class="theme-toggle nav-btn" onclick="toggleTheme()">
-          <i class="fas fa-moon" id="theme-icon"></i>
-        </button>
+        <button class="back-btn" onclick="toggleTheme()"><i class="fas fa-moon" id="theme-icon"></i></button>
       </div>
-      
-      <!-- NAVEGAÇÃO DE DATA -->
-      <div class="date-navigation">
-        <button class="nav-btn" onclick="previousDay()">
-          <i class="fas fa-chevron-left"></i>
-        </button>
-        
-        <div class="current-date" id="current-date">
-          Terça, 16 Jun 2026
-        </div>
-        
-        <button class="nav-btn" onclick="nextDay()">
-          <i class="fas fa-chevron-right"></i>
-        </button>
-        
-        <button class="nav-btn" onclick="goToToday()">
-          <i class="fas fa-calendar-day"></i>
-        </button>
+      <div class="date-nav">
+        <button class="back-btn" onclick="mudarDia(-1)"><i class="fas fa-chevron-left"></i></button>
+        <div class="date-atual" id="data-label">--</div>
+        <button class="back-btn" onclick="mudarDia(1)"><i class="fas fa-chevron-right"></i></button>
+        <button class="back-btn" onclick="irHoje()" title="Hoje"><i class="fas fa-calendar-day"></i></button>
       </div>
-      
-      <!-- CONTROLES -->
-      <div class="controls">
-        <div class="view-toggle">
-          <button class="toggle-btn active" onclick="setView('day')">Dia</button>
-          <button class="toggle-btn" onclick="setView('week')">Semana</button>
-          <button class="toggle-btn" onclick="setView('month')">Mês</button>
-        </div>
-        
-        <div class="professional-filter" onclick="openProfessionalFilter()">
-          <i class="fas fa-user" style="color: var(--primary);"></i>
-          <span class="filter-text" id="filter-text">Todos</span>
-          <i class="fas fa-chevron-down" style="color: var(--text-muted); font-size: 12px;"></i>
-        </div>
-      </div>
+      <div class="resumo" id="resumo">--</div>
     </header>
 
-    <!-- CONTEÚDO PRINCIPAL -->
     <main class="main-content">
-      <!-- HEADER DA TIMELINE -->
-      <div class="timeline-header">
-        <div class="today-indicator">
-          <i class="fas fa-circle" style="font-size: 8px;"></i>
-          Terça, 16 Jun
-        </div>
-        <div class="availability-summary">
-          32 agendamentos • 18 livres • <a href="horarios-especiais.html" style="color: var(--warning); text-decoration: none; font-weight: var(--font-semibold);">⚙️ Configurar Especiais</a>
-        </div>
-      </div>
-
-      <!-- GRID DE AGENDA COMPLETA -->
-      <div class="schedule-grid">
-        <!-- CABEÇALHO COM PROFISSIONAIS -->
-        <div class="professionals-header">
-          <div class="time-header">Horário</div>
-          
-          <div class="professional-header">
-            <div class="professional-avatar">J</div>
-            <div class="professional-name">João</div>
-            <div class="professional-status">● Online</div>
-          </div>
-          
-          <div class="professional-header">
-            <div class="professional-avatar">D</div>
-            <div class="professional-name">Diogo</div>
-            <div class="professional-status">● Online</div>
-          </div>
-          
-          <div class="professional-header">
-            <div class="professional-avatar">F</div>
-            <div class="professional-name">Felipe</div>
-            <div class="professional-status">● Online</div>
-          </div>
-          
-          <div class="professional-header">
-            <div class="professional-avatar">L</div>
-            <div class="professional-name">Luan</div>
-            <div class="professional-status">● Ocupado</div>
-          </div>
-        </div>
-
-        <!-- SLOTS DE HORÁRIO -->
-        <div class="time-slots">
-          <!-- MANHÃ: 07:30 - 11:00 -->
-          <!-- 07:30 -->
-          <div class="time-slot-row">
-            <div class="slot-time">07:30</div>
-            <div class="slot-cell slot-empty" onclick="createAppointment('07:30', 'João')"></div>
-            <div class="slot-cell slot-empty" onclick="createAppointment('07:30', 'Diogo')"></div>
-            <div class="slot-cell slot-empty" onclick="createAppointment('07:30', 'Felipe')"></div>
-            <div class="slot-cell slot-empty" onclick="createAppointment('07:30', 'Luan')"></div>
-          </div>
-
-          <!-- 08:00 -->
-          <div class="time-slot-row">
-            <div class="slot-time">08:00</div>
-            <div class="slot-cell slot-occupied">
-              <div class="appointment-mini">
-                <div class="appointment-status status-confirmed"></div>
-                <div class="appointment-client">Carlos Silva</div>
-                <div class="appointment-service">Corte Masculino</div>
-              </div>
-            </div>
-            <div class="slot-cell slot-empty" onclick="createAppointment('08:00', 'Diogo')"></div>
-            <div class="slot-cell slot-empty" onclick="createAppointment('08:00', 'Felipe')"></div>
-            <div class="slot-cell slot-empty" onclick="createAppointment('08:00', 'Luan')"></div>
-          </div>
-
-          <!-- 08:30 -->
-          <div class="time-slot-row">
-            <div class="slot-time">08:30</div>
-            <div class="slot-cell slot-empty" onclick="createAppointment('08:30', 'João')"></div>
-            <div class="slot-cell slot-occupied">
-              <div class="appointment-mini">
-                <div class="appointment-status status-pending"></div>
-                <div class="appointment-client">Maria Santos</div>
-                <div class="appointment-service">Corte + Escova</div>
-              </div>
-            </div>
-            <div class="slot-cell slot-empty" onclick="createAppointment('08:30', 'Felipe')"></div>
-            <div class="slot-cell slot-empty" onclick="createAppointment('08:30', 'Luan')"></div>
-          </div>
-
-          <!-- 09:00 -->
-          <div class="time-slot-row">
-            <div class="slot-time">09:00</div>
-            <div class="slot-cell slot-occupied">
-              <div class="appointment-mini">
-                <div class="appointment-status status-confirmed"></div>
-                <div class="appointment-client">Pedro Lima</div>
-                <div class="appointment-service">Corte Masculino</div>
-              </div>
-            </div>
-            <div class="slot-cell slot-occupied">
-              <div class="appointment-mini">
-                <div class="appointment-status status-confirmed"></div>
-                <div class="appointment-client">Maria Santos</div>
-                <div class="appointment-service">Continuação</div>
-              </div>
-            </div>
-            <div class="slot-cell slot-occupied">
-              <div class="appointment-mini">
-                <div class="appointment-status status-confirmed"></div>
-                <div class="appointment-client">João Pedro</div>
-                <div class="appointment-service">Barba Completa</div>
-              </div>
-            </div>
-            <div class="slot-cell slot-occupied">
-              <div class="appointment-mini">
-                <div class="appointment-status status-confirmed"></div>
-                <div class="appointment-client">Ana Costa</div>
-                <div class="appointment-service">Sobrancelha</div>
-              </div>
-            </div>
-          </div>
-
-          <!-- 09:30 -->
-          <div class="time-slot-row">
-            <div class="slot-time">09:30</div>
-            <div class="slot-cell slot-empty" onclick="createAppointment('09:30', 'João')"></div>
-            <div class="slot-cell slot-empty" onclick="createAppointment('09:30', 'Diogo')"></div>
-            <div class="slot-cell slot-empty" onclick="createAppointment('09:30', 'Felipe')"></div>
-            <div class="slot-cell slot-empty" onclick="createAppointment('09:30', 'Luan')"></div>
-          </div>
-
-          <!-- 10:00 -->
-          <div class="time-slot-row">
-            <div class="slot-time">10:00</div>
-            <div class="slot-cell slot-empty" onclick="createAppointment('10:00', 'João')"></div>
-            <div class="slot-cell slot-occupied">
-              <div class="appointment-mini">
-                <div class="appointment-status status-pending"></div>
-                <div class="appointment-client">Lucas Silva</div>
-                <div class="appointment-service">Corte Feminino</div>
-              </div>
-            </div>
-            <div class="slot-cell slot-empty" onclick="createAppointment('10:00', 'Felipe')"></div>
-            <div class="slot-cell slot-occupied">
-              <div class="appointment-mini">
-                <div class="appointment-status status-confirmed"></div>
-                <div class="appointment-client">Roberto Santos</div>
-                <div class="appointment-service">Corte + Barba</div>
-              </div>
-            </div>
-          </div>
-
-          <!-- 10:30 -->
-          <div class="time-slot-row">
-            <div class="slot-time">10:30</div>
-            <div class="slot-cell slot-occupied">
-              <div class="appointment-mini">
-                <div class="appointment-status status-confirmed"></div>
-                <div class="appointment-client">Fernanda Lima</div>
-                <div class="appointment-service">Escova</div>
-              </div>
-            </div>
-            <div class="slot-cell slot-empty" onclick="createAppointment('10:30', 'Diogo')"></div>
-            <div class="slot-cell slot-occupied">
-              <div class="appointment-mini">
-                <div class="appointment-status status-confirmed"></div>
-                <div class="appointment-client">Marcos José</div>
-                <div class="appointment-service">Barba</div>
-              </div>
-            </div>
-            <div class="slot-cell slot-occupied">
-              <div class="appointment-mini">
-                <div class="appointment-status status-confirmed"></div>
-                <div class="appointment-client">Roberto Santos</div>
-                <div class="appointment-service">Continuação</div>
-              </div>
-            </div>
-          </div>
-
-          <!-- 11:00 - FIM MANHÃ -->
-          <div class="time-slot-row">
-            <div class="slot-time">11:00</div>
-            <div class="slot-cell slot-empty" onclick="createAppointment('11:00', 'João')"></div>
-            <div class="slot-cell slot-empty" onclick="createAppointment('11:00', 'Diogo')"></div>
-            <div class="slot-cell slot-empty" onclick="createAppointment('11:00', 'Felipe')"></div>
-            <div class="slot-cell slot-empty" onclick="createAppointment('11:00', 'Luan')"></div>
-          </div>
-
-          <!-- INTERVALO DE ALMOÇO: 11:00 - 13:00 -->
-          <div class="special-hours-divider" style="margin: var(--space-lg) 0;">
-            <div class="divider-line" style="background: linear-gradient(90deg, var(--gray-300), var(--gray-400));"></div>
-            <div class="divider-text" style="border-color: var(--gray-400); color: var(--gray-600);">
-              <i class="fas fa-utensils"></i>
-              INTERVALO DE ALMOÇO
-            </div>
-            <div class="divider-line" style="background: linear-gradient(90deg, var(--gray-400), var(--gray-300));"></div>
-          </div>
-
-          <!-- 11:30 - ALMOÇO -->
-          <div class="time-slot-row" style="opacity: 0.6;">
-            <div class="slot-time" style="background: var(--gray-200); color: var(--text-muted);">11:30</div>
-            <div class="slot-cell" style="background: var(--gray-200); color: var(--text-muted); display: flex; align-items: center; justify-content: center; font-size: 10px;">ALMOÇO</div>
-            <div class="slot-cell" style="background: var(--gray-200); color: var(--text-muted); display: flex; align-items: center; justify-content: center; font-size: 10px;">ALMOÇO</div>
-            <div class="slot-cell" style="background: var(--gray-200); color: var(--text-muted); display: flex; align-items: center; justify-content: center; font-size: 10px;">ALMOÇO</div>
-            <div class="slot-cell" style="background: var(--gray-200); color: var(--text-muted); display: flex; align-items: center; justify-content: center; font-size: 10px;">ALMOÇO</div>
-          </div>
-
-          <!-- 12:00 - ALMOÇO -->
-          <div class="time-slot-row" style="opacity: 0.6;">
-            <div class="slot-time" style="background: var(--gray-200); color: var(--text-muted);">12:00</div>
-            <div class="slot-cell" style="background: var(--gray-200); color: var(--text-muted); display: flex; align-items: center; justify-content: center; font-size: 10px;">ALMOÇO</div>
-            <div class="slot-cell" style="background: var(--gray-200); color: var(--text-muted); display: flex; align-items: center; justify-content: center; font-size: 10px;">ALMOÇO</div>
-            <div class="slot-cell" style="background: var(--gray-200); color: var(--text-muted); display: flex; align-items: center; justify-content: center; font-size: 10px;">ALMOÇO</div>
-            <div class="slot-cell" style="background: var(--gray-200); color: var(--text-muted); display: flex; align-items: center; justify-content: center; font-size: 10px;">ALMOÇO</div>
-          </div>
-
-          <!-- 12:30 - ALMOÇO -->
-          <div class="time-slot-row" style="opacity: 0.6;">
-            <div class="slot-time" style="background: var(--gray-200); color: var(--text-muted);">12:30</div>
-            <div class="slot-cell" style="background: var(--gray-200); color: var(--text-muted); display: flex; align-items: center; justify-content: center; font-size: 10px;">ALMOÇO</div>
-            <div class="slot-cell" style="background: var(--gray-200); color: var(--text-muted); display: flex; align-items: center; justify-content: center; font-size: 10px;">ALMOÇO</div>
-            <div class="slot-cell" style="background: var(--gray-200); color: var(--text-muted); display: flex; align-items: center; justify-content: center; font-size: 10px;">ALMOÇO</div>
-            <div class="slot-cell" style="background: var(--gray-200); color: var(--text-muted); display: flex; align-items: center; justify-content: center; font-size: 10px;">ALMOÇO</div>
-          </div>
-
-          <!-- TARDE: 13:00 - 19:00 -->
-          <div class="special-hours-divider" style="margin: var(--space-lg) 0;">
-            <div class="divider-line" style="background: linear-gradient(90deg, var(--primary-light), var(--primary));"></div>
-            <div class="divider-text" style="border-color: var(--primary); color: var(--primary);">
-              <i class="fas fa-sun"></i>
-              HORÁRIO VESPERTINO
-            </div>
-            <div class="divider-line" style="background: linear-gradient(90deg, var(--primary), var(--primary-light));"></div>
-          </div>
-          <div class="time-slot-row">
-            <div class="slot-time">13:00</div>
-            <div class="slot-cell slot-empty" onclick="createAppointment('13:00', 'João')"></div>
-            <div class="slot-cell slot-empty" onclick="createAppointment('13:00', 'Diogo')"></div>
-            <div class="slot-cell slot-empty" onclick="createAppointment('13:00', 'Felipe')"></div>
-            <div class="slot-cell slot-empty" onclick="createAppointment('13:00', 'Luan')"></div>
-          </div>
-
-          <div class="time-slot-row">
-            <div class="slot-time">13:30</div>
-            <div class="slot-cell slot-occupied">
-              <div class="appointment-mini">
-                <div class="appointment-status status-confirmed"></div>
-                <div class="appointment-client">Paulo Silva</div>
-                <div class="appointment-service">Corte Masculino</div>
-              </div>
-            </div>
-            <div class="slot-cell slot-empty" onclick="createAppointment('13:30', 'Diogo')"></div>
-            <div class="slot-cell slot-empty" onclick="createAppointment('13:30', 'Felipe')"></div>
-            <div class="slot-cell slot-empty" onclick="createAppointment('13:30', 'Luan')"></div>
-          </div>
-
-          <div class="time-slot-row">
-            <div class="slot-time">14:00</div>
-            <div class="slot-cell slot-empty" onclick="createAppointment('14:00', 'João')"></div>
-            <div class="slot-cell slot-occupied">
-              <div class="appointment-mini">
-                <div class="appointment-status status-pending"></div>
-                <div class="appointment-client">Sandra Lima</div>
-                <div class="appointment-service">Escova + Hidratação</div>
-              </div>
-            </div>
-            <div class="slot-cell slot-occupied">
-              <div class="appointment-mini">
-                <div class="appointment-status status-confirmed"></div>
-                <div class="appointment-client">Ricardo Santos</div>
-                <div class="appointment-service">Barba</div>
-              </div>
-            </div>
-            <div class="slot-cell slot-empty" onclick="createAppointment('14:00', 'Luan')"></div>
-          </div>
-
-          <div class="time-slot-row">
-            <div class="slot-time">14:30</div>
-            <div class="slot-cell slot-empty" onclick="createAppointment('14:30', 'João')"></div>
-            <div class="slot-cell slot-occupied">
-              <div class="appointment-mini">
-                <div class="appointment-status status-confirmed"></div>
-                <div class="appointment-client">Sandra Lima</div>
-                <div class="appointment-service">Continuação</div>
-              </div>
-            </div>
-            <div class="slot-cell slot-empty" onclick="createAppointment('14:30', 'Felipe')"></div>
-            <div class="slot-cell slot-occupied">
-              <div class="appointment-mini">
-                <div class="appointment-status status-confirmed"></div>
-                <div class="appointment-client">José Carlos</div>
-                <div class="appointment-service">Corte + Barba</div>
-              </div>
-            </div>
-          </div>
-
-          <div class="time-slot-row">
-            <div class="slot-time">15:00</div>
-            <div class="slot-cell slot-occupied">
-              <div class="appointment-mini">
-                <div class="appointment-status status-confirmed"></div>
-                <div class="appointment-client">Marcos Vieira</div>
-                <div class="appointment-service">Corte Masculino</div>
-              </div>
-            </div>
-            <div class="slot-cell slot-empty" onclick="createAppointment('15:00', 'Diogo')"></div>
-            <div class="slot-cell slot-empty" onclick="createAppointment('15:00', 'Felipe')"></div>
-            <div class="slot-cell slot-occupied">
-              <div class="appointment-mini">
-                <div class="appointment-status status-confirmed"></div>
-                <div class="appointment-client">José Carlos</div>
-                <div class="appointment-service">Continuação</div>
-              </div>
-            </div>
-          </div>
-
-          <div class="time-slot-row">
-            <div class="slot-time">15:30</div>
-            <div class="slot-cell slot-empty" onclick="createAppointment('15:30', 'João')"></div>
-            <div class="slot-cell slot-occupied">
-              <div class="appointment-mini">
-                <div class="appointment-status status-pending"></div>
-                <div class="appointment-client">Carla Mendes</div>
-                <div class="appointment-service">Coloração</div>
-              </div>
-            </div>
-            <div class="slot-cell slot-occupied">
-              <div class="appointment-mini">
-                <div class="appointment-status status-confirmed"></div>
-                <div class="appointment-client">Antonio Lima</div>
-                <div class="appointment-service">Sobrancelha</div>
-              </div>
-            </div>
-            <div class="slot-cell slot-empty" onclick="createAppointment('15:30', 'Luan')"></div>
-          </div>
-
-          <div class="time-slot-row">
-            <div class="slot-time">16:00</div>
-            <div class="slot-cell slot-empty" onclick="createAppointment('16:00', 'João')"></div>
-            <div class="slot-cell slot-occupied">
-              <div class="appointment-mini">
-                <div class="appointment-status status-confirmed"></div>
-                <div class="appointment-client">Carla Mendes</div>
-                <div class="appointment-service">Continuação</div>
-              </div>
-            </div>
-            <div class="slot-cell slot-empty" onclick="createAppointment('16:00', 'Felipe')"></div>
-            <div class="slot-cell slot-empty" onclick="createAppointment('16:00', 'Luan')"></div>
-          </div>
-
-          <div class="time-slot-row">
-            <div class="slot-time">16:30</div>
-            <div class="slot-cell slot-occupied">
-              <div class="appointment-mini">
-                <div class="appointment-status status-confirmed"></div>
-                <div class="appointment-client">Diego Costa</div>
-                <div class="appointment-service">Corte Masculino</div>
-              </div>
-            </div>
-            <div class="slot-cell slot-empty" onclick="createAppointment('16:30', 'Diogo')"></div>
-            <div class="slot-cell slot-empty" onclick="createAppointment('16:30', 'Felipe')"></div>
-            <div class="slot-cell slot-empty" onclick="createAppointment('16:30', 'Luan')"></div>
-          </div>
-
-          <div class="time-slot-row">
-            <div class="slot-time">17:00</div>
-            <div class="slot-cell slot-empty" onclick="createAppointment('17:00', 'João')"></div>
-            <div class="slot-cell slot-empty" onclick="createAppointment('17:00', 'Diogo')"></div>
-            <div class="slot-cell slot-occupied">
-              <div class="appointment-mini">
-                <div class="appointment-status status-pending"></div>
-                <div class="appointment-client">Marina Silva</div>
-                <div class="appointment-service">Corte Feminino</div>
-              </div>
-            </div>
-            <div class="slot-cell slot-empty" onclick="createAppointment('17:00', 'Luan')"></div>
-          </div>
-
-          <div class="time-slot-row">
-            <div class="slot-time">17:30</div>
-            <div class="slot-cell slot-empty" onclick="createAppointment('17:30', 'João')"></div>
-            <div class="slot-cell slot-occupied">
-              <div class="appointment-mini">
-                <div class="appointment-status status-confirmed"></div>
-                <div class="appointment-client">Rafael Nunes</div>
-                <div class="appointment-service">Barba + Bigode</div>
-              </div>
-            </div>
-            <div class="slot-cell slot-empty" onclick="createAppointment('17:30', 'Felipe')"></div>
-            <div class="slot-cell slot-empty" onclick="createAppointment('17:30', 'Luan')"></div>
-          </div>
-
-          <!-- 18:00 -->
-          <div class="time-slot-row">
-            <div class="slot-time">18:00</div>
-            <div class="slot-cell slot-occupied">
-              <div class="appointment-mini">
-                <div class="appointment-status status-confirmed"></div>
-                <div class="appointment-client">André Silva</div>
-                <div class="appointment-service">Corte Masculino</div>
-              </div>
-            </div>
-            <div class="slot-cell slot-empty" onclick="createAppointment('18:00', 'Diogo')"></div>
-            <div class="slot-cell slot-empty" onclick="createAppointment('18:00', 'Felipe')"></div>
-            <div class="slot-cell slot-occupied">
-              <div class="appointment-mini">
-                <div class="appointment-status status-pending"></div>
-                <div class="appointment-client">Camila Costa</div>
-                <div class="appointment-service">Sobrancelha</div>
-              </div>
-            </div>
-          </div>
-
-          <!-- 18:30 -->
-          <div class="time-slot-row">
-            <div class="slot-time">18:30</div>
-            <div class="slot-cell slot-empty" onclick="createAppointment('18:30', 'João')"></div>
-            <div class="slot-cell slot-occupied">
-              <div class="appointment-mini">
-                <div class="appointment-status status-confirmed"></div>
-                <div class="appointment-client">Felipe Nunes</div>
-                <div class="appointment-service">Corte + Barba</div>
-              </div>
-            </div>
-            <div class="slot-cell slot-occupied">
-              <div class="appointment-mini">
-                <div class="appointment-status status-confirmed"></div>
-                <div class="appointment-client">Gustavo Lima</div>
-                <div class="appointment-service">Barba</div>
-              </div>
-            </div>
-            <div class="slot-cell slot-empty" onclick="createAppointment('18:30', 'Luan')"></div>
-          </div>
-
-          <!-- FIM HORÁRIO NORMAL (19:00) -->
-          <div class="time-slot-row">
-            <div class="slot-time">19:00</div>
-            <div class="slot-cell slot-empty" onclick="createAppointment('19:00', 'João')"></div>
-            <div class="slot-cell slot-empty" onclick="createAppointment('19:00', 'Diogo')"></div>
-            <div class="slot-cell slot-empty" onclick="createAppointment('19:00', 'Felipe')"></div>
-            <div class="slot-cell slot-empty" onclick="createAppointment('19:00', 'Luan')"></div>
-          </div>
-
-          <!-- SEPARADOR HORÁRIO ESPECIAL -->
-          <div class="special-hours-divider">
-            <div class="divider-line"></div>
-            <div class="divider-text">
-              <i class="fas fa-moon"></i>
-              HORÁRIO ESPECIAL NOTURNO
-              <button class="toggle-special-hours" onclick="toggleSpecialHours()">
-                <i class="fas fa-eye"></i>
-              </button>
-            </div>
-            <div class="divider-line"></div>
-          </div>
-
-          <!-- HORÁRIOS ESPECIAIS 19:00-21:00 (APÓS HORÁRIO NORMAL) -->
-          <div id="special-hours-section">
-            <div class="time-slot-row special-time">
-              <div class="slot-time special">19:00</div>
-              <div class="slot-cell special-available" data-professional="João" onclick="createSpecialAppointment('19:00', 'João')">
-                <div class="special-toggle">
-                  <i class="fas fa-moon"></i>
-                  <span>Especial</span>
-                </div>
-              </div>
-              <div class="slot-cell special-disabled" title="Diogo não trabalha neste horário">
-                <div class="disabled-text">
-                  <i class="fas fa-times"></i>
-                  <span>Indisponível</span>
-                </div>
-              </div>
-              <div class="slot-cell special-available" data-professional="Felipe" onclick="createSpecialAppointment('19:00', 'Felipe')">
-                <div class="special-toggle">
-                  <i class="fas fa-moon"></i>
-                  <span>Especial</span>
-                </div>
-              </div>
-              <div class="slot-cell special-disabled" title="Luan não trabalha neste horário">
-                <div class="disabled-text">
-                  <i class="fas fa-times"></i>
-                  <span>Indisponível</span>
-                </div>
-              </div>
-            </div>
-
-            <div class="time-slot-row special-time">
-              <div class="slot-time special">19:30</div>
-              <div class="slot-cell special-occupied">
-                <div class="appointment-mini special">
-                  <div class="appointment-status status-confirmed"></div>
-                  <div class="appointment-client">Lucas Mendes</div>
-                  <div class="appointment-service">Corte Premium</div>
-                  <div class="special-price">+50%</div>
-                </div>
-              </div>
-              <div class="slot-cell special-disabled" title="Diogo não trabalha neste horário">
-                <div class="disabled-text">
-                  <i class="fas fa-times"></i>
-                  <span>Indisponível</span>
-                </div>
-              </div>
-              <div class="slot-cell special-available" data-professional="Felipe" onclick="createSpecialAppointment('19:30', 'Felipe')">
-                <div class="special-toggle">
-                  <i class="fas fa-moon"></i>
-                  <span>Especial</span>
-                </div>
-              </div>
-              <div class="slot-cell special-disabled" title="Luan não trabalha neste horário">
-                <div class="disabled-text">
-                  <i class="fas fa-times"></i>
-                  <span>Indisponível</span>
-                </div>
-              </div>
-            </div>
-
-            <div class="time-slot-row special-time">
-              <div class="slot-time special">20:00</div>
-              <div class="slot-cell special-available" data-professional="João" onclick="createSpecialAppointment('20:00', 'João')">
-                <div class="special-toggle">
-                  <i class="fas fa-moon"></i>
-                  <span>Especial</span>
-                </div>
-              </div>
-              <div class="slot-cell special-disabled" title="Diogo não trabalha neste horário">
-                <div class="disabled-text">
-                  <i class="fas fa-times"></i>
-                  <span>Indisponível</span>
-                </div>
-              </div>
-              <div class="slot-cell special-occupied">
-                <div class="appointment-mini special">
-                  <div class="appointment-status status-pending"></div>
-                  <div class="appointment-client">Roberto Lima</div>
-                  <div class="appointment-service">Barba Premium</div>
-                  <div class="special-price">+50%</div>
-                </div>
-              </div>
-              <div class="slot-cell special-disabled" title="Luan não trabalha neste horário">
-                <div class="disabled-text">
-                  <i class="fas fa-times"></i>
-                  <span>Indisponível</span>
-                </div>
-              </div>
-            </div>
-
-            <div class="time-slot-row special-time">
-              <div class="slot-time special">20:30</div>
-              <div class="slot-cell special-available" data-professional="João" onclick="createSpecialAppointment('20:30', 'João')">
-                <div class="special-toggle">
-                  <i class="fas fa-moon"></i>
-                  <span>Especial</span>
-                </div>
-              </div>
-              <div class="slot-cell special-disabled" title="Diogo não trabalha neste horário">
-                <div class="disabled-text">
-                  <i class="fas fa-times"></i>
-                  <span>Indisponível</span>
-                </div>
-              </div>
-              <div class="slot-cell special-available" data-professional="Felipe" onclick="createSpecialAppointment('20:30', 'Felipe')">
-                <div class="special-toggle">
-                  <i class="fas fa-moon"></i>
-                  <span>Especial</span>
-                </div>
-              </div>
-              <div class="slot-cell special-disabled" title="Luan não trabalha neste horário">
-                <div class="disabled-text">
-                  <i class="fas fa-times"></i>
-                  <span>Indisponível</span>
-                </div>
-              </div>
-            </div>
-
-            <div class="time-slot-row special-time">
-              <div class="slot-time special">21:00</div>
-              <div class="slot-cell special-available" data-professional="João" onclick="createSpecialAppointment('21:00', 'João')">
-                <div class="special-toggle">
-                  <i class="fas fa-moon"></i>
-                  <span>Especial</span>
-                </div>
-              </div>
-              <div class="slot-cell special-disabled" title="Diogo não trabalha neste horário">
-                <div class="disabled-text">
-                  <i class="fas fa-times"></i>
-                  <span>Indisponível</span>
-                </div>
-              </div>
-              <div class="slot-cell special-available" data-professional="Felipe" onclick="createSpecialAppointment('21:00', 'Felipe')">
-                <div class="special-toggle">
-                  <i class="fas fa-moon"></i>
-                  <span>Especial</span>
-                </div>
-              </div>
-              <div class="slot-cell special-disabled" title="Luan não trabalha neste horário">
-                <div class="disabled-text">
-                  <i class="fas fa-times"></i>
-                  <span>Indisponível</span>
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      <!-- LEGENDA ATUALIZADA -->
-      <div class="schedule-legend">
-        <div class="legend-item">
-          <div class="legend-color legend-free"></div>
-          <span>Livre</span>
-        </div>
-        <div class="legend-item">
-          <div class="legend-color legend-busy"></div>
-          <span>Ocupado</span>
-        </div>
-        <div class="legend-item">
-          <div class="legend-color legend-confirmed"></div>
-          <span>Confirmado</span>
-        </div>
-        <div class="legend-item">
-          <div class="legend-color legend-pending"></div>
-          <span>Pendente</span>
-        </div>
-        <div class="legend-item">
-          <div class="legend-color" style="background: linear-gradient(45deg, var(--warning-light), var(--primary-light)); border: 1px solid var(--warning);"></div>
-          <span>Especial +50%</span>
-        </div>
-      </div>
+      <div id="lista"><div class="empty"><i class="fas fa-spinner fa-spin"></i> Carregando...</div></div>
     </main>
 
-    <!-- FAB BUTTON -->
-    <button class="fab" onclick="createAppointment()" title="Novo Agendamento">
-      <i class="fas fa-plus" style="font-size: var(--text-xl);"></i>
-    </button>
+    <button class="fab" onclick="abrirModal()" title="Novo agendamento"><i class="fas fa-plus"></i></button>
 
-    <!-- BOTTOM NAVIGATION -->
     <nav class="bottom-nav">
       <div class="nav-items">
-        <a href="dashboard-mobile.html" class="nav-item">
-          <i class="nav-icon fas fa-home"></i>
-          <span class="nav-label">Dashboard</span>
-        </a>
-        
-        <a href="#" class="nav-item active">
-          <i class="nav-icon fas fa-calendar"></i>
-          <span class="nav-label">Agenda</span>
-        </a>
-        
-        <a href="#" class="nav-item">
-          <i class="nav-icon fas fa-users"></i>
-          <span class="nav-label">Clientes</span>
-        </a>
-        
-        <a href="#" class="nav-item">
-          <i class="nav-icon fas fa-cog"></i>
-          <span class="nav-label">Config</span>
-        </a>
-        
-        <a href="#" class="nav-item">
-          <i class="nav-icon fas fa-comments"></i>
-          <span class="nav-label">Chat</span>
-        </a>
+        <a href="dashboard-mobile.html" class="nav-item"><i class="nav-icon fas fa-home"></i><span class="nav-label">Início</span></a>
+        <a href="agenda-mobile.html" class="nav-item active"><i class="nav-icon fas fa-calendar"></i><span class="nav-label">Agenda</span></a>
+        <a href="clientes-mobile.html" class="nav-item"><i class="nav-icon fas fa-users"></i><span class="nav-label">Clientes</span></a>
+        <a href="servicos-mobile.html" class="nav-item"><i class="nav-icon fas fa-cut"></i><span class="nav-label">Serviços</span></a>
+        <a href="configuracoes-mobile.html" class="nav-item"><i class="nav-icon fas fa-cog"></i><span class="nav-label">Config</span></a>
       </div>
     </nav>
   </div>
 
+  <!-- MODAL NOVO AGENDAMENTO -->
+  <div class="modal-overlay" id="modal">
+    <div class="modal">
+      <div class="modal-title">Novo agendamento</div>
+      <div id="modal-alerta" class="alert"></div>
+      <div class="field">
+        <label>Profissional *</label>
+        <select class="input" id="f-prof"></select>
+      </div>
+      <div class="field">
+        <label>Serviço</label>
+        <select class="input" id="f-serv"></select>
+      </div>
+      <div class="field"><label>Nome do cliente *</label><input class="input" id="f-cliente" placeholder="Ex: Maria Souza"></div>
+      <div class="field"><label>Telefone (WhatsApp)</label><input class="input" id="f-telefone" placeholder="Ex: 67999990000"></div>
+      <div class="row2">
+        <div class="field"><label>Data *</label><input class="input" id="f-data" type="date"></div>
+        <div class="field"><label>Hora *</label><input class="input" id="f-hora" type="time" value="09:00"></div>
+      </div>
+      <div class="switch-row">
+        <label style="margin:0">Horário especial (+50%)</label>
+        <input type="checkbox" id="f-especial" style="width:20px;height:20px;">
+      </div>
+      <div style="display:flex; gap: var(--space-sm); margin-top: var(--space-md);">
+        <button class="btn btn-secondary btn-full" onclick="fecharModal()">Cancelar</button>
+        <button class="btn btn-primary btn-full" id="btn-salvar" onclick="salvar()">Agendar</button>
+      </div>
+    </div>
+  </div>
+
+  <script src="api.js"></script>
   <script>
-    // VARIÁVEIS GLOBAIS
-    let currentDate = new Date(2026, 5, 16); // 16 Jun 2026
-    let currentView = 'day';
-    let selectedProfessional = 'all';
-
-    // TOGGLE TEMA
+    API.exigirLogin();
     function toggleTheme() {
-      const html = document.documentElement;
-      const themeIcon = document.getElementById('theme-icon');
-      
-      if (html.getAttribute('data-theme') === 'dark') {
-        html.removeAttribute('data-theme');
-        themeIcon.className = 'fas fa-moon';
-        localStorage.setItem('theme', 'light');
-      } else {
-        html.setAttribute('data-theme', 'dark');
-        themeIcon.className = 'fas fa-sun';
-        localStorage.setItem('theme', 'dark');
+      const html = document.documentElement, icon = document.getElementById('theme-icon');
+      if (html.getAttribute('data-theme') === 'dark') { html.removeAttribute('data-theme'); icon.className='fas fa-moon'; localStorage.setItem('theme','light'); }
+      else { html.setAttribute('data-theme','dark'); icon.className='fas fa-sun'; localStorage.setItem('theme','dark'); }
+    }
+    if (localStorage.getItem('theme') === 'dark') document.documentElement.setAttribute('data-theme','dark');
+
+    let dataAtual = new Date();
+    let profissionais = [], servicos = [], clientes = [];
+
+    function ymd(d) {
+      return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
+    }
+    function mudarDia(n) { dataAtual.setDate(dataAtual.getDate()+n); carregar(); }
+    function irHoje() { dataAtual = new Date(); carregar(); }
+
+    async function carregarBase() {
+      [profissionais, servicos, clientes] = await Promise.all([
+        API.get('/profissionais'), API.get('/servicos'), API.get('/clientes')
+      ]);
+      document.getElementById('f-prof').innerHTML = profissionais.map(p => `<option value="${p.id}">${p.nome}</option>`).join('') || '<option value="">Cadastre um profissional</option>';
+      document.getElementById('f-serv').innerHTML = '<option value="">Sem serviço específico</option>' + servicos.map(s => `<option value="${s.id}">${s.nome} - R$ ${Number(s.preco).toFixed(2)}</option>`).join('');
+    }
+
+    async function carregar() {
+      const dia = ymd(dataAtual);
+      document.getElementById('data-label').textContent =
+        dataAtual.toLocaleDateString('pt-BR', { weekday:'long', day:'2-digit', month:'short' });
+      try {
+        const ags = await API.get('/agendamentos?data=' + dia);
+        render(ags);
+      } catch (e) {
+        document.getElementById('lista').innerHTML = `<div class="empty"><i class="fas fa-triangle-exclamation"></i> Erro: ${e.message}</div>`;
       }
     }
 
-    // NAVEGAÇÃO DE DATA
-    function previousDay() {
-      currentDate.setDate(currentDate.getDate() - 1);
-      updateDateDisplay();
+    function statusLabel(s) {
+      return { agendado:'Agendado', confirmado:'Confirmado', concluido:'Concluído', cancelado:'Cancelado' }[s] || s;
     }
 
-    function nextDay() {
-      currentDate.setDate(currentDate.getDate() + 1);
-      updateDateDisplay();
+    function render(ags) {
+      const ativos = ags.filter(a => a.status !== 'cancelado');
+      document.getElementById('resumo').textContent = `${ativos.length} agendamento(s) neste dia`;
+      const cont = document.getElementById('lista');
+      if (!ags.length) {
+        cont.innerHTML = `<div class="empty"><i class="fas fa-calendar-check"></i>Nenhum agendamento neste dia.<br>Toque no + para criar.</div>`;
+        return;
+      }
+      cont.innerHTML = ags.map(a => {
+        const hora = new Date(a.data_hora).toLocaleTimeString('pt-BR', { hour:'2-digit', minute:'2-digit' });
+        return `
+        <div class="ag-card st-${a.status}">
+          <div class="ag-hora">${hora}</div>
+          <div class="ag-info">
+            <div class="ag-cliente">${a.cliente_nome || 'Cliente'} ${a.is_especial ? '<span class="ag-especial">+50%</span>' : ''}</div>
+            <div class="ag-serv">${a.servico_nome || 'Atendimento'} • R$ ${Number(a.preco).toFixed(2)}</div>
+            <div class="ag-prof"><i class="fas fa-user-tie"></i> ${a.profissional_nome || ''} • ${statusLabel(a.status)}</div>
+          </div>
+          <div class="ag-menu">
+            <button class="menu-btn" onclick="toggleMenu('${a.id}', event)"><i class="fas fa-ellipsis-v"></i></button>
+            <div class="menu-pop" id="menu-${a.id}">
+              ${a.status !== 'confirmado' ? `<button onclick="setStatus('${a.id}','confirmado')"><i class="fas fa-check" style="color:var(--success)"></i> Confirmar</button>` : ''}
+              ${a.status !== 'concluido' ? `<button onclick="setStatus('${a.id}','concluido')"><i class="fas fa-flag-checkered" style="color:var(--primary)"></i> Concluir</button>` : ''}
+              ${a.status !== 'cancelado' ? `<button onclick="setStatus('${a.id}','cancelado')"><i class="fas fa-ban" style="color:var(--warning)"></i> Cancelar</button>` : ''}
+              <button onclick="excluir('${a.id}')"><i class="fas fa-trash" style="color:var(--error)"></i> Excluir</button>
+            </div>
+          </div>
+        </div>`;
+      }).join('');
     }
 
-    function goToToday() {
-      currentDate = new Date();
-      updateDateDisplay();
+    let menuAberto = null;
+    function toggleMenu(id, ev) {
+      ev.stopPropagation();
+      const el = document.getElementById('menu-' + id);
+      if (menuAberto && menuAberto !== el) menuAberto.classList.remove('open');
+      el.classList.toggle('open');
+      menuAberto = el.classList.contains('open') ? el : null;
+    }
+    document.addEventListener('click', () => { if (menuAberto) { menuAberto.classList.remove('open'); menuAberto = null; } });
+
+    async function setStatus(id, status) {
+      try { await API.patch('/agendamentos/' + id + '/status', { status }); await carregar(); }
+      catch (e) { alert('Erro: ' + e.message); }
+    }
+    async function excluir(id) {
+      if (!confirm('Excluir este agendamento?')) return;
+      try { await API.del('/agendamentos/' + id); await carregar(); }
+      catch (e) { alert('Erro: ' + e.message); }
     }
 
-    function updateDateDisplay() {
-      const options = { 
-        weekday: 'long', 
-        day: '2-digit', 
-        month: 'short', 
-        year: 'numeric' 
-      };
-      const dateString = currentDate.toLocaleDateString('pt-BR', options);
-      document.getElementById('current-date').textContent = dateString;
+    function abrirModal() {
+      if (!profissionais.length) { alert('Cadastre ao menos um profissional antes.'); return; }
+      document.getElementById('modal-alerta').className = 'alert';
+      document.getElementById('f-cliente').value = '';
+      document.getElementById('f-telefone').value = '';
+      document.getElementById('f-data').value = ymd(dataAtual);
+      document.getElementById('f-hora').value = '09:00';
+      document.getElementById('f-especial').checked = false;
+      document.getElementById('modal').classList.add('open');
+    }
+    function fecharModal() { document.getElementById('modal').classList.remove('open'); }
+
+    // Cria/recupera cliente pelo telefone e retorna o id
+    async function obterClienteId(nome, telefone) {
+      if (!telefone) return null;
+      try {
+        const novo = await API.post('/clientes', { nome, telefone });
+        return novo.id;
+      } catch (e) {
+        // ja existe -> busca pelo telefone
+        const achados = await API.get('/clientes?busca=' + encodeURIComponent(telefone));
+        const match = achados.find(c => (c.telefone||'').replace(/\D/g,'') === telefone.replace(/\D/g,''));
+        return match ? match.id : (achados[0] ? achados[0].id : null);
+      }
     }
 
-    // TOGGLE DE VISUALIZAÇÃO
-    function setView(view) {
-      currentView = view;
-      
-      // Atualizar botões ativos
-      document.querySelectorAll('.toggle-btn').forEach(btn => {
-        btn.classList.remove('active');
-      });
-      
-      event.target.classList.add('active');
-      
-      // Aqui você implementaria a lógica para mudar a visualização
-      console.log(`Mudando para visualização: ${view}`);
-    }
+    async function salvar() {
+      const a = document.getElementById('modal-alerta');
+      const nome = document.getElementById('f-cliente').value.trim();
+      const telefone = document.getElementById('f-telefone').value.trim();
+      const data = document.getElementById('f-data').value;
+      const hora = document.getElementById('f-hora').value;
+      const profId = document.getElementById('f-prof').value;
+      const servId = document.getElementById('f-serv').value;
+      const especial = document.getElementById('f-especial').checked;
 
-    // FILTRO DE PROFISSIONAL
-    function openProfessionalFilter() {
-      // Aqui você implementaria um modal/dropdown para selecionar profissional
-      const professionals = ['Todos', 'Junio', 'Diogo', 'Felipe', 'Luan'];
-      const current = document.getElementById('filter-text').textContent;
-      const currentIndex = professionals.indexOf(current);
-      const nextIndex = (currentIndex + 1) % professionals.length;
-      
-      document.getElementById('filter-text').textContent = professionals[nextIndex];
-      selectedProfessional = professionals[nextIndex].toLowerCase();
-      
-      // Aqui você filtraria os agendamentos
-      console.log(`Filtrando por: ${selectedProfessional}`);
-    }
+      if (!nome) { a.textContent = 'Informe o nome do cliente'; a.className = 'alert error'; return; }
+      if (!profId || !data || !hora) { a.textContent = 'Profissional, data e hora são obrigatórios'; a.className = 'alert error'; return; }
 
-    // CRIAR AGENDAMENTO ESPECIAL
-    function createSpecialAppointment(time, professional) {
-      alert(`🌙 HORÁRIO ESPECIAL NOTURNO\n\nCriar agendamento às ${time} com ${professional}\n\n• Valor: +50% sobre o preço normal\n• Disponível apenas para profissionais habilitados\n• Horário premium para clientes VIP`);
-    }
-    
-    // TOGGLE HORÁRIOS ESPECIAIS
-    function toggleSpecialHours() {
-      const section = document.getElementById('special-hours-section');
-      const button = document.querySelector('.toggle-special-hours i');
-      
-      if (section.style.display === 'none') {
-        section.style.display = 'block';
-        button.className = 'fas fa-eye';
-        
-        // Animar entrada
-        const rows = section.querySelectorAll('.time-slot-row');
-        rows.forEach((row, index) => {
-          row.style.opacity = '0';
-          row.style.transform = 'translateY(-10px)';
-          
-          setTimeout(() => {
-            row.style.transition = 'all 0.3s ease-out';
-            row.style.opacity = '1';
-            row.style.transform = 'translateY(0)';
-          }, index * 100);
+      const btn = document.getElementById('btn-salvar');
+      btn.disabled = true; btn.textContent = 'Agendando...';
+      try {
+        const clienteId = await obterClienteId(nome, telefone);
+        await API.post('/agendamentos', {
+          cliente_id: clienteId,
+          profissional_id: profId,
+          servico_id: servId || null,
+          data_hora: `${data}T${hora}:00`,
+          is_especial: especial,
         });
-      } else {
-        section.style.display = 'none';
-        button.className = 'fas fa-eye-slash';
-      }
-    }
-    
-    // CRIAR AGENDAMENTO
-    function createAppointment(time = null, professional = null) {
-      const timeStr = time ? ` às ${time}` : '';
-      const profStr = professional ? ` com ${professional}` : '';
-      alert(`Criar novo agendamento${timeStr}${profStr}\n\nAqui você abriria um modal de criação de agendamento pré-preenchido.`);
+        fecharModal();
+        clientes = await API.get('/clientes');
+        await carregar();
+      } catch (e) {
+        a.textContent = e.message; a.className = 'alert error';
+      } finally { btn.disabled = false; btn.textContent = 'Agendar'; }
     }
 
-    // INICIALIZAÇÃO
-    document.addEventListener('DOMContentLoaded', function() {
-      // Carregar tema salvo
-      const savedTheme = localStorage.getItem('theme');
-      const themeIcon = document.getElementById('theme-icon');
-      
-      if (savedTheme === 'dark') {
-        document.documentElement.setAttribute('data-theme', 'dark');
-        themeIcon.className = 'fas fa-sun';
-      }
-
-      // Atualizar data
-      updateDateDisplay();
-
-      // Animações de entrada para o grid
-      const rows = document.querySelectorAll('.time-slot-row');
-      rows.forEach((row, index) => {
-        row.style.opacity = '0';
-        row.style.transform = 'translateY(10px)';
-        
-        setTimeout(() => {
-          row.style.transition = 'all 0.3s ease-out';
-          row.style.opacity = '1';
-          row.style.transform = 'translateY(0)';
-        }, index * 50);
-      });
-    });
+    (async function init() {
+      try { await carregarBase(); } catch (e) { console.error(e); }
+      await carregar();
+    })();
   </script>
 </body>
 </html>

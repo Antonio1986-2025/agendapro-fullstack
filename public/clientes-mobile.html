@@ -7,726 +7,189 @@
   <link rel="stylesheet" href="design-system.css">
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
   <style>
-    .mobile-app {
-      max-width: 430px;
-      margin: 0 auto;
-      min-height: 100vh;
-      background: var(--bg-primary);
-      position: relative;
-    }
-    
-    /* HEADER */
-    .header {
-      position: sticky;
-      top: 0;
-      z-index: var(--z-sticky);
-      background: var(--bg-card);
-      border-bottom: 1px solid var(--border-color);
-      padding: var(--space-md);
-    }
-    
-    .header-content {
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      margin-bottom: var(--space-md);
-    }
-    
-    .header-title {
-      display: flex;
-      align-items: center;
-      gap: var(--space-sm);
-      font-size: var(--text-lg);
-      font-weight: var(--font-bold);
-      color: var(--text-primary);
-    }
-    
-    /* BUSCA */
-    .search-container {
-      position: relative;
-    }
-    
-    .search-input {
-      width: 100%;
-      padding: var(--space-sm) var(--space-md) var(--space-sm) 40px;
-      border: 1px solid var(--border-color);
-      border-radius: var(--radius-lg);
-      background: var(--bg-card);
-      font-size: var(--text-base);
-      color: var(--text-primary);
-      transition: all var(--transition-fast);
-    }
-    
-    .search-input:focus {
-      outline: none;
-      border-color: var(--primary);
-      box-shadow: 0 0 0 3px rgba(30, 64, 175, 0.1);
-    }
-    
-    .search-icon {
-      position: absolute;
-      left: 12px;
-      top: 50%;
-      transform: translateY(-50%);
-      color: var(--text-muted);
-    }
-    
-    /* FILTROS */
-    .filters {
-      display: flex;
-      gap: var(--space-sm);
-      padding: var(--space-md) var(--space-md) 0;
-      overflow-x: auto;
-    }
-    
-    .filter-chip {
-      background: var(--bg-secondary);
-      color: var(--text-secondary);
-      padding: var(--space-xs) var(--space-sm);
-      border-radius: var(--radius-full);
-      font-size: var(--text-sm);
-      font-weight: var(--font-medium);
-      white-space: nowrap;
-      cursor: pointer;
-      transition: all var(--transition-fast);
-      border: 1px solid transparent;
-    }
-    
-    .filter-chip.active {
-      background: var(--primary);
-      color: var(--text-inverse);
-    }
-    
-    .filter-chip:hover {
-      border-color: var(--primary);
-    }
-    
-    /* CONTEÚDO */
-    .main-content {
-      padding: var(--space-md);
-      padding-bottom: 80px;
-    }
-    
-    /* ESTATÍSTICAS */
-    .stats-row {
-      display: flex;
-      gap: var(--space-md);
-      margin-bottom: var(--space-lg);
-    }
-    
-    .stat-card {
-      flex: 1;
-      background: var(--bg-card);
-      border: 1px solid var(--border-color);
-      border-radius: var(--radius-lg);
-      padding: var(--space-md);
-      text-align: center;
-    }
-    
-    .stat-value {
-      font-size: var(--text-xl);
-      font-weight: var(--font-bold);
-      color: var(--primary);
-      margin-bottom: var(--space-xs);
-    }
-    
-    .stat-label {
-      font-size: var(--text-sm);
-      color: var(--text-secondary);
-    }
-    
-    /* LISTA DE CLIENTES */
-    .clients-list {
-      display: flex;
-      flex-direction: column;
-      gap: var(--space-sm);
-    }
-    
-    .client-card {
-      background: var(--bg-card);
-      border: 1px solid var(--border-color);
-      border-radius: var(--radius-lg);
-      padding: var(--space-md);
-      transition: all var(--transition-fast);
-      cursor: pointer;
-    }
-    
-    .client-card:hover {
-      transform: translateY(-2px);
-      box-shadow: var(--shadow-md);
-      border-color: var(--primary);
-    }
-    
-    .client-header {
-      display: flex;
-      align-items: center;
-      gap: var(--space-md);
-      margin-bottom: var(--space-sm);
-    }
-    
-    .client-avatar {
-      width: 48px;
-      height: 48px;
-      background: var(--primary-light);
-      color: var(--primary);
-      border-radius: var(--radius-full);
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      font-weight: var(--font-bold);
-      font-size: var(--text-lg);
-    }
-    
-    .client-info {
-      flex: 1;
-    }
-    
-    .client-name {
-      font-weight: var(--font-semibold);
-      color: var(--text-primary);
-      margin-bottom: var(--space-xs);
-    }
-    
-    .client-phone {
-      font-size: var(--text-sm);
-      color: var(--text-secondary);
-      display: flex;
-      align-items: center;
-      gap: var(--space-xs);
-    }
-    
-    .client-actions {
-      display: flex;
-      align-items: center;
-      gap: var(--space-xs);
-    }
-    
-    .action-btn {
-      background: none;
-      border: none;
-      padding: var(--space-xs);
-      border-radius: var(--radius-md);
-      cursor: pointer;
-      color: var(--text-secondary);
-      transition: all var(--transition-fast);
-    }
-    
-    .action-btn:hover {
-      background: var(--bg-secondary);
-      color: var(--primary);
-    }
-    
-    .client-stats {
-      display: flex;
-      justify-content: space-between;
-      margin-top: var(--space-sm);
-      padding-top: var(--space-sm);
-      border-top: 1px solid var(--border-color);
-    }
-    
-    .client-stat {
-      text-align: center;
-      flex: 1;
-    }
-    
-    .client-stat-value {
-      font-weight: var(--font-semibold);
-      color: var(--text-primary);
-      margin-bottom: var(--space-xs);
-    }
-    
-    .client-stat-label {
-      font-size: var(--text-xs);
-      color: var(--text-secondary);
-    }
-    
-    /* BADGES */
-    .vip-badge {
-      background: linear-gradient(135deg, #fbbf24, #f59e0b);
-      color: white;
-      padding: 2px 8px;
-      border-radius: var(--radius-full);
-      font-size: 10px;
-      font-weight: var(--font-bold);
-      text-transform: uppercase;
-    }
-    
-    .new-badge {
-      background: var(--success-light);
-      color: var(--success);
-      padding: 2px 8px;
-      border-radius: var(--radius-full);
-      font-size: 10px;
-      font-weight: var(--font-medium);
-    }
-    
-    /* FAB */
-    .fab {
-      position: fixed;
-      bottom: 90px;
-      right: 20px;
-      width: 56px;
-      height: 56px;
-      background: var(--primary);
-      color: var(--text-inverse);
-      border: none;
-      border-radius: var(--radius-full);
-      box-shadow: var(--shadow-lg);
-      cursor: pointer;
-      transition: all var(--transition-fast);
-      z-index: var(--z-fixed);
-    }
-    
-    .fab:hover {
-      transform: translateY(-2px);
-      box-shadow: var(--shadow-xl);
-    }
-    
-    /* BOTTOM NAV */
-    .bottom-nav {
-      position: fixed;
-      bottom: 0;
-      left: 50%;
-      transform: translateX(-50%);
-      width: 100%;
-      max-width: 430px;
-      background: var(--bg-card);
-      border-top: 1px solid var(--border-color);
-      padding: var(--space-sm) 0;
-      z-index: var(--z-sticky);
-    }
-    
-    .nav-items {
-      display: flex;
-      justify-content: space-around;
-      align-items: center;
-    }
-    
-    .nav-item {
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      padding: var(--space-sm);
-      text-decoration: none;
-      color: var(--text-secondary);
-      transition: all var(--transition-fast);
-      border-radius: var(--radius-md);
-      min-width: 60px;
-    }
-    
-    .nav-item.active {
-      color: var(--primary);
-      background: var(--primary-light);
-    }
-    
-    .nav-icon {
-      font-size: var(--text-lg);
-      margin-bottom: var(--space-xs);
-    }
-    
-    .nav-label {
-      font-size: var(--text-xs);
-      font-weight: var(--font-medium);
-    }
-    
-    /* RESPONSIVO */
-    @media (min-width: 768px) {
-      .mobile-app {
-        max-width: 100%;
-        padding: 0 var(--space-lg);
-      }
-      
-      .bottom-nav { display: none; }
-      .fab { bottom: 20px; }
-      .main-content { padding-bottom: var(--space-md); }
-    }
+    .mobile-app { max-width: 480px; margin: 0 auto; min-height: 100vh; background: var(--bg-primary); position: relative; }
+    .header { position: sticky; top: 0; z-index: var(--z-sticky); background: var(--bg-card); border-bottom: 1px solid var(--border-color); padding: var(--space-md); }
+    .header-content { display: flex; align-items: center; justify-content: space-between; margin-bottom: var(--space-md); }
+    .header-title { display: flex; align-items: center; gap: var(--space-sm); font-size: var(--text-lg); font-weight: var(--font-bold); color: var(--text-primary); }
+    .back-btn { background: none; border: none; padding: var(--space-sm); border-radius: var(--radius-md); cursor: pointer; color: var(--text-secondary); }
+    .search-box { position: relative; }
+    .search-box i { position: absolute; left: 12px; top: 50%; transform: translateY(-50%); color: var(--text-muted); }
+    .search-box input { padding-left: 38px; }
+    .main-content { padding: var(--space-md); padding-bottom: 100px; }
+    .cli-card { background: var(--bg-card); border: 1px solid var(--border-color); border-radius: var(--radius-lg); padding: var(--space-md); margin-bottom: var(--space-sm); display: flex; align-items: center; gap: var(--space-md); }
+    .cli-avatar { width: 44px; height: 44px; background: var(--secondary-light); color: var(--secondary-dark); border-radius: var(--radius-full); display: flex; align-items: center; justify-content: center; font-size: var(--text-base); font-weight: var(--font-bold); flex-shrink: 0; }
+    .cli-info { flex: 1; min-width: 0; }
+    .cli-nome { font-weight: var(--font-semibold); color: var(--text-primary); }
+    .cli-meta { font-size: var(--text-sm); color: var(--text-secondary); display: flex; align-items: center; gap: 4px; }
+    .cli-badge { font-size: var(--text-xs); color: var(--primary); background: var(--primary-light); padding: 2px 8px; border-radius: var(--radius-full); }
+    .cli-actions { display: flex; gap: var(--space-xs); }
+    .icon-btn { background: var(--bg-secondary); border: none; width: 36px; height: 36px; border-radius: var(--radius-md); cursor: pointer; color: var(--text-secondary); }
+    .icon-btn:hover { background: var(--primary-light); color: var(--primary); }
+    .icon-btn.danger:hover { background: var(--error-light); color: var(--error); }
+    .icon-btn.wa:hover { background: var(--success-light); color: var(--success); }
+    .empty { text-align: center; padding: var(--space-2xl); color: var(--text-muted); }
+    .empty i { font-size: 2.5rem; margin-bottom: var(--space-md); display: block; opacity: .5; }
+    .fab { position: fixed; bottom: 90px; right: 24px; width: 56px; height: 56px; background: var(--primary); color: #fff; border: none; border-radius: var(--radius-full); box-shadow: var(--shadow-lg); cursor: pointer; font-size: var(--text-xl); z-index: var(--z-fixed); }
+    .modal-overlay { position: fixed; inset: 0; background: var(--bg-overlay); display: none; align-items: flex-end; justify-content: center; z-index: var(--z-modal); }
+    .modal-overlay.open { display: flex; }
+    .modal { background: var(--bg-card); border-radius: var(--radius-xl) var(--radius-xl) 0 0; width: 100%; max-width: 480px; padding: var(--space-lg); max-height: 90vh; overflow-y: auto; }
+    .modal-title { font-size: var(--text-lg); font-weight: var(--font-bold); margin-bottom: var(--space-lg); }
+    .field { margin-bottom: var(--space-md); }
+    .field label { display: block; font-size: var(--text-sm); font-weight: var(--font-medium); margin-bottom: var(--space-xs); color: var(--text-secondary); }
+    .alert { padding: var(--space-sm) var(--space-md); border-radius: var(--radius-md); font-size: var(--text-sm); margin-bottom: var(--space-md); display: none; }
+    .alert.error { background: var(--error-light); color: var(--error); display: block; }
+    .bottom-nav { position: fixed; bottom: 0; left: 50%; transform: translateX(-50%); width: 100%; max-width: 480px; background: var(--bg-card); border-top: 1px solid var(--border-color); padding: var(--space-sm) 0; z-index: var(--z-sticky); }
+    .nav-items { display: flex; justify-content: space-around; }
+    .nav-item { display: flex; flex-direction: column; align-items: center; padding: var(--space-sm); text-decoration: none; color: var(--text-secondary); border-radius: var(--radius-md); min-width: 56px; }
+    .nav-item.active { color: var(--primary); background: var(--primary-light); }
+    .nav-icon { font-size: var(--text-lg); margin-bottom: var(--space-xs); }
+    .nav-label { font-size: var(--text-xs); font-weight: var(--font-medium); }
   </style>
 </head>
 <body>
   <div class="mobile-app">
-    <!-- HEADER -->
     <header class="header">
       <div class="header-content">
         <div class="header-title">
+          <button class="back-btn" onclick="location.href='dashboard-mobile.html'"><i class="fas fa-arrow-left"></i></button>
           <i class="fas fa-users"></i>
           <span>Clientes</span>
         </div>
-        
-        <button class="theme-toggle nav-btn" onclick="toggleTheme()" style="background: none; border: none; padding: var(--space-sm); border-radius: var(--radius-md); cursor: pointer; color: var(--text-secondary);">
-          <i class="fas fa-moon" id="theme-icon"></i>
-        </button>
+        <button class="back-btn" onclick="toggleTheme()"><i class="fas fa-moon" id="theme-icon"></i></button>
       </div>
-      
-      <!-- BUSCA -->
-      <div class="search-container">
-        <i class="fas fa-search search-icon"></i>
-        <input 
-          type="text" 
-          class="search-input" 
-          placeholder="Buscar cliente..."
-          onkeyup="searchClients(this.value)"
-        >
+      <div class="search-box">
+        <i class="fas fa-search"></i>
+        <input class="input" id="busca" placeholder="Buscar por nome ou telefone" oninput="filtrar()">
       </div>
     </header>
 
-    <!-- FILTROS -->
-    <div class="filters">
-      <div class="filter-chip active" onclick="filterClients('todos')">Todos</div>
-      <div class="filter-chip" onclick="filterClients('vip')">VIP</div>
-      <div class="filter-chip" onclick="filterClients('novos')">Novos</div>
-      <div class="filter-chip" onclick="filterClients('frequentes')">Frequentes</div>
-      <div class="filter-chip" onclick="filterClients('inativos')">Inativos</div>
-    </div>
-
-    <!-- CONTEÚDO -->
     <main class="main-content">
-      <!-- ESTATÍSTICAS -->
-      <div class="stats-row">
-        <div class="stat-card">
-          <div class="stat-value">156</div>
-          <div class="stat-label">Total</div>
-        </div>
-        <div class="stat-card">
-          <div class="stat-value">12</div>
-          <div class="stat-label">Novos</div>
-        </div>
-        <div class="stat-card">
-          <div class="stat-value">8</div>
-          <div class="stat-label">VIP</div>
-        </div>
-      </div>
-
-      <!-- LISTA DE CLIENTES -->
-      <div class="clients-list">
-        <!-- Cliente VIP -->
-        <div class="client-card" onclick="openClientProfile('carlos-silva')">
-          <div class="client-header">
-            <div class="client-avatar">CS</div>
-            <div class="client-info">
-              <div class="client-name">
-                Carlos Silva
-                <span class="vip-badge">VIP</span>
-              </div>
-              <div class="client-phone">
-                <i class="fas fa-phone"></i>
-                (67) 99999-1234
-              </div>
-            </div>
-            <div class="client-actions">
-              <button class="action-btn" title="WhatsApp">
-                <i class="fab fa-whatsapp"></i>
-              </button>
-              <button class="action-btn" title="Agendar">
-                <i class="fas fa-calendar-plus"></i>
-              </button>
-            </div>
-          </div>
-          <div class="client-stats">
-            <div class="client-stat">
-              <div class="client-stat-value">23</div>
-              <div class="client-stat-label">Visitas</div>
-            </div>
-            <div class="client-stat">
-              <div class="client-stat-value">R$ 1.150</div>
-              <div class="client-stat-label">Gasto</div>
-            </div>
-            <div class="client-stat">
-              <div class="client-stat-value">15/06</div>
-              <div class="client-stat-label">Última</div>
-            </div>
-          </div>
-        </div>
-
-        <!-- Cliente Novo -->
-        <div class="client-card" onclick="openClientProfile('maria-santos')">
-          <div class="client-header">
-            <div class="client-avatar">MS</div>
-            <div class="client-info">
-              <div class="client-name">
-                Maria Santos
-                <span class="new-badge">Novo</span>
-              </div>
-              <div class="client-phone">
-                <i class="fas fa-phone"></i>
-                (67) 98888-5678
-              </div>
-            </div>
-            <div class="client-actions">
-              <button class="action-btn" title="WhatsApp">
-                <i class="fab fa-whatsapp"></i>
-              </button>
-              <button class="action-btn" title="Agendar">
-                <i class="fas fa-calendar-plus"></i>
-              </button>
-            </div>
-          </div>
-          <div class="client-stats">
-            <div class="client-stat">
-              <div class="client-stat-value">2</div>
-              <div class="client-stat-label">Visitas</div>
-            </div>
-            <div class="client-stat">
-              <div class="client-stat-value">R$ 120</div>
-              <div class="client-stat-label">Gasto</div>
-            </div>
-            <div class="client-stat">
-              <div class="client-stat-value">10/06</div>
-              <div class="client-stat-label">Última</div>
-            </div>
-          </div>
-        </div>
-
-        <!-- Cliente Regular -->
-        <div class="client-card" onclick="openClientProfile('joao-pedro')">
-          <div class="client-header">
-            <div class="client-avatar">JP</div>
-            <div class="client-info">
-              <div class="client-name">João Pedro</div>
-              <div class="client-phone">
-                <i class="fas fa-phone"></i>
-                (67) 97777-9012
-              </div>
-            </div>
-            <div class="client-actions">
-              <button class="action-btn" title="WhatsApp">
-                <i class="fab fa-whatsapp"></i>
-              </button>
-              <button class="action-btn" title="Agendar">
-                <i class="fas fa-calendar-plus"></i>
-              </button>
-            </div>
-          </div>
-          <div class="client-stats">
-            <div class="client-stat">
-              <div class="client-stat-value">8</div>
-              <div class="client-stat-label">Visitas</div>
-            </div>
-            <div class="client-stat">
-              <div class="client-stat-value">R$ 280</div>
-              <div class="client-stat-label">Gasto</div>
-            </div>
-            <div class="client-stat">
-              <div class="client-stat-value">12/06</div>
-              <div class="client-stat-label">Última</div>
-            </div>
-          </div>
-        </div>
-
-        <!-- Mais clientes... -->
-        <div class="client-card" onclick="openClientProfile('ana-costa')">
-          <div class="client-header">
-            <div class="client-avatar">AC</div>
-            <div class="client-info">
-              <div class="client-name">Ana Costa</div>
-              <div class="client-phone">
-                <i class="fas fa-phone"></i>
-                (67) 96666-3456
-              </div>
-            </div>
-            <div class="client-actions">
-              <button class="action-btn" title="WhatsApp">
-                <i class="fab fa-whatsapp"></i>
-              </button>
-              <button class="action-btn" title="Agendar">
-                <i class="fas fa-calendar-plus"></i>
-              </button>
-            </div>
-          </div>
-          <div class="client-stats">
-            <div class="client-stat">
-              <div class="client-stat-value">15</div>
-              <div class="client-stat-label">Visitas</div>
-            </div>
-            <div class="client-stat">
-              <div class="client-stat-value">R$ 750</div>
-              <div class="client-stat-label">Gasto</div>
-            </div>
-            <div class="client-stat">
-              <div class="client-stat-value">08/06</div>
-              <div class="client-stat-label">Última</div>
-            </div>
-          </div>
-        </div>
-
-        <div class="client-card" onclick="openClientProfile('ricardo-lima')">
-          <div class="client-header">
-            <div class="client-avatar">RL</div>
-            <div class="client-info">
-              <div class="client-name">
-                Ricardo Lima
-                <span class="vip-badge">VIP</span>
-              </div>
-              <div class="client-phone">
-                <i class="fas fa-phone"></i>
-                (67) 95555-7890
-              </div>
-            </div>
-            <div class="client-actions">
-              <button class="action-btn" title="WhatsApp">
-                <i class="fab fa-whatsapp"></i>
-              </button>
-              <button class="action-btn" title="Agendar">
-                <i class="fas fa-calendar-plus"></i>
-              </button>
-            </div>
-          </div>
-          <div class="client-stats">
-            <div class="client-stat">
-              <div class="client-stat-value">31</div>
-              <div class="client-stat-label">Visitas</div>
-            </div>
-            <div class="client-stat">
-              <div class="client-stat-value">R$ 1.550</div>
-              <div class="client-stat-label">Gasto</div>
-            </div>
-            <div class="client-stat">
-              <div class="client-stat-value">14/06</div>
-              <div class="client-stat-label">Última</div>
-            </div>
-          </div>
-        </div>
-      </div>
+      <div id="lista"><div class="empty"><i class="fas fa-spinner fa-spin"></i> Carregando...</div></div>
     </main>
 
-    <!-- FAB -->
-    <button class="fab" onclick="addNewClient()" title="Novo Cliente">
-      <i class="fas fa-user-plus" style="font-size: var(--text-xl);"></i>
-    </button>
+    <button class="fab" onclick="abrirModal()" title="Adicionar cliente"><i class="fas fa-plus"></i></button>
 
-    <!-- BOTTOM NAV -->
     <nav class="bottom-nav">
       <div class="nav-items">
-        <a href="dashboard-mobile.html" class="nav-item">
-          <i class="nav-icon fas fa-home"></i>
-          <span class="nav-label">Dashboard</span>
-        </a>
-        
-        <a href="agenda-mobile.html" class="nav-item">
-          <i class="nav-icon fas fa-calendar"></i>
-          <span class="nav-label">Agenda</span>
-        </a>
-        
-        <a href="#" class="nav-item active">
-          <i class="nav-icon fas fa-users"></i>
-          <span class="nav-label">Clientes</span>
-        </a>
-        
-        <a href="#" class="nav-item">
-          <i class="nav-icon fas fa-cog"></i>
-          <span class="nav-label">Config</span>
-        </a>
-        
-        <a href="#" class="nav-item">
-          <i class="nav-icon fas fa-comments"></i>
-          <span class="nav-label">Chat</span>
-        </a>
+        <a href="dashboard-mobile.html" class="nav-item"><i class="nav-icon fas fa-home"></i><span class="nav-label">Início</span></a>
+        <a href="agenda-mobile.html" class="nav-item"><i class="nav-icon fas fa-calendar"></i><span class="nav-label">Agenda</span></a>
+        <a href="clientes-mobile.html" class="nav-item active"><i class="nav-icon fas fa-users"></i><span class="nav-label">Clientes</span></a>
+        <a href="servicos-mobile.html" class="nav-item"><i class="nav-icon fas fa-cut"></i><span class="nav-label">Serviços</span></a>
+        <a href="configuracoes-mobile.html" class="nav-item"><i class="nav-icon fas fa-cog"></i><span class="nav-label">Config</span></a>
       </div>
     </nav>
   </div>
 
+  <div class="modal-overlay" id="modal">
+    <div class="modal">
+      <div class="modal-title" id="modal-title">Novo cliente</div>
+      <div id="modal-alerta" class="alert"></div>
+      <input type="hidden" id="f-id">
+      <div class="field"><label>Nome *</label><input class="input" id="f-nome" placeholder="Ex: Maria Souza"></div>
+      <div class="field"><label>Telefone (WhatsApp) *</label><input class="input" id="f-telefone" placeholder="Ex: 67999990000"></div>
+      <div class="field"><label>Email</label><input class="input" id="f-email" type="email" placeholder="opcional"></div>
+      <div class="field"><label>Observações</label><input class="input" id="f-obs" placeholder="opcional"></div>
+      <div style="display:flex; gap: var(--space-sm); margin-top: var(--space-md);">
+        <button class="btn btn-secondary btn-full" onclick="fecharModal()">Cancelar</button>
+        <button class="btn btn-primary btn-full" id="btn-salvar" onclick="salvar()">Salvar</button>
+      </div>
+    </div>
+  </div>
+
+  <script src="api.js"></script>
   <script>
-    // TOGGLE TEMA
+    API.exigirLogin();
     function toggleTheme() {
-      const html = document.documentElement;
-      const themeIcon = document.getElementById('theme-icon');
-      
-      if (html.getAttribute('data-theme') === 'dark') {
-        html.removeAttribute('data-theme');
-        themeIcon.className = 'fas fa-moon';
-        localStorage.setItem('theme', 'light');
-      } else {
-        html.setAttribute('data-theme', 'dark');
-        themeIcon.className = 'fas fa-sun';
-        localStorage.setItem('theme', 'dark');
+      const html = document.documentElement, icon = document.getElementById('theme-icon');
+      if (html.getAttribute('data-theme') === 'dark') { html.removeAttribute('data-theme'); icon.className='fas fa-moon'; localStorage.setItem('theme','light'); }
+      else { html.setAttribute('data-theme','dark'); icon.className='fas fa-sun'; localStorage.setItem('theme','dark'); }
+    }
+    if (localStorage.getItem('theme') === 'dark') document.documentElement.setAttribute('data-theme','dark');
+
+    let clientes = [];
+
+    async function carregar() {
+      try { clientes = await API.get('/clientes'); render(clientes); }
+      catch (e) { document.getElementById('lista').innerHTML = `<div class="empty"><i class="fas fa-triangle-exclamation"></i> Erro: ${e.message}</div>`; }
+    }
+
+    function filtrar() {
+      const q = document.getElementById('busca').value.toLowerCase();
+      render(clientes.filter(c => c.nome.toLowerCase().includes(q) || (c.telefone||'').includes(q)));
+    }
+
+    function render(lista) {
+      const cont = document.getElementById('lista');
+      if (!lista.length) {
+        cont.innerHTML = `<div class="empty"><i class="fas fa-users"></i>Nenhum cliente encontrado.<br>Toque no + para adicionar.</div>`;
+        return;
       }
+      cont.innerHTML = lista.map(c => `
+        <div class="cli-card">
+          <div class="cli-avatar">${c.nome.charAt(0).toUpperCase()}</div>
+          <div class="cli-info">
+            <div class="cli-nome">${c.nome}</div>
+            <div class="cli-meta"><i class="fas fa-phone" style="font-size:11px"></i> ${c.telefone || 'sem telefone'}
+              ${c.total_visitas > 0 ? `<span class="cli-badge">${c.total_visitas} visita(s)</span>` : ''}</div>
+          </div>
+          <div class="cli-actions">
+            ${c.telefone ? `<button class="icon-btn wa" onclick="abrirWhats('${c.telefone}')"><i class="fab fa-whatsapp"></i></button>` : ''}
+            <button class="icon-btn" onclick='editar(${JSON.stringify(c)})'><i class="fas fa-pen"></i></button>
+            <button class="icon-btn danger" onclick="excluir('${c.id}','${c.nome.replace(/'/g,"")}')"><i class="fas fa-trash"></i></button>
+          </div>
+        </div>`).join('');
     }
 
-    // BUSCA CLIENTES
-    function searchClients(query) {
-      const cards = document.querySelectorAll('.client-card');
-      const searchTerm = query.toLowerCase();
-      
-      cards.forEach(card => {
-        const name = card.querySelector('.client-name').textContent.toLowerCase();
-        const phone = card.querySelector('.client-phone').textContent.toLowerCase();
-        
-        if (name.includes(searchTerm) || phone.includes(searchTerm)) {
-          card.style.display = 'block';
-        } else {
-          card.style.display = 'none';
-        }
-      });
+    function abrirWhats(tel) {
+      let n = tel.replace(/\D/g,''); if (n.length <= 11) n = '55' + n;
+      window.open('https://wa.me/' + n, '_blank');
     }
 
-    // FILTROS
-    function filterClients(filter) {
-      // Atualizar chips ativos
-      document.querySelectorAll('.filter-chip').forEach(chip => {
-        chip.classList.remove('active');
-      });
-      event.target.classList.add('active');
-      
-      const cards = document.querySelectorAll('.client-card');
-      
-      cards.forEach(card => {
-        const hasVip = card.querySelector('.vip-badge');
-        const hasNew = card.querySelector('.new-badge');
-        const visits = parseInt(card.querySelector('.client-stat-value').textContent);
-        
-        let show = true;
-        
-        switch(filter) {
-          case 'vip':
-            show = hasVip !== null;
-            break;
-          case 'novos':
-            show = hasNew !== null;
-            break;
-          case 'frequentes':
-            show = visits >= 10 && !hasNew;
-            break;
-          case 'inativos':
-            show = visits < 5 && !hasNew;
-            break;
-          default:
-            show = true;
-        }
-        
-        card.style.display = show ? 'block' : 'none';
-      });
+    function abrirModal() {
+      document.getElementById('modal-title').textContent = 'Novo cliente';
+      ['f-id','f-nome','f-telefone','f-email','f-obs'].forEach(id => document.getElementById(id).value = '');
+      document.getElementById('modal-alerta').className = 'alert';
+      document.getElementById('modal').classList.add('open');
+    }
+    function editar(c) {
+      document.getElementById('modal-title').textContent = 'Editar cliente';
+      document.getElementById('f-id').value = c.id;
+      document.getElementById('f-nome').value = c.nome;
+      document.getElementById('f-telefone').value = c.telefone || '';
+      document.getElementById('f-email').value = c.email || '';
+      document.getElementById('f-obs').value = c.observacoes || '';
+      document.getElementById('modal-alerta').className = 'alert';
+      document.getElementById('modal').classList.add('open');
+    }
+    function fecharModal() { document.getElementById('modal').classList.remove('open'); }
+
+    async function salvar() {
+      const id = document.getElementById('f-id').value;
+      const dados = {
+        nome: document.getElementById('f-nome').value.trim(),
+        telefone: document.getElementById('f-telefone').value.trim(),
+        email: document.getElementById('f-email').value.trim(),
+        observacoes: document.getElementById('f-obs').value.trim(),
+      };
+      const a = document.getElementById('modal-alerta');
+      if (!dados.nome || !dados.telefone) { a.textContent = 'Nome e telefone são obrigatórios'; a.className = 'alert error'; return; }
+      const btn = document.getElementById('btn-salvar');
+      btn.disabled = true; btn.textContent = 'Salvando...';
+      try {
+        if (id) await API.put('/clientes/' + id, dados);
+        else await API.post('/clientes', dados);
+        fecharModal(); await carregar();
+      } catch (e) { a.textContent = e.message; a.className = 'alert error'; }
+      finally { btn.disabled = false; btn.textContent = 'Salvar'; }
     }
 
-    // AÇÕES
-    function openClientProfile(clientId) {
-      alert(`Abrir perfil do cliente: ${clientId}\n\nAqui você navegaria para uma tela de detalhes do cliente.`);
+    async function excluir(id, nome) {
+      if (!confirm(`Excluir o cliente "${nome}"?`)) return;
+      try { await API.del('/clientes/' + id); await carregar(); }
+      catch (e) { alert('Erro ao excluir: ' + e.message); }
     }
 
-    function addNewClient() {
-      alert('Adicionar novo cliente\n\nAqui você abriria um formulário para cadastrar um novo cliente.');
-    }
-
-    // INICIALIZAÇÃO
-    document.addEventListener('DOMContentLoaded', function() {
-      // Tema
-      const savedTheme = localStorage.getItem('theme');
-      if (savedTheme === 'dark') {
-        document.documentElement.setAttribute('data-theme', 'dark');
-        document.getElementById('theme-icon').className = 'fas fa-sun';
-      }
-
-      // Animações
-      const cards = document.querySelectorAll('.client-card');
-      cards.forEach((card, index) => {
-        card.style.opacity = '0';
-        card.style.transform = 'translateY(20px)';
-        
-        setTimeout(() => {
-          card.style.transition = 'all 0.3s ease-out';
-          card.style.opacity = '1';
-          card.style.transform = 'translateY(0)';
-        }, index * 100);
-      });
-    });
+    carregar();
   </script>
 </body>
 </html>
