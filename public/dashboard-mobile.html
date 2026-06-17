@@ -344,6 +344,7 @@
         <a href="relatorios-mobile.html" class="sidebar-item">
           <i class="fas fa-chart-bar"></i> Relatórios
         </a>
+        <a href="equipe.html" class="sidebar-item"><i class="fas fa-users-cog"></i> Equipe</a>
         <a href="horarios-especiais.html" class="sidebar-item">
           <i class="fas fa-clock"></i> Horários Especiais
         </a>
@@ -521,6 +522,7 @@
               <i class="nav-icon fas fa-cog"></i>
               <span class="nav-label">Config</span>
             </a>
+            <a href="equipe.html" class="nav-item"><i class="nav-icon fas fa-users-cog"></i><span class="nav-label">Equipe</span></a>
           </div>
         </nav>
       </div>
@@ -552,14 +554,14 @@
         document.querySelectorAll('#theme-icon, #theme-icon-desk').forEach(el => el.className = 'fas fa-sun');
       }
       const user = API.getUser();
-      if (user) {
-        const avatar = document.getElementById('sidebar-avatar');
-        const name = document.getElementById('sidebar-name');
-        const role = document.getElementById('sidebar-role');
-        if (avatar) avatar.textContent = (user.nome || 'U').charAt(0).toUpperCase();
-        if (name) name.textContent = user.nome || 'Usuário';
-        if (role) role.textContent = user.role === 'owner' ? 'Proprietário' : user.role;
-      }
+      if (!user) return;
+      if (user.role === 'staff') { window.location.href = 'barbeiro.html'; return; }
+      const avatar = document.getElementById('sidebar-avatar');
+      const name = document.getElementById('sidebar-name');
+      const role = document.getElementById('sidebar-role');
+      if (avatar) avatar.textContent = (user.nome || 'U').charAt(0).toUpperCase();
+      if (name) name.textContent = user.nome || 'Usuário';
+      if (role) role.textContent = user.role === 'owner' ? 'Proprietário' : user.role;
     });
 
     // ANIMAÇÕES DE ENTRADA

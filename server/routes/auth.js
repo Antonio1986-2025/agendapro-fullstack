@@ -1,7 +1,7 @@
 import { Router } from 'express';
 import bcrypt from 'bcryptjs';
 import { query } from '../config/database.js';
-import { gerarToken, autenticar } from '../middleware/auth.js';
+import { gerarToken, autenticar, exigirRole } from '../middleware/auth.js';
 
 const router = Router();
 
@@ -127,9 +127,7 @@ router.get('/me', autenticar, async (req, res) => {
   res.json(rows[0]);
 });
 
-export default router;
-
-// GET /api/auth/setup-status  -> quantos itens de setup faltam
+// GET /api/auth/setup-status -> quantos itens de setup faltam
 router.get('/setup-status', autenticar, async (req, res) => {
   const id = req.barbeariaId;
   const [serv, prof, cli] = await Promise.all([
@@ -146,3 +144,45 @@ router.get('/setup-status', autenticar, async (req, res) => {
     completo: servicos > 0 && profissionais > 0,
   });
 });
+
+// POST /api/auth/convidar -> cria usuario barbeiro (só owner)
+router.post('/convidar', autenticar, exigirRole('owner'), async (req, res) => {
+  const { nome, email, senha, profissional_id } = req.body;
+  if (!nome || !email || !senha) {
+    return res.status(400).json({ erro: 'nome, email e senha sao obrigatorios' });
+  }
+  if (senha.length < 6) return res.status(400).json({ erro: 'Senha deve ter ao menos 6 caracteres' });
+
+  const emailExiste = await query('SELECT 1 FROM usuarios WHERE email = $1', [email]);
+  if (emailExiste.rowCount > 0) return res.status(409).json({ erro: 'Este email ja esta em uso' });
+
+  const senhaHash = bcrypt.hashSync(senha, 10);
+  const { rows } = await query(
+    `INSERT INTO usuarios (barbearia_id, nome, email, senha_hash, role)
+     VALUES ($1,$2,$3,$4,'staff') RETURNING id, nome, email, role, created_at`,
+    [req.barbeariaId, nome, email, senhaHash]
+  );
+
+  res.status(201).json(rows[0]);
+});
+
+// GET /api/auth/usuarios -> lista usuarios da barbearia (só owner)
+router.get('/usuarios', autenticar, exigirRole('owner'), async (req, res) => {
+  const { rows } = await query(
+    `SELECT id, nome, email, role, ativo, created_at
+       FROM usuarios WHERE barbearia_id = $1 ORDER BY created_at`,
+    [req.barbeariaId]
+  );
+  res.json(rows);
+});
+
+// PATCH /api/auth/usuarios/:id/desativar -> desativa usuario (só owner)
+router.patch('/usuarios/:id/desativar', autenticar, exigirRole('owner'), async (req, res) => {
+  await query(
+    `UPDATE usuarios SET ativo = NOT ativo WHERE id = $1 AND barbearia_id = $2`,
+    [req.params.id, req.barbeariaId]
+  );
+  res.json({ ok: true });
+});
+
+export default router;

@@ -176,8 +176,14 @@
           document.getElementById('login-senha').value
         );
         API.setSession(r.token, r.usuario);
-        const setup = await API.get('/auth/setup-status').catch(() => null);
-        window.location.href = (setup && setup.pendente > 0) ? 'onboarding.html' : 'dashboard-mobile.html';
+
+        // Redireciona conforme o perfil
+        if (r.usuario.role === 'staff') {
+          window.location.href = 'barbeiro.html';
+        } else {
+          const setup = await API.get('/auth/setup-status').catch(() => null);
+          window.location.href = (setup && setup.pendente > 0) ? 'onboarding.html' : 'dashboard-mobile.html';
+        }
       } catch (err) {
         mostrarAlerta(err.message);
       } finally {

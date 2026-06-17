@@ -1,0 +1,247 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>AgendaPro - Equipe</title>
+  <link rel="stylesheet" href="design-system.css">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+  <style>
+    .mobile-app { max-width: 430px; margin: 0 auto; min-height: 100vh; background: var(--bg-primary); position: relative; }
+    .header { position: sticky; top: 0; z-index: var(--z-sticky); background: var(--bg-card); border-bottom: 1px solid var(--border-color); padding: var(--space-md); }
+    .header-content { display: flex; align-items: center; justify-content: space-between; margin-bottom: var(--space-md); }
+    .header-title { display: flex; align-items: center; gap: var(--space-sm); font-size: var(--text-lg); font-weight: var(--font-bold); color: var(--text-primary); }
+    .main-content { padding: var(--space-md); padding-bottom: 80px; }
+    .team-card { background: var(--bg-card); border: 1px solid var(--border-color); border-radius: var(--radius-lg); padding: var(--space-md); margin-bottom: var(--space-sm); display: flex; align-items: center; justify-content: space-between; }
+    .team-info { display: flex; align-items: center; gap: var(--space-md); }
+    .team-avatar { width: 44px; height: 44px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-weight: var(--font-bold); font-size: var(--text-lg); }
+    .team-avatar.owner { background: var(--primary-light); color: var(--primary); }
+    .team-avatar.staff { background: var(--warning-light); color: var(--warning); }
+    .team-name { font-weight: var(--font-semibold); color: var(--text-primary); }
+    .team-role { font-size: var(--text-xs); color: var(--text-muted); margin-top: 2px; }
+    .team-email { font-size: var(--text-xs); color: var(--text-secondary); }
+    .team-status { font-size: var(--text-xs); padding: 2px 8px; border-radius: var(--radius-full); }
+    .team-status.ativo { background: var(--success-light); color: var(--success); }
+    .team-status.inativo { background: var(--error-light); color: var(--error); }
+    .empty-state { text-align: center; padding: var(--space-2xl); color: var(--text-muted); }
+    .section { margin-bottom: var(--space-lg); }
+    .section-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: var(--space-md); }
+    .section-title { font-size: var(--text-lg); font-weight: var(--font-bold); color: var(--text-primary); margin: 0; }
+    .modal-overlay { position: fixed; inset: 0; background: var(--bg-overlay); display: none; align-items: flex-end; justify-content: center; z-index: var(--z-modal); }
+    .modal-overlay.open { display: flex; }
+    .modal { background: var(--bg-card); border-radius: var(--radius-xl) var(--radius-xl) 0 0; width: 100%; max-width: 480px; padding: var(--space-lg); max-height: 92vh; overflow-y: auto; }
+    .modal-title { font-size: var(--text-lg); font-weight: var(--font-bold); margin-bottom: var(--space-lg); }
+    .field { margin-bottom: var(--space-md); }
+    .field label { display: block; font-size: var(--text-sm); font-weight: var(--font-medium); margin-bottom: var(--space-xs); color: var(--text-secondary); }
+    .alert { padding: var(--space-sm) var(--space-md); border-radius: var(--radius-md); font-size: var(--text-sm); margin-bottom: var(--space-md); display: none; }
+    .alert.error { background: var(--error-light); color: var(--error); display: block; }
+    .alert.success { background: var(--success-light); color: var(--success); display: block; }
+    .info-box { background: var(--bg-secondary); border-radius: var(--radius-md); padding: var(--space-md); font-size: var(--text-sm); color: var(--text-secondary); line-height: 1.5; margin-bottom: var(--space-md); }
+    .info-box i { color: var(--primary); margin-right: var(--space-xs); }
+    @media (min-width: 768px) {
+      .mobile-app { max-width: 100%; padding: 0 var(--space-lg); }
+      .main-content { padding-bottom: var(--space-md); }
+      .bottom-nav { display: none; }
+      .team-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: var(--space-md); }
+    }
+  </style>
+</head>
+<body>
+  <div class="desktop-layout">
+    <aside class="sidebar desktop-only">
+      <div class="sidebar-logo"><i class="fas fa-calendar-check"></i><span>AgendaPro</span></div>
+      <nav class="sidebar-nav">
+        <div class="nav-section">Principal</div>
+        <a href="dashboard-mobile.html" class="sidebar-item"><i class="fas fa-home"></i> Dashboard</a>
+        <a href="agenda-mobile.html" class="sidebar-item"><i class="fas fa-calendar"></i> Agenda</a>
+        <a href="clientes-mobile.html" class="sidebar-item"><i class="fas fa-users"></i> Clientes</a>
+        <div class="nav-section">Gestão</div>
+        <a href="servicos-mobile.html" class="sidebar-item"><i class="fas fa-cut"></i> Serviços</a>
+        <a href="profissionais-mobile.html" class="sidebar-item"><i class="fas fa-user-tie"></i> Profissionais</a>
+        <a href="estoque-mobile.html" class="sidebar-item"><i class="fas fa-boxes"></i> Estoque</a>
+        <a href="financeiro-mobile.html" class="sidebar-item"><i class="fas fa-chart-line"></i> Financeiro</a>
+        <div class="nav-section">Outros</div>
+        <a href="equipe.html" class="sidebar-item active"><i class="fas fa-users-cog"></i> Equipe</a>
+        <a href="relatorios-mobile.html" class="sidebar-item"><i class="fas fa-chart-bar"></i> Relatórios</a>
+        <a href="horarios-especiais.html" class="sidebar-item"><i class="fas fa-clock"></i> Horários Especiais</a>
+        <a href="configuracoes-mobile.html" class="sidebar-item"><i class="fas fa-cog"></i> Configurações</a>
+      </nav>
+      <div class="sidebar-footer">
+        <div class="sidebar-user" id="sidebar-user" onclick="API.logout()" title="Sair">
+          <div class="avatar" id="sidebar-avatar">A</div>
+          <div class="user-info">
+            <div class="user-name" id="sidebar-name">Usuário</div>
+            <div class="user-role" id="sidebar-role">Proprietário</div>
+          </div>
+          <i class="fas fa-sign-out-alt" style="color: var(--text-muted); font-size: var(--text-sm);"></i>
+        </div>
+      </div>
+    </aside>
+    <div class="desktop-content">
+      <div class="desktop-header desktop-only">
+        <div>
+          <h1 class="page-title">Equipe</h1>
+          <p class="page-subtitle">Gerencie os usuários da sua barbearia</p>
+        </div>
+        <div class="header-actions">
+          <button class="theme-toggle" onclick="toggleTheme()" style="background: var(--bg-card); border: 1px solid var(--border-color); padding: var(--space-sm) var(--space-md); border-radius: var(--radius-md); cursor: pointer; color: var(--text-secondary);">
+            <i class="fas fa-moon" id="theme-icon-desk"></i>
+          </button>
+        </div>
+      </div>
+      <div class="mobile-app">
+        <header class="header">
+          <div class="header-content">
+            <div class="header-title"><i class="fas fa-users-cog"></i><span>Equipe</span></div>
+            <button class="theme-toggle" onclick="toggleTheme()" style="background: none; border: none; padding: var(--space-sm); border-radius: var(--radius-md); cursor: pointer; color: var(--text-secondary);">
+              <i class="fas fa-moon" id="theme-icon"></i>
+            </button>
+          </div>
+          <div class="info-box"><i class="fas fa-info-circle"></i> Convide barbeiros para acessar o sistema. Cada um terá acesso à própria agenda e comandas.</div>
+        </header>
+        <main class="main-content">
+          <section class="section">
+            <div class="section-header">
+              <h2 class="section-title">Membros da equipe</h2>
+              <button class="btn btn-primary btn-sm" onclick="abrirModal()"><i class="fas fa-plus"></i> Convidar</button>
+            </div>
+            <div id="equipe-lista" style="text-align:center;padding:var(--space-2xl);color:var(--text-muted);"><i class="fas fa-spinner fa-spin"></i> Carregando...</div>
+          </section>
+        </main>
+        <nav class="bottom-nav">
+          <div class="nav-items">
+            <a href="dashboard-mobile.html" class="nav-item"><i class="nav-icon fas fa-home"></i><span class="nav-label">Dashboard</span></a>
+            <a href="agenda-mobile.html" class="nav-item"><i class="nav-icon fas fa-calendar"></i><span class="nav-label">Agenda</span></a>
+            <a href="clientes-mobile.html" class="nav-item"><i class="nav-icon fas fa-users"></i><span class="nav-label">Clientes</span></a>
+            <a href="configuracoes-mobile.html" class="nav-item"><i class="nav-icon fas fa-cog"></i><span class="nav-label">Config</span></a>
+            <a href="#" class="nav-item active"><i class="nav-icon fas fa-users-cog"></i><span class="nav-label">Equipe</span></a>
+          </div>
+        </nav>
+      </div>
+    </div>
+  </div>
+
+  <!-- MODAL CONVIDAR -->
+  <div class="modal-overlay" id="modal-convidar">
+    <div class="modal">
+      <div class="modal-title"><i class="fas fa-user-plus"></i> Convidar Barbeiro</div>
+      <div id="conv-alerta" class="alert"></div>
+      <div class="field">
+        <label>Nome do barbeiro</label>
+        <input class="input" id="conv-nome" placeholder="Ex: Carlos" required>
+      </div>
+      <div class="field">
+        <label>Email</label>
+        <input class="input" type="email" id="conv-email" placeholder="carlos@email.com" required>
+      </div>
+      <div class="field">
+        <label>Senha (min. 6 caracteres)</label>
+        <input class="input" type="password" id="conv-senha" minlength="6" placeholder="••••••" required>
+      </div>
+      <div style="display:flex;gap:var(--space-sm);margin-top:var(--space-md);">
+        <button class="btn btn-secondary btn-full" onclick="fecharModal()">Cancelar</button>
+        <button class="btn btn-primary btn-full" id="btn-convidar" onclick="convidar()"><i class="fas fa-paper-plane"></i> Convidar</button>
+      </div>
+    </div>
+  </div>
+
+  <script src="api.js"></script>
+  <script>
+    if (!API.getToken()) window.location.href = 'login.html';
+
+    function toggleTheme() {
+      const html = document.documentElement;
+      const isDark = html.getAttribute('data-theme') === 'dark';
+      if (isDark) { html.removeAttribute('data-theme'); localStorage.setItem('theme','light'); }
+      else { html.setAttribute('data-theme','dark'); localStorage.setItem('theme','dark'); }
+      const cls = isDark ? 'fa-moon' : 'fa-sun';
+      document.querySelectorAll('#theme-icon, #theme-icon-desk').forEach(el => el.className = 'fas ' + cls);
+    }
+
+    function abrirModal() { document.getElementById('modal-convidar').classList.add('open'); }
+    function fecharModal() { document.getElementById('modal-convidar').classList.remove('open'); esconderAlerta(); }
+
+    function mostrarAlerta(msg, tipo) {
+      const el = document.getElementById('conv-alerta');
+      el.textContent = msg; el.className = 'alert ' + (tipo || 'error');
+    }
+    function esconderAlerta() { document.getElementById('conv-alerta').className = 'alert'; }
+
+    async function carregarEquipe() {
+      try {
+        const data = await API.get('/auth/usuarios');
+        const el = document.getElementById('equipe-lista');
+        if (!data.length) {
+          el.innerHTML = '<div class="empty-state"><i class="fas fa-users" style="font-size:2rem;margin-bottom:var(--space-md);display:block;"></i>Nenhum membro na equipe</div>';
+          return;
+        }
+        el.innerHTML = '<div class="team-grid">' + data.map(u => `
+          <div class="team-card">
+            <div class="team-info">
+              <div class="team-avatar ${u.role}">${(u.nome || '?').charAt(0).toUpperCase()}</div>
+              <div>
+                <div class="team-name">${u.nome}</div>
+                <div class="team-email">${u.email}</div>
+                <div class="team-role">${u.role === 'owner' ? 'Proprietário' : 'Barbeiro'}</div>
+              </div>
+            </div>
+            <div style="text-align:right;">
+              <div class="team-status ${u.ativo ? 'ativo' : 'inativo'}">${u.ativo ? 'Ativo' : 'Inativo'}</div>
+              ${u.role !== 'owner' ? `<button class="btn btn-sm ${u.ativo ? 'btn-secondary' : 'btn-primary'}" style="margin-top:4px;font-size:var(--text-xs);padding:2px 8px;" onclick="toggleStatus('${u.id}')">${u.ativo ? 'Desativar' : 'Ativar'}</button>` : ''}
+            </div>
+          </div>
+        `).join('') + '</div>';
+      } catch (e) {
+        document.getElementById('equipe-lista').innerHTML = '<div style="text-align:center;padding:var(--space-2xl);color:var(--error);">Erro: ' + e.message + '</div>';
+      }
+    }
+
+    async function convidar() {
+      const nome = document.getElementById('conv-nome').value.trim();
+      const email = document.getElementById('conv-email').value.trim();
+      const senha = document.getElementById('conv-senha').value;
+      if (!nome || !email || !senha) return mostrarAlerta('Preencha todos os campos');
+      if (senha.length < 6) return mostrarAlerta('Senha deve ter ao menos 6 caracteres');
+
+      const btn = document.getElementById('btn-convidar');
+      btn.disabled = true; btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Enviando...';
+      try {
+        await API.post('/auth/convidar', { nome, email, senha });
+        fecharModal();
+        document.getElementById('conv-nome').value = '';
+        document.getElementById('conv-email').value = '';
+        document.getElementById('conv-senha').value = '';
+        await carregarEquipe();
+      } catch (e) {
+        mostrarAlerta(e.message);
+      } finally {
+        btn.disabled = false; btn.innerHTML = '<i class="fas fa-paper-plane"></i> Convidar';
+      }
+    }
+
+    async function toggleStatus(id) {
+      try {
+        await API.patch('/auth/usuarios/' + id + '/desativar');
+        await carregarEquipe();
+      } catch (e) {
+        alert('Erro: ' + e.message);
+      }
+    }
+
+    document.addEventListener('DOMContentLoaded', async function() {
+      const savedTheme = localStorage.getItem('theme');
+      if (savedTheme === 'dark') {
+        document.documentElement.setAttribute('data-theme', 'dark');
+        document.querySelectorAll('#theme-icon, #theme-icon-desk').forEach(el => el.className = 'fas fa-sun');
+      }
+      const user = API.getUser();
+      if (user) {
+        document.getElementById('sidebar-avatar').textContent = (user.nome || 'U').charAt(0).toUpperCase();
+        document.getElementById('sidebar-name').textContent = user.nome || 'Usuário';
+        document.getElementById('sidebar-role').textContent = user.role === 'owner' ? 'Proprietário' : 'Barbeiro';
+      }
+      await carregarEquipe();
+    });
+  </script>
+</body>
+</html>
