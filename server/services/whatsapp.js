@@ -1,29 +1,21 @@
 import axios from 'axios';
 import { query } from '../config/database.js';
 
-/**
- * Servico de WhatsApp com suporte a multiplos providers.
- *
- * - "log"        : nao envia de verdade, apenas registra no banco (modo demonstracao/dev)
- * - "meta_cloud" : envia via WhatsApp Cloud API oficial da Meta
- *
- * A config fica por barbearia na tabela whatsapp_config.
- */
+const OPENWA_DEFAULT_URL = process.env.OPENWA_URL || 'http://localhost:2785';
+const OPENWA_DEFAULT_KEY = process.env.OPENWA_API_KEY || '';
 
 async function getConfig(barbeariaId) {
   const { rows } = await query(
-    'SELECT * FROM whatsapp_config WHERE barbearia_id = $1',
+    `SELECT * FROM whatsapp_config WHERE barbearia_id = $1`,
     [barbeariaId]
   );
-  return rows[0] || { provider: 'log', enabled: false };
+  return rows[0] || { provider: 'log', enabled: false, session_status: 'disconnected' };
 }
 
 function normalizarTelefone(tel) {
-  // Remove tudo que nao for digito
   let n = (tel || '').replace(/\D/g, '');
-  // Garante DDI Brasil (55) se vier so com DDD + numero
   if (n.length <= 11) n = '55' + n;
-  return n;
+  return n + '@s.whatsapp.net';
 }
 
 async function registrarMensagem(barbeariaId, { agendamentoId, telefone, mensagem, tipo, status }) {
@@ -34,32 +26,38 @@ async function registrarMensagem(barbeariaId, { agendamentoId, telefone, mensage
   );
 }
 
-async function enviarViaMetaCloud(config, telefone, mensagem) {
-  const url = `https://graph.facebook.com/v18.0/${config.phone_number_id}/messages`;
-  const body = {
-    messaging_product: 'whatsapp',
-    to: normalizarTelefone(telefone),
-    type: 'text',
-    text: { body: mensagem },
-  };
-  const { data } = await axios.post(url, body, {
-    headers: {
-      Authorization: `Bearer ${config.access_token}`,
-      'Content-Type': 'application/json',
-    },
-    timeout: 15000,
-  });
+async function enviarViaOpenWA(config, telefone, mensagem) {
+  const baseUrl = config.openwa_url || OPENWA_DEFAULT_URL;
+  const apiKey = config.openwa_api_key || OPENWA_DEFAULT_KEY;
+  const session = config.openwa_session_name;
+  if (!session) throw new Error('Sessão OpenWA não configurada');
+
+  const remoteJid = normalizarTelefone(telefone);
+  const { data } = await axios.post(
+    `${baseUrl}/api/sessions/${session}/messages/send-text`,
+    { chatId: remoteJid, text: mensagem },
+    {
+      headers: {
+        'X-API-Key': apiKey,
+        'Content-Type': 'application/json',
+      },
+      timeout: 15000,
+    }
+  );
   return data;
 }
 
-/**
- * Envia uma mensagem de WhatsApp para o cliente.
- * Retorna { ok, provider, status }.
- */
+function getOpenWABaseUrl(config) {
+  return config.openwa_url || OPENWA_DEFAULT_URL;
+}
+
+function getOpenWAApiKey(config) {
+  return config.openwa_api_key || OPENWA_DEFAULT_KEY;
+}
+
 export async function enviarMensagem(barbeariaId, { telefone, mensagem, tipo, agendamentoId }) {
   const config = await getConfig(barbeariaId);
 
-  // Modo log (padrao): nao envia, apenas registra
   if (!config.enabled || config.provider === 'log') {
     await registrarMensagem(barbeariaId, {
       agendamentoId, telefone, mensagem, tipo, status: 'enviada',
@@ -68,23 +66,21 @@ export async function enviarMensagem(barbeariaId, { telefone, mensagem, tipo, ag
     return { ok: true, provider: 'log', status: 'enviada' };
   }
 
-  // Provider real: Meta Cloud API
   try {
-    await enviarViaMetaCloud(config, telefone, mensagem);
+    await enviarViaOpenWA(config, telefone, mensagem);
     await registrarMensagem(barbeariaId, {
       agendamentoId, telefone, mensagem, tipo, status: 'enviada',
     });
-    return { ok: true, provider: 'meta_cloud', status: 'enviada' };
+    return { ok: true, provider: 'openwa', status: 'enviada' };
   } catch (err) {
-    console.error('❌ Erro WhatsApp Meta Cloud:', err.response?.data || err.message);
+    console.error('❌ Erro WhatsApp OpenWA:', err.response?.data || err.message);
     await registrarMensagem(barbeariaId, {
       agendamentoId, telefone, mensagem, tipo, status: 'erro',
     });
-    return { ok: false, provider: 'meta_cloud', status: 'erro', erro: err.message };
+    return { ok: false, provider: 'openwa', status: 'erro', erro: err.message };
   }
 }
 
-/** Monta texto de confirmacao de agendamento */
 export function textoConfirmacao({ clienteNome, barbeariaNome, servicoNome, profissionalNome, dataHora }) {
   const data = new Date(dataHora);
   const dataFmt = data.toLocaleString('pt-BR', {
@@ -101,7 +97,6 @@ export function textoConfirmacao({ clienteNome, barbeariaNome, servicoNome, prof
   );
 }
 
-/** Monta texto de aviso de NOVO agendamento para o barbeiro responsavel */
 export function textoNotificacaoBarbeiro({ profissionalNome, clienteNome, clienteTelefone, servicoNome, dataHora, isEspecial }) {
   const data = new Date(dataHora);
   const dataFmt = data.toLocaleString('pt-BR', {
@@ -120,11 +115,6 @@ export function textoNotificacaoBarbeiro({ profissionalNome, clienteNome, client
   );
 }
 
-/**
- * Notifica o barbeiro responsavel sobre um novo agendamento.
- * Busca o telefone do profissional e dispara a mensagem (se habilitado).
- * Nao lanca erro: apenas registra falha no console.
- */
 export async function notificarBarbeiroNovoAgendamento(barbeariaId, agendamentoId) {
   try {
     const { rows } = await query(
@@ -164,4 +154,88 @@ export async function notificarBarbeiroNovoAgendamento(barbeariaId, agendamentoI
     console.error('Falha ao notificar barbeiro:', err.message);
     return { ok: false, motivo: err.message };
   }
+}
+
+export async function criarSessaoOpenWA(barbeariaId, nome, config) {
+  const baseUrl = getOpenWABaseUrl(config);
+  const apiKey = getOpenWAApiKey(config);
+  const sessionName = nome || `barb_${barbeariaId.replace(/-/g, '').slice(0, 12)}`;
+
+  const { data } = await axios.post(
+    `${baseUrl}/api/sessions`,
+    { name: sessionName },
+    {
+      headers: { 'X-API-Key': apiKey, 'Content-Type': 'application/json' },
+      timeout: 10000,
+    }
+  );
+
+  return { sessionId: data.id || data._id, sessionName };
+}
+
+export async function iniciarSessaoOpenWA(barbeariaId, config) {
+  const baseUrl = getOpenWABaseUrl(config);
+  const apiKey = getOpenWAApiKey(config);
+  const session = config.openwa_session_name;
+  if (!session) throw new Error('Sessão não configurada');
+
+  await axios.post(
+    `${baseUrl}/api/sessions/${session}/start`,
+    {},
+    {
+      headers: { 'X-API-Key': apiKey, 'Content-Type': 'application/json' },
+      timeout: 10000,
+    }
+  );
+}
+
+export async function obterQRSessaoOpenWA(barbeariaId, config) {
+  const baseUrl = getOpenWABaseUrl(config);
+  const apiKey = getOpenWAApiKey(config);
+  const session = config.openwa_session_name;
+  if (!session) throw new Error('Sessão não configurada');
+
+  const { data } = await axios.get(
+    `${baseUrl}/api/sessions/${session}/qr`,
+    {
+      headers: { 'X-API-Key': apiKey },
+      timeout: 15000,
+    }
+  );
+  return data;
+}
+
+export async function statusSessaoOpenWA(barbeariaId, config) {
+  const baseUrl = getOpenWABaseUrl(config);
+  const apiKey = getOpenWAApiKey(config);
+  const session = config.openwa_session_name;
+  if (!session) return 'disconnected';
+
+  try {
+    const { data } = await axios.get(
+      `${baseUrl}/api/sessions/${session}/status`,
+      {
+        headers: { 'X-API-Key': apiKey },
+        timeout: 10000,
+      }
+    );
+    return data.status || data.state || 'unknown';
+  } catch {
+    return 'disconnected';
+  }
+}
+
+export async function desconectarSessaoOpenWA(barbeariaId, config) {
+  const baseUrl = getOpenWABaseUrl(config);
+  const apiKey = getOpenWAApiKey(config);
+  const session = config.openwa_session_name;
+  if (!session) throw new Error('Sessão não configurada');
+
+  await axios.delete(
+    `${baseUrl}/api/sessions/${session}`,
+    {
+      headers: { 'X-API-Key': apiKey },
+      timeout: 10000,
+    }
+  );
 }

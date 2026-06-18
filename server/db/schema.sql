@@ -157,12 +157,19 @@ CREATE TABLE IF NOT EXISTS horarios_especiais (
 -- ---------- configuracao WhatsApp por barbearia ----------
 CREATE TABLE IF NOT EXISTS whatsapp_config (
     barbearia_id UUID PRIMARY KEY REFERENCES barbearias(id) ON DELETE CASCADE,
-    provider VARCHAR(30) DEFAULT 'log',         -- log | meta_cloud
+    provider VARCHAR(30) DEFAULT 'log',         -- log | openwa
     phone_number_id VARCHAR(120),
     access_token TEXT,
     verify_token VARCHAR(120),
     enabled BOOLEAN DEFAULT false,
-    updated_at TIMESTAMPTZ DEFAULT now()
+    -- OpenWA session
+    openwa_session_name VARCHAR(120),
+    openwa_url VARCHAR(255),
+    openwa_api_key VARCHAR(255),
+    session_status VARCHAR(30) DEFAULT 'disconnected', -- disconnected | connecting | connected
+    updated_at TIMESTAMPTZ DEFAULT now(),
+    ai_enabled BOOLEAN DEFAULT false,
+    ai_prompt TEXT
 );
 
 -- ---------- log de mensagens WhatsApp ----------
@@ -172,9 +179,21 @@ CREATE TABLE IF NOT EXISTS whatsapp_mensagens (
     agendamento_id UUID REFERENCES agendamentos(id) ON DELETE SET NULL,
     telefone VARCHAR(30) NOT NULL,
     mensagem TEXT NOT NULL,
-    tipo VARCHAR(40) DEFAULT 'confirmacao',     -- confirmacao | lembrete | manual | recebida
-    status VARCHAR(30) DEFAULT 'enviada',       -- enviada | erro | recebida
+    tipo VARCHAR(30) DEFAULT 'manual',          -- confirmacao|lembrete|manual|novo_agendamento_barbeiro|recebida
+    status VARCHAR(30) DEFAULT 'enviada',       -- enviada|erro|recebida
     created_at TIMESTAMPTZ DEFAULT now()
+);
+
+-- ---------- conversas do agente IA ----------
+CREATE TABLE IF NOT EXISTS ai_conversas (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    barbearia_id UUID NOT NULL REFERENCES barbearias(id) ON DELETE CASCADE,
+    cliente_telefone VARCHAR(30) NOT NULL,
+    historico JSONB DEFAULT '[]',
+    contexto JSONB DEFAULT '{}',
+    ultima_interacao TIMESTAMPTZ DEFAULT now(),
+    created_at TIMESTAMPTZ DEFAULT now(),
+    UNIQUE(barbearia_id, cliente_telefone)
 );
 
 -- ---------- COMANDA ----------

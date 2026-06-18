@@ -9,6 +9,26 @@ services:
       POSTGRES_DB: agendapro
     volumes:
       - pgdata:/var/lib/postgresql/data
+    ports:
+      - "5432:5432"
+
+  openwa:
+    image: ghcr.io/rmyndharis/openwa:latest
+    container_name: agendapro-openwa
+    restart: unless-stopped
+    depends_on:
+      - db
+    environment:
+      DATABASE_PROVIDER: postgresql
+      DATABASE_URL: postgresql://postgres:postgres@db:5432/agendapro
+      CACHE_PROVIDER: memory
+      STORAGE_PROVIDER: local
+      API_KEY: openwa-dev-key-change-me
+      SERVER_PORT: 2785
+    ports:
+      - "2785:2785"
+    volumes:
+      - openwa-data:/app/data
 
   app:
     build: .
@@ -16,14 +36,19 @@ services:
     restart: unless-stopped
     depends_on:
       - db
+      - openwa
     environment:
       DATABASE_URL: postgres://postgres:postgres@db:5432/agendapro
       JWT_SECRET: dev-secret-change-me
       NODE_ENV: production
       PORT: 3000
       TZ: America/Sao_Paulo
+      OPENWA_URL: http://openwa:2785
+      OPENWA_API_KEY: openwa-dev-key-change-me
+      OPENAI_API_KEY: ${OPENAI_API_KEY}
     ports:
       - "3000:3000"
 
 volumes:
   pgdata:
+  openwa-data:

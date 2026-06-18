@@ -71,14 +71,14 @@
       flex-direction: column;
       gap: var(--space-sm);
     }
-    
+
     .config-card {
       background: var(--bg-card);
       border: 1px solid var(--border-color);
       border-radius: var(--radius-lg);
       overflow: hidden;
     }
-    
+
     .config-item {
       display: flex;
       align-items: center;
@@ -87,15 +87,15 @@
       transition: all var(--transition-fast);
       border-bottom: 1px solid var(--border-color);
     }
-    
+
     .config-item:last-child {
       border-bottom: none;
     }
-    
+
     .config-item:hover {
       background: var(--bg-secondary);
     }
-    
+
     .config-icon {
       width: 40px;
       height: 40px;
@@ -106,33 +106,221 @@
       align-items: center;
       justify-content: center;
       margin-right: var(--space-md);
+      flex-shrink: 0;
     }
-    
+
     .config-content {
       flex: 1;
+      min-width: 0;
     }
-    
+
     .config-label {
       font-weight: var(--font-medium);
       color: var(--text-primary);
       margin-bottom: var(--space-xs);
     }
-    
+
     .config-description {
       font-size: var(--text-sm);
       color: var(--text-secondary);
     }
-    
+
     .config-value {
       font-size: var(--text-sm);
       color: var(--primary);
       font-weight: var(--font-medium);
     }
-    
+
     .config-arrow {
       color: var(--text-muted);
       margin-left: var(--space-sm);
     }
+
+    /* WHATSAPP STATUS CARD */
+    .wa-status-card {
+      background: var(--bg-card);
+      border: 1px solid var(--border-color);
+      border-radius: var(--radius-lg);
+      padding: var(--space-lg);
+      text-align: center;
+    }
+
+    .wa-status-icon {
+      width: 64px;
+      height: 64px;
+      margin: 0 auto var(--space-md);
+      background: var(--primary-light);
+      border-radius: var(--radius-full);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: var(--text-2xl);
+    }
+
+    .wa-status-icon.connected { background: #d1fae5; color: #059669; }
+    .wa-status-icon.disconnected { background: #fee2e2; color: #dc2626; }
+    .wa-status-icon.connecting { background: #fef3c7; color: #d97706; }
+
+    .wa-status-label {
+      font-size: var(--text-sm);
+      color: var(--text-secondary);
+      margin-bottom: var(--space-xs);
+    }
+
+    .wa-status-value {
+      font-size: var(--text-lg);
+      font-weight: var(--font-bold);
+    }
+
+    .wa-status-value.connected { color: #059669; }
+    .wa-status-value.disconnected { color: #dc2626; }
+    .wa-status-value.connecting { color: #d97706; }
+
+    .wa-number {
+      font-size: var(--text-xs);
+      color: var(--text-muted);
+      margin-top: var(--space-xs);
+    }
+
+    .wa-actions {
+      margin-top: var(--space-md);
+      display: flex;
+      gap: var(--space-sm);
+      justify-content: center;
+      flex-wrap: wrap;
+    }
+
+    /* QR CODE MODAL */
+    .modal-overlay {
+      display: none;
+      position: fixed;
+      top: 0; left: 0; right: 0; bottom: 0;
+      background: rgba(0,0,0,0.6);
+      z-index: 9999;
+      justify-content: center;
+      align-items: center;
+      padding: var(--space-md);
+    }
+
+    .modal-overlay.show { display: flex; }
+
+    .modal-box {
+      background: var(--bg-card);
+      border-radius: var(--radius-xl);
+      padding: var(--space-xl);
+      max-width: 400px;
+      width: 100%;
+      text-align: center;
+      position: relative;
+      animation: modalIn 0.3s ease-out;
+    }
+
+    @keyframes modalIn {
+      from { transform: scale(0.9); opacity: 0; }
+      to { transform: scale(1); opacity: 1; }
+    }
+
+    .modal-close {
+      position: absolute;
+      top: var(--space-sm);
+      right: var(--space-sm);
+      background: none;
+      border: none;
+      font-size: var(--text-xl);
+      color: var(--text-muted);
+      cursor: pointer;
+      padding: var(--space-sm);
+    }
+
+    .modal-title {
+      font-size: var(--text-lg);
+      font-weight: var(--font-bold);
+      margin-bottom: var(--space-xs);
+      color: var(--text-primary);
+    }
+
+    .modal-subtitle {
+      font-size: var(--text-sm);
+      color: var(--text-secondary);
+      margin-bottom: var(--space-lg);
+    }
+
+    .qr-container {
+      background: white;
+      padding: var(--space-md);
+      border-radius: var(--radius-lg);
+      display: inline-block;
+      margin-bottom: var(--space-md);
+    }
+
+    .qr-container img {
+      width: 220px;
+      height: 220px;
+      display: block;
+    }
+
+    .qr-steps {
+      text-align: left;
+      font-size: var(--text-sm);
+      color: var(--text-secondary);
+      line-height: 1.8;
+    }
+
+    .qr-steps li {
+      margin-bottom: var(--space-xs);
+    }
+
+    /* AGENTE IA */
+    .ai-card {
+      background: var(--bg-card);
+      border: 1px solid var(--border-color);
+      border-radius: var(--radius-lg);
+      padding: var(--space-md);
+    }
+
+    .ai-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: var(--space-md);
+    }
+
+    .ai-title {
+      font-weight: var(--font-semibold);
+      color: var(--text-primary);
+    }
+
+    .ai-desc {
+      font-size: var(--text-sm);
+      color: var(--text-secondary);
+      margin-bottom: var(--space-md);
+    }
+
+    .ai-prompt-area {
+      width: 100%;
+      min-height: 80px;
+      padding: var(--space-sm);
+      border: 1px solid var(--border-color);
+      border-radius: var(--radius-md);
+      background: var(--bg-primary);
+      color: var(--text-primary);
+      font-size: var(--text-sm);
+      resize: vertical;
+    }
+
+    .ai-status {
+      display: flex;
+      align-items: center;
+      gap: var(--space-sm);
+      font-size: var(--text-sm);
+      padding: var(--space-sm) var(--space-md);
+      border-radius: var(--radius-md);
+      margin-bottom: var(--space-md);
+    }
+
+    .ai-status.active { background: #d1fae5; color: #059669; }
+    .ai-status.inactive { background: #fee2e2; color: #dc2626; }
+    .ai-status.no-key { background: #fef3c7; color: #d97706; }
     
     /* TOGGLES */
     .config-toggle {
@@ -465,32 +653,43 @@
 
         <div class="config-section">
           <h2 class="section-title"><i class="fab fa-whatsapp section-icon"></i> WhatsApp</h2>
-          <div class="config-cards">
-            <div class="config-card">
-              <div class="config-item" onclick="openWhatsAppConfig()">
-                <div class="config-icon"><i class="fab fa-whatsapp"></i></div>
-                <div class="config-content">
-                  <div class="config-label">Número do WhatsApp</div>
-                  <div class="config-value">(67) 99999-0000</div>
-                </div>
-                <i class="fas fa-chevron-right config-arrow"></i>
-              </div>
-              <div class="config-item" onclick="openBotMessages()">
-                <div class="config-icon"><i class="fas fa-robot"></i></div>
-                <div class="config-content">
-                  <div class="config-label">Mensagens do Bot</div>
-                  <div class="config-description">Personalizar respostas automáticas</div>
-                </div>
-                <i class="fas fa-chevron-right config-arrow"></i>
-              </div>
-              <div class="config-toggle" onclick="toggleAutoResponse()">
-                <div class="config-content">
-                  <div class="config-label">Respostas Automáticas</div>
-                  <div class="config-description">Responder fora do horário</div>
-                </div>
-                <div class="toggle-switch active" id="auto-response-toggle"><div class="toggle-slider"></div></div>
+          <div id="whatsapp-status-card">
+            <div class="wa-status-card">
+              <div class="wa-status-icon disconnected" id="wa-icon"><i class="fab fa-whatsapp"></i></div>
+              <div class="wa-status-label">Status do WhatsApp</div>
+              <div class="wa-status-value disconnected" id="wa-status-text">Desconectado</div>
+              <div class="wa-number" id="wa-session-info"></div>
+              <div class="wa-actions">
+                <button class="btn btn-primary" onclick="conectarWhatsApp()" id="btn-conectar">
+                  <i class="fas fa-qrcode"></i> Conectar WhatsApp
+                </button>
+                <button class="btn btn-outline btn-sm" onclick="desconectarWhatsApp()" id="btn-desconectar" style="display:none;">
+                  <i class="fas fa-times"></i> Desconectar
+                </button>
               </div>
             </div>
+          </div>
+        </div>
+
+        <div class="config-section">
+          <h2 class="section-title"><i class="fas fa-robot section-icon"></i> Agente de IA</h2>
+          <div class="ai-card">
+            <div class="ai-header">
+              <div class="ai-title">Atendimento Automático</div>
+              <div class="toggle-switch" id="ai-toggle" onclick="toggleAI()"><div class="toggle-slider"></div></div>
+            </div>
+            <div class="ai-desc">
+              Quando ativado, o agente de IA atende os clientes automaticamente pelo WhatsApp.
+              Ele pode agendar, cancelar, remarcar horários e tirar dúvidas sobre serviços.
+            </div>
+            <div id="ai-status-msg" class="ai-status no-key">
+              <i class="fas fa-info-circle"></i> Configure a chave OPENAI_API_KEY no servidor
+            </div>
+            <div style="margin-bottom:var(--space-sm);">
+              <label style="font-size:var(--text-sm);font-weight:var(--font-medium);color:var(--text-secondary);">Personalidade do agente (opcional)</label>
+              <textarea class="ai-prompt-area" id="ai-prompt" placeholder="Ex: Voce e o assistente da Barbearia do Ze. Seja educado e informal. Funcionamos de terça a sabado, 9h as 20h."></textarea>
+            </div>
+            <button class="btn btn-primary btn-sm" onclick="salvarAIConfig()"><i class="fas fa-save"></i> Salvar Configuração</button>
           </div>
         </div>
 
@@ -589,6 +788,29 @@
       </div>
     </main>
 
+    <!-- QR CODE MODAL -->
+    <div class="modal-overlay" id="qr-modal">
+      <div class="modal-box">
+        <button class="modal-close" onclick="fecharQR()"><i class="fas fa-times"></i></button>
+        <div class="modal-title">Conectar WhatsApp</div>
+        <div class="modal-subtitle">Escaneie o QR Code com seu WhatsApp</div>
+        <div class="qr-container" id="qr-container">
+          <i class="fas fa-spinner fa-spin" style="font-size:48px;color:var(--text-muted);"></i>
+        </div>
+        <div class="qr-steps" id="qr-steps">
+          <strong>Como conectar:</strong>
+          <ol style="margin-top:var(--space-sm);padding-left:var(--space-lg);">
+            <li>Abra o WhatsApp no seu celular</li>
+            <li>Toque em <strong>Menu</strong> (três pontos) &gt; <strong>WhatsApp Web</strong></li>
+            <li>Aponte a câmera para este QR Code</li>
+          </ol>
+        </div>
+        <p id="qr-status-msg" style="font-size:var(--text-sm);color:var(--text-muted);margin-top:var(--space-md);">
+          Aguardando leitura do QR Code...
+        </p>
+      </div>
+    </div>
+
     <nav class="bottom-nav">
       <div class="nav-items">
         <a href="dashboard-mobile.html" class="nav-item"><i class="nav-icon fas fa-home"></i><span class="nav-label">Dashboard</span></a>
@@ -605,6 +827,8 @@
 
   <script src="api.js"></script>
   <script>
+    let waTimer = null;
+
     function toggleTheme() {
       const html = document.documentElement;
       const isDark = html.getAttribute('data-theme') === 'dark';
@@ -614,28 +838,123 @@
       document.querySelectorAll('#theme-icon, #theme-icon-desk').forEach(el => el.className = 'fas ' + cls);
     }
 
-    function toggleNotifications(type) {
-      document.getElementById(`${type}-toggle`).classList.toggle('active');
+    async function carregarConfig() {
+      try {
+        const cfg = await API.get('/whatsapp/config');
+
+        // WhatsApp status
+        const statusText = document.getElementById('wa-status-text');
+        const statusIcon = document.getElementById('wa-icon');
+        const btnConectar = document.getElementById('btn-conectar');
+        const btnDesconectar = document.getElementById('btn-desconectar');
+        const sessionInfo = document.getElementById('wa-session-info');
+
+        const status = cfg.session_status || 'disconnected';
+        const isConnected = status === 'connected' || status === 'open';
+
+        statusText.textContent = isConnected ? 'Conectado' : status === 'connecting' ? 'Conectando...' : 'Desconectado';
+        statusText.className = 'wa-status-value ' + (isConnected ? 'connected' : status === 'connecting' ? 'connecting' : 'disconnected');
+        statusIcon.className = 'wa-status-icon ' + (isConnected ? 'connected' : status === 'connecting' ? 'connecting' : 'disconnected');
+
+        btnConectar.style.display = isConnected ? 'none' : 'inline-flex';
+        btnDesconectar.style.display = isConnected ? 'inline-flex' : 'none';
+        sessionInfo.textContent = cfg.openwa_session_name ? 'Sessão: ' + cfg.openwa_session_name : '';
+
+        // AI config
+        const aiToggle = document.getElementById('ai-toggle');
+        aiToggle.classList.toggle('active', !!cfg.ai_enabled);
+
+        if (cfg.ai_prompt) {
+          document.getElementById('ai-prompt').value = cfg.ai_prompt;
+        }
+
+        const aiStatus = document.getElementById('ai-status-msg');
+        const hasKey = document.getElementById('ai-key-status');
+        if (cfg.ai_enabled) {
+          aiStatus.className = 'ai-status active';
+          aiStatus.innerHTML = '<i class="fas fa-check-circle"></i> Agente ativo — atendendo clientes automaticamente';
+        } else {
+          aiStatus.className = 'ai-status inactive';
+          aiStatus.innerHTML = '<i class="fas fa-info-circle"></i> Agente desativado';
+        }
+      } catch (e) {
+        console.error('Erro ao carregar config:', e);
+      }
     }
 
-    function toggleAutoResponse() {
-      document.getElementById('auto-response-toggle').classList.toggle('active');
+    async function conectarWhatsApp() {
+      try {
+        const modal = document.getElementById('qr-modal');
+        modal.classList.add('show');
+        document.getElementById('qr-container').innerHTML = '<i class="fas fa-spinner fa-spin" style="font-size:48px;color:var(--text-muted);"></i>';
+        document.getElementById('qr-status-msg').textContent = 'Criando sessão...';
+
+        const res = await API.post('/whatsapp/conectar');
+
+        if (res.qr) {
+          if (res.qr.startsWith('data:')) {
+            document.getElementById('qr-container').innerHTML = '<img src="' + res.qr + '" alt="QR Code">';
+          } else {
+            document.getElementById('qr-container').innerHTML = '<img src="data:image/png;base64,' + res.qr + '" alt="QR Code">';
+          }
+          document.getElementById('qr-status-msg').textContent = 'Aguardando leitura do QR Code...';
+
+          // Monitora status até conectar
+          if (waTimer) clearInterval(waTimer);
+          waTimer = setInterval(async () => {
+            try {
+              const st = await API.get('/whatsapp/status');
+              if (st.status === 'connected' || st.status === 'open') {
+                clearInterval(waTimer);
+                waTimer = null;
+                document.getElementById('qr-status-msg').textContent = '✅ Conectado com sucesso!';
+                setTimeout(() => { fecharQR(); carregarConfig(); }, 1500);
+              }
+            } catch {}
+          }, 3000);
+        } else {
+          document.getElementById('qr-status-msg').textContent = 'Erro ao gerar QR Code. Tente novamente.';
+        }
+      } catch (e) {
+        document.getElementById('qr-status-msg').textContent = 'Erro: ' + e.message;
+      }
     }
 
-    function editBusinessProfile() {
-      alert('Editar Perfil da Empresa\n\nAqui você abriria um formulário para editar:\n- Nome da empresa\n- Logo\n- Endereço\n- Telefones\n- Redes sociais');
+    function fecharQR() {
+      document.getElementById('qr-modal').classList.remove('show');
+      if (waTimer) { clearInterval(waTimer); waTimer = null; }
     }
-    function openBusinessInfo() { alert('Informações da Empresa\n\nConfigurar dados básicos da barbearia.'); }
-    function openBusinessHours() { alert('Horário de Funcionamento\n\nDefinir horários de abertura e fechamento por dia da semana.'); }
-    function openServices() { alert('Gerenciar Serviços\n\nAdicionar, editar e remover serviços e seus preços.'); }
-    function openProfessionals() { alert('Gerenciar Profissionais\n\nAdicionar barbeiros e definir suas especialidades.'); }
-    function openWhatsAppConfig() { alert('Configurar WhatsApp\n\nConectar número do WhatsApp Business.'); }
-    function openBotMessages() { alert('Mensagens do Bot\n\nPersonalizar mensagens automáticas do assistente IA.'); }
-    function openBackup() { alert('Backup & Restauração\n\nGerenciar backups automáticos dos dados.'); }
-    function openReports() { alert('Relatórios\n\nGerar e exportar relatórios de agendamentos e faturamento.'); }
-    function openIntegrations() { alert('Integrações\n\nConectar com sistemas externos (POS, contabilidade, etc).'); }
-    function openSubscription() { alert('Plano & Cobrança\n\nGerenciar assinatura e métodos de pagamento.'); }
-    function openSupport() { alert('Suporte\n\nAcessar documentação, tutoriais e contatar suporte.'); }
+
+    async function desconectarWhatsApp() {
+      if (!confirm('Tem certeza que deseja desconectar o WhatsApp?')) return;
+      try {
+        await API.post('/whatsapp/desconectar');
+        await carregarConfig();
+      } catch (e) {
+        alert('Erro: ' + e.message);
+      }
+    }
+
+    async function toggleAI() {
+      const toggle = document.getElementById('ai-toggle');
+      const ativar = !toggle.classList.contains('active');
+      try {
+        await API.put('/whatsapp/config', { ai_enabled: ativar });
+        await carregarConfig();
+      } catch (e) {
+        alert('Erro: ' + e.message);
+      }
+    }
+
+    async function salvarAIConfig() {
+      const prompt = document.getElementById('ai-prompt').value;
+      try {
+        await API.put('/whatsapp/config', { ai_prompt: prompt || null });
+        alert('Configuração salva com sucesso!');
+      } catch (e) {
+        alert('Erro: ' + e.message);
+      }
+    }
 
     document.addEventListener('DOMContentLoaded', function() {
       const savedTheme = localStorage.getItem('theme');
@@ -652,16 +971,7 @@
         if (name) name.textContent = user.nome || 'Usuário';
         if (role) role.textContent = user.role === 'owner' ? 'Proprietário' : user.role;
       }
-      const sections = document.querySelectorAll('.config-section');
-      sections.forEach((section, index) => {
-        section.style.opacity = '0';
-        section.style.transform = 'translateY(20px)';
-        setTimeout(() => {
-          section.style.transition = 'all 0.4s ease-out';
-          section.style.opacity = '1';
-          section.style.transform = 'translateY(0)';
-        }, index * 150);
-      });
+      carregarConfig();
     });
   </script>
 </body>

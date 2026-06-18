@@ -34,7 +34,7 @@ async function seed() {
     );
 
     await conn.query(
-      `INSERT INTO whatsapp_config (barbearia_id, provider, enabled) VALUES ($1, 'log', false)`,
+      `INSERT INTO whatsapp_config (barbearia_id, provider, enabled, ai_enabled) VALUES ($1, 'log', false, false)`,
       [bid]
     );
 
