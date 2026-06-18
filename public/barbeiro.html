@@ -22,6 +22,9 @@
     .topo-acoes { display: flex; gap: var(--space-sm); }
     .topo-acoes button { background: rgba(255,255,255,0.2); border: none; color: #fff; width: 40px; height: 40px; border-radius: var(--radius-md); cursor: pointer; font-size: var(--text-lg); }
     .main-content { padding: var(--space-md); }
+    .tabs { display: flex; background: var(--bg-secondary); border-radius: var(--radius-md); padding: 3px; margin-bottom: var(--space-md); }
+    .tab { flex: 1; text-align: center; padding: var(--space-sm); border-radius: var(--radius-sm); cursor: pointer; font-size: var(--text-sm); font-weight: var(--font-medium); color: var(--text-secondary); border: none; background: none; transition: all var(--transition-fast); }
+    .tab.active { background: var(--primary); color: #fff; }
     .filtros { display: flex; gap: var(--space-sm); margin-bottom: var(--space-md); overflow-x: auto; padding-bottom: var(--space-xs); }
     .filtro-btn { background: var(--bg-secondary); border: none; padding: var(--space-xs) var(--space-md); border-radius: var(--radius-full); font-size: var(--text-sm); cursor: pointer; color: var(--text-secondary); white-space: nowrap; transition: all var(--transition-fast); }
     .filtro-btn.active { background: var(--primary); color: #fff; }
@@ -108,9 +111,14 @@
             <div class="stat-item"><div class="stat-num" id="stat-hoje">0</div><div class="stat-label">Total</div></div>
             <div class="stat-item"><div class="stat-num" id="stat-pendentes">0</div><div class="stat-label">Pendentes</div></div>
             <div class="stat-item"><div class="stat-num" id="stat-concluidos">0</div><div class="stat-label">Concluídos</div></div>
-          </div>
         </div>
-        <div class="main-content" style="padding-bottom:80px;">
+      </div>
+      <div class="tabs">
+        <button class="tab active" id="tab-agenda" onclick="mostrarAba('agenda')"><i class="fas fa-calendar-day"></i> Minha Agenda</button>
+        <button class="tab" id="tab-comissoes" onclick="mostrarAba('comissoes')"><i class="fas fa-coins"></i> Comissões</button>
+      </div>
+      <div class="main-content" style="padding-bottom:80px;">
+        <div id="aba-agenda">
           <div class="filtros" id="filtros">
             <button class="filtro-btn active" onclick="filtrar('todos', this)">Todos</button>
             <button class="filtro-btn" onclick="filtrar('agendado', this)">Agendados</button>
@@ -119,6 +127,18 @@
             <button class="filtro-btn" onclick="filtrar('cancelado', this)">Cancelados</button>
           </div>
           <div id="agenda-lista"><div class="empty"><i class="fas fa-spinner fa-spin"></i>Carregando...</div></div>
+        </div>
+        <div id="aba-comissoes" style="display:none;">
+          <div class="topo-stats" style="margin-bottom:var(--space-md);">
+            <div class="stat-item" style="background:var(--bg-secondary);color:var(--text-primary);"><div class="stat-num" id="saldo-pendente">R$ 0</div><div class="stat-label">Pendente</div></div>
+            <div class="stat-item" style="background:var(--bg-secondary);color:var(--text-primary);"><div class="stat-num" id="saldo-pago">R$ 0</div><div class="stat-label">Recebido</div></div>
+          </div>
+          <div class="filtros">
+            <button class="filtro-btn active" onclick="filtrarComissao('todas', this)">Todas</button>
+            <button class="filtro-btn" onclick="filtrarComissao('pendente', this)">Pendentes</button>
+            <button class="filtro-btn" onclick="filtrarComissao('pago', this)">Recebidas</button>
+          </div>
+          <div id="comissoes-lista"><div class="empty"><i class="fas fa-spinner fa-spin"></i>Carregando...</div></div>
         </div>
         <nav class="nav-inferior bottom-nav">
           <div class="nav-itens">
@@ -137,9 +157,11 @@
 
     let todosAgendamentos = [];
     let filtroAtual = 'todos';
+    let filtroComissao = 'todas';
     let dataAtual = new Date();
     let profissionalId = null;
     let refreshTimer = null;
+    let todasComissoes = [];
 
     function toggleTheme() {
       const html = document.documentElement;
@@ -168,9 +190,24 @@
 
     function filtrar(status, btn) {
       filtroAtual = status;
-      document.querySelectorAll('.filtro-btn').forEach(b => b.classList.remove('active'));
+      document.querySelectorAll('#aba-agenda .filtro-btn').forEach(b => b.classList.remove('active'));
       btn.classList.add('active');
       renderizar();
+    }
+
+    function filtrarComissao(status, btn) {
+      filtroComissao = status;
+      document.querySelectorAll('#aba-comissoes .filtro-btn').forEach(b => b.classList.remove('active'));
+      btn.classList.add('active');
+      renderizarComissoes();
+    }
+
+    function mostrarAba(aba) {
+      document.getElementById('aba-agenda').style.display = aba === 'agenda' ? 'block' : 'none';
+      document.getElementById('aba-comissoes').style.display = aba === 'comissoes' ? 'block' : 'none';
+      document.getElementById('tab-agenda').classList.toggle('active', aba === 'agenda');
+      document.getElementById('tab-comissoes').classList.toggle('active', aba === 'comissoes');
+      if (aba === 'comissoes') carregarComissoes();
     }
 
     async function carregar() {
@@ -243,6 +280,44 @@
       } catch (e) {
         alert('Erro: ' + e.message);
       }
+    }
+
+    async function carregarComissoes() {
+      try {
+        const saldo = await API.get('/comissoes/saldo');
+        document.getElementById('saldo-pendente').textContent = 'R$ ' + (saldo.pendente || 0).toFixed(2);
+        document.getElementById('saldo-pago').textContent = 'R$ ' + (saldo.pago || 0).toFixed(2);
+        todasComissoes = await API.get('/comissoes');
+        renderizarComissoes();
+      } catch (e) {
+        document.getElementById('comissoes-lista').innerHTML = '<div class="empty"><i class="fas fa-exclamation-triangle"></i>Erro: ' + e.message + '</div>';
+      }
+    }
+
+    function renderizarComissoes() {
+      const el = document.getElementById('comissoes-lista');
+      let lista = todasComissoes;
+      if (filtroComissao !== 'todas') lista = lista.filter(c => c.status === filtroComissao);
+      if (!lista.length) {
+        el.innerHTML = '<div class="empty"><i class="fas fa-coins"></i>Nenhuma comissão encontrada</div>';
+        return;
+      }
+      el.innerHTML = lista.map(c => `
+        <div class="ag-card" style="border-left-color: ${c.status === 'pago' ? 'var(--success)' : 'var(--warning)'};">
+          <div style="min-width:44px;text-align:center;font-size:var(--text-lg);">
+            <i class="fas ${c.tipo === 'produto' ? 'fa-box' : 'fa-cut'}"></i>
+          </div>
+          <div class="ag-info">
+            <div class="ag-cliente">${c.descricao}</div>
+            <div class="ag-serv">${c.tipo === 'produto' ? 'Produto' : 'Serviço'} • R$ ${parseFloat(c.valor_item).toFixed(2)} • ${c.percentual}%</div>
+            <div style="font-size:var(--text-xs);color:var(--text-muted);">${c.comanda_numero ? 'Comanda #' + c.comanda_numero : ''} • ${new Date(c.created_at).toLocaleDateString('pt-BR')}</div>
+          </div>
+          <div style="text-align:right;font-weight:var(--font-bold);color:${c.status === 'pago' ? 'var(--success)' : 'var(--warning)'};">
+            R$ ${parseFloat(c.valor_comissao).toFixed(2)}
+            <div style="font-size:var(--text-xs);font-weight:var(--font-medium);">${c.status === 'pago' ? 'Pago ✓' : 'Pendente'}</div>
+          </div>
+        </div>
+      `).join('');
     }
 
     document.addEventListener('DOMContentLoaded', async function() {

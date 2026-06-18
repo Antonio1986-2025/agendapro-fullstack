@@ -175,6 +175,29 @@ router.patch('/:id/pagar', async (req, res) => {
     );
   }
 
+  // Calcula comissoes dos profissionais nos itens
+  const itens = await query(
+    `SELECT ci.*, p.comissao_servico_percentual, p.comissao_produto_percentual
+       FROM comanda_itens ci
+       LEFT JOIN profissionais p ON p.id = ci.profissional_id
+      WHERE ci.comanda_id = $1`,
+    [req.params.id]
+  );
+  for (const item of itens.rows) {
+    if (!item.profissional_id) continue;
+    const percentual = item.tipo === 'produto'
+      ? parseFloat(item.comissao_produto_percentual || 0)
+      : parseFloat(item.comissao_servico_percentual || 0);
+    if (percentual <= 0) continue;
+    const valorComissao = parseFloat(item.valor) * (percentual / 100);
+    await query(
+      `INSERT INTO comissoes (barbearia_id, profissional_id, comanda_id, tipo, descricao, valor_item, percentual, valor_comissao, status)
+       VALUES ($1,$2,$3,$4,$5,$6,$7,$8,'pendente')`,
+      [req.barbeariaId, item.profissional_id, req.params.id, item.tipo,
+       item.descricao, parseFloat(item.valor).toFixed(2), percentual, valorComissao.toFixed(2)]
+    );
+  }
+
   res.json({ ok: true, troco });
 });
 

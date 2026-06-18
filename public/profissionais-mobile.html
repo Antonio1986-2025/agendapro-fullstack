@@ -43,6 +43,8 @@
     .nav-item.active { color: var(--primary); background: var(--primary-light); }
     .nav-icon { font-size: var(--text-lg); margin-bottom: var(--space-xs); }
     .nav-label { font-size: var(--text-xs); font-weight: var(--font-medium); }
+    .row2 { display: grid; grid-template-columns: 1fr 1fr; gap: var(--space-md); }
+    @media (max-width: 400px) { .row2 { grid-template-columns: 1fr; } }
   </style>
 </head>
 <body>
@@ -144,12 +146,56 @@
       </div>
       <div class="field">
         <label>Telefone (WhatsApp) — recebe avisos de novos agendamentos</label>
-        <input class="input" id="f-telefone" placeholder="Ex: 67999990000">
+        <input class="input" id="f-telefone" placeholder="Ex: 67999990000" oninput="mascararTel(this)">
       </div>
       <div class="switch-row">
         <label style="margin:0">Receber avisos no WhatsApp</label>
         <input type="checkbox" id="f-notificar" checked style="width:20px;height:20px;">
       </div>
+
+      <hr style="border-color:var(--border-color);margin:var(--space-md) 0;">
+
+      <h3 style="font-size:var(--text-md);font-weight:var(--font-bold);margin-bottom:var(--space-md);">Comissões</h3>
+      <div class="row2">
+        <div class="field">
+          <label>% sobre Serviços</label>
+          <input class="input" type="number" id="f-comissao-serv" value="0" min="0" max="100" step="0.5">
+        </div>
+        <div class="field">
+          <label>% sobre Produtos</label>
+          <input class="input" type="number" id="f-comissao-prod" value="0" min="0" max="100" step="0.5">
+        </div>
+      </div>
+      <div class="field">
+        <label>Data de contratação</label>
+        <input class="input" type="date" id="f-data-contrato">
+      </div>
+
+      <hr style="border-color:var(--border-color);margin:var(--space-md) 0;">
+
+      <div class="switch-row">
+        <label style="margin:0;font-weight:var(--font-bold);">Criar acesso ao sistema</label>
+        <input type="checkbox" id="f-criar-acesso" style="width:20px;height:20px;" onchange="toggleAcesso()">
+      </div>
+      <div id="campos-acesso" style="display:none;">
+        <div class="field">
+          <label>Email para login</label>
+          <input class="input" type="email" id="f-email" placeholder="barbeiro@email.com">
+        </div>
+        <div class="field">
+          <label>Senha (min. 6 caracteres)</label>
+          <input class="input" type="password" id="f-senha" minlength="6" placeholder="••••••">
+        </div>
+      </div>
+
+      <hr style="border-color:var(--border-color);margin:var(--space-md) 0;">
+
+      <h3 style="font-size:var(--text-md);font-weight:var(--font-bold);margin-bottom:var(--space-md);">Permissões</h3>
+      <div class="switch-row"><label style="margin:0">Ver clientes</label><input type="checkbox" id="f-perm-clientes" checked style="width:20px;height:20px;"></div>
+      <div class="switch-row"><label style="margin:0">Ver comandas</label><input type="checkbox" id="f-perm-comandas" checked style="width:20px;height:20px;"></div>
+      <div class="switch-row"><label style="margin:0">Gerenciar agenda de todos</label><input type="checkbox" id="f-perm-gerenciar" style="width:20px;height:20px;"></div>
+      <div class="switch-row"><label style="margin:0">Ver relatórios</label><input type="checkbox" id="f-perm-relatorios" style="width:20px;height:20px;"></div>
+
       <div style="display:flex; gap: var(--space-sm); margin-top: var(--space-lg);">
         <button class="btn btn-secondary btn-full" onclick="fecharModal()">Cancelar</button>
         <button class="btn btn-primary btn-full" id="btn-salvar" onclick="salvar()">Salvar</button>
@@ -252,6 +298,19 @@
       </div>`;
     }
 
+    function toggleAcesso() {
+      document.getElementById('campos-acesso').style.display =
+        document.getElementById('f-criar-acesso').checked ? 'block' : 'none';
+    }
+
+    function mascararTel(el) {
+      let v = el.value.replace(/\D/g, '').slice(0, 11);
+      if (v.length <= 2) el.value = '(' + v;
+      else if (v.length <= 6) el.value = '(' + v.slice(0,2) + ') ' + v.slice(2);
+      else if (v.length <= 10) el.value = '(' + v.slice(0,2) + ') ' + v.slice(2,6) + '-' + v.slice(6);
+      else el.value = '(' + v.slice(0,2) + ') ' + v.slice(2,7) + '-' + v.slice(7);
+    }
+
     function abrirModal() {
       document.getElementById('modal-title').textContent = 'Novo profissional';
       document.getElementById('f-id').value = '';
@@ -259,6 +318,17 @@
       document.getElementById('f-especialidade').value = '';
       document.getElementById('f-telefone').value = '';
       document.getElementById('f-notificar').checked = true;
+      document.getElementById('f-comissao-serv').value = '0';
+      document.getElementById('f-comissao-prod').value = '0';
+      document.getElementById('f-data-contrato').value = '';
+      document.getElementById('f-criar-acesso').checked = false;
+      document.getElementById('campos-acesso').style.display = 'none';
+      document.getElementById('f-email').value = '';
+      document.getElementById('f-senha').value = '';
+      document.getElementById('f-perm-clientes').checked = true;
+      document.getElementById('f-perm-comandas').checked = true;
+      document.getElementById('f-perm-gerenciar').checked = false;
+      document.getElementById('f-perm-relatorios').checked = false;
       document.getElementById('modal-alerta').className = 'alert';
       document.getElementById('modal').classList.add('open');
     }
@@ -269,6 +339,18 @@
       document.getElementById('f-especialidade').value = p.especialidade || '';
       document.getElementById('f-telefone').value = p.telefone || '';
       document.getElementById('f-notificar').checked = p.notificar_whatsapp !== false;
+      document.getElementById('f-comissao-serv').value = p.comissao_servico_percentual || 0;
+      document.getElementById('f-comissao-prod').value = p.comissao_produto_percentual || 0;
+      document.getElementById('f-data-contrato').value = p.data_contratacao || '';
+      document.getElementById('f-criar-acesso').checked = false;
+      document.getElementById('campos-acesso').style.display = 'none';
+      if (p.permissoes) {
+        const perm = typeof p.permissoes === 'string' ? JSON.parse(p.permissoes) : p.permissoes;
+        document.getElementById('f-perm-clientes').checked = perm.clientes !== false;
+        document.getElementById('f-perm-comandas').checked = perm.comandas !== false;
+        document.getElementById('f-perm-gerenciar').checked = perm.gerenciar_agenda === true;
+        document.getElementById('f-perm-relatorios').checked = perm.relatorios === true;
+      }
       document.getElementById('modal-alerta').className = 'alert';
       document.getElementById('modal').classList.add('open');
     }
@@ -281,9 +363,29 @@
         especialidade: document.getElementById('f-especialidade').value.trim(),
         telefone: document.getElementById('f-telefone').value.trim(),
         notificar_whatsapp: document.getElementById('f-notificar').checked,
+        comissao_servico_percentual: parseFloat(document.getElementById('f-comissao-serv').value) || 0,
+        comissao_produto_percentual: parseFloat(document.getElementById('f-comissao-prod').value) || 0,
+        data_contratacao: document.getElementById('f-data-contrato').value || null,
+        permissoes: {
+          clientes: document.getElementById('f-perm-clientes').checked,
+          comandas: document.getElementById('f-perm-comandas').checked,
+          gerenciar_agenda: document.getElementById('f-perm-gerenciar').checked,
+          relatorios: document.getElementById('f-perm-relatorios').checked,
+        },
+        criar_acesso: document.getElementById('f-criar-acesso').checked,
+        email: document.getElementById('f-email').value.trim(),
+        senha: document.getElementById('f-senha').value,
       };
       if (!dados.nome) {
         const a = document.getElementById('modal-alerta'); a.textContent = 'Informe o nome'; a.className = 'alert error'; return;
+      }
+      if (dados.criar_acesso) {
+        if (!dados.email || !dados.senha) {
+          const a = document.getElementById('modal-alerta'); a.textContent = 'Preencha email e senha para criar acesso'; a.className = 'alert error'; return;
+        }
+        if (dados.senha.length < 6) {
+          const a = document.getElementById('modal-alerta'); a.textContent = 'Senha deve ter ao menos 6 caracteres'; a.className = 'alert error'; return;
+        }
       }
       const btn = document.getElementById('btn-salvar');
       btn.disabled = true; btn.textContent = 'Salvando...';

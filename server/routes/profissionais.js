@@ -1,6 +1,7 @@
 import { Router } from 'express';
+import bcrypt from 'bcryptjs';
 import { query } from '../config/database.js';
-import { autenticar } from '../middleware/auth.js';
+import { autenticar, exigirRole } from '../middleware/auth.js';
 
 const router = Router();
 router.use(autenticar);
@@ -14,36 +15,71 @@ router.get('/', async (req, res) => {
   res.json(rows);
 });
 
-// POST /api/profissionais
-router.post('/', async (req, res) => {
-  const { nome, especialidade, telefone, notificar_whatsapp, ordem } = req.body;
+// POST /api/profissionais (agora aceita comissao, permissoes e criar usuario)
+router.post('/', exigirRole('owner'), async (req, res) => {
+  const { nome, especialidade, telefone, notificar_whatsapp, ordem,
+          comissao_servico_percentual, comissao_produto_percentual, data_contratacao, permissoes,
+          criar_acesso, email, senha } = req.body;
   if (!nome) return res.status(400).json({ erro: 'Nome obrigatorio' });
   const inicial = nome.trim().charAt(0).toUpperCase();
+
+  const perm = permissoes || { clientes: true, comandas: true, gerenciar_agenda: false, relatorios: false };
+
   const { rows } = await query(
-    `INSERT INTO profissionais (barbearia_id, nome, especialidade, telefone, notificar_whatsapp, avatar_inicial, ordem)
-     VALUES ($1, $2, $3, $4, $5, $6, $7) RETURNING *`,
+    `INSERT INTO profissionais (barbearia_id, nome, especialidade, telefone, notificar_whatsapp, avatar_inicial, ordem,
+                                comissao_servico_percentual, comissao_produto_percentual, data_contratacao, permissoes)
+     VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11::jsonb) RETURNING *`,
     [req.barbeariaId, nome, especialidade || null, telefone || null,
-     notificar_whatsapp !== false, inicial, ordem || 0]
+     notificar_whatsapp !== false, inicial, ordem || 0,
+     comissao_servico_percentual || 0, comissao_produto_percentual || 0,
+     data_contratacao || null, JSON.stringify(perm)]
   );
-  res.status(201).json(rows[0]);
+  const profissional = rows[0];
+
+  // Se marcou "criar acesso", cria o usuario barbeiro vinculado
+  if (criar_acesso && email && senha) {
+    const emailExiste = await query('SELECT 1 FROM usuarios WHERE email = $1', [email]);
+    if (emailExiste.rowCount > 0) {
+      return res.status(409).json({ erro: 'Este email ja esta em uso', profissional });
+    }
+    const senhaHash = bcrypt.hashSync(senha, 10);
+    await query(
+      `INSERT INTO usuarios (barbearia_id, nome, email, senha_hash, role, profissional_id)
+       VALUES ($1,$2,$3,$4,'staff',$5)`,
+      [req.barbeariaId, nome, email, senhaHash, profissional.id]
+    );
+  }
+
+  res.status(201).json(profissional);
 });
 
 // PUT /api/profissionais/:id
 router.put('/:id', async (req, res) => {
-  const { nome, especialidade, telefone, notificar_whatsapp, ativo, ordem } = req.body;
-  const { rows } = await query(
-    `UPDATE profissionais
-        SET nome = COALESCE($1, nome),
-            especialidade = COALESCE($2, especialidade),
-            telefone = COALESCE($3, telefone),
-            notificar_whatsapp = COALESCE($4, notificar_whatsapp),
-            ativo = COALESCE($5, ativo),
-            ordem = COALESCE($6, ordem),
-            avatar_inicial = COALESCE(LEFT(UPPER($1),1), avatar_inicial)
-      WHERE id = $7 AND barbearia_id = $8
-      RETURNING *`,
-    [nome, especialidade, telefone, notificar_whatsapp, ativo, ordem, req.params.id, req.barbeariaId]
-  );
+  const { nome, especialidade, telefone, notificar_whatsapp, ativo, ordem,
+          comissao_servico_percentual, comissao_produto_percentual, data_contratacao, permissoes } = req.body;
+
+  let sql = `UPDATE profissionais SET `;
+  const sets = []; const params = []; let i = 0;
+  const fields = [
+    ['nome', nome], ['especialidade', especialidade], ['telefone', telefone],
+    ['notificar_whatsapp', notificar_whatsapp], ['ativo', ativo], ['ordem', ordem],
+    ['comissao_servico_percentual', comissao_servico_percentual],
+    ['comissao_produto_percentual', comissao_produto_percentual],
+    ['data_contratacao', data_contratacao],
+  ];
+  fields.forEach(([col, val]) => {
+    if (val !== undefined) { i++; sets.push(`${col} = $${i}`); params.push(val); }
+  });
+  if (permissoes) { i++; sets.push(`permissoes = $${i}::jsonb`); params.push(JSON.stringify(permissoes)); }
+  if (nome) { i++; sets.push(`avatar_inicial = $${i}`); params.push(nome.trim().charAt(0).toUpperCase()); }
+
+  if (!sets.length) return res.status(400).json({ erro: 'Nenhum campo enviado' });
+
+  i++; params.push(req.params.id);
+  i++; params.push(req.barbeariaId);
+  sql += sets.join(', ') + ` WHERE id = $${i-1} AND barbearia_id = $${i} RETURNING *`;
+
+  const { rows } = await query(sql, params);
   if (!rows[0]) return res.status(404).json({ erro: 'Profissional nao encontrado' });
   res.json(rows[0]);
 });

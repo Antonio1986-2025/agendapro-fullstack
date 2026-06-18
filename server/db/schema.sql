@@ -54,6 +54,40 @@ CREATE TABLE IF NOT EXISTS profissionais (
 -- Garante colunas novas em bancos ja existentes (idempotente)
 ALTER TABLE profissionais ADD COLUMN IF NOT EXISTS telefone VARCHAR(30);
 ALTER TABLE profissionais ADD COLUMN IF NOT EXISTS notificar_whatsapp BOOLEAN DEFAULT true;
+ALTER TABLE profissionais ADD COLUMN IF NOT EXISTS comissao_servico_percentual DECIMAL(5,2) DEFAULT 0;
+ALTER TABLE profissionais ADD COLUMN IF NOT EXISTS comissao_produto_percentual DECIMAL(5,2) DEFAULT 0;
+ALTER TABLE profissionais ADD COLUMN IF NOT EXISTS data_contratacao DATE;
+ALTER TABLE profissionais ADD COLUMN IF NOT EXISTS permissoes JSONB DEFAULT '{"clientes":true,"comandas":true,"gerenciar_agenda":false,"relatorios":false}';
+
+-- ---------- comissoes ----------
+CREATE TABLE IF NOT EXISTS comissoes (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    barbearia_id UUID NOT NULL REFERENCES barbearias(id) ON DELETE CASCADE,
+    profissional_id UUID NOT NULL REFERENCES profissionais(id) ON DELETE CASCADE,
+    comanda_id UUID REFERENCES comandas(id) ON DELETE SET NULL,
+    tipo VARCHAR(20) NOT NULL,                  -- servico | produto
+    descricao VARCHAR(255) NOT NULL,
+    valor_item DECIMAL(10,2) NOT NULL,
+    percentual DECIMAL(5,2) NOT NULL,
+    valor_comissao DECIMAL(10,2) NOT NULL,
+    status VARCHAR(20) DEFAULT 'pendente',      -- pendente | pago
+    pago_em TIMESTAMPTZ,
+    created_at TIMESTAMPTZ DEFAULT now()
+);
+
+CREATE INDEX IF NOT EXISTS idx_comissoes_profissional ON comissoes(profissional_id);
+CREATE INDEX IF NOT EXISTS idx_comissoes_status ON comissoes(status);
+
+-- ---------- acertos ----------
+CREATE TABLE IF NOT EXISTS acertos (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    barbearia_id UUID NOT NULL REFERENCES barbearias(id) ON DELETE CASCADE,
+    profissional_id UUID NOT NULL REFERENCES profissionais(id) ON DELETE CASCADE,
+    valor_total DECIMAL(10,2) NOT NULL,
+    created_at TIMESTAMPTZ DEFAULT now()
+);
+
+ALTER TABLE comissoes ADD COLUMN IF NOT EXISTS acerto_id UUID REFERENCES acertos(id) ON DELETE SET NULL;
 
 -- ---------- servicos ----------
 CREATE TABLE IF NOT EXISTS servicos (
