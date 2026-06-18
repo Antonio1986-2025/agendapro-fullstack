@@ -1,8 +1,5 @@
-import axios from 'axios';
 import { query } from '../config/database.js';
-
-const OPENWA_DEFAULT_URL = process.env.OPENWA_URL || 'http://localhost:2785';
-const OPENWA_DEFAULT_KEY = process.env.OPENWA_API_KEY || '';
+import { enviarMensagemBaileys } from './baileys-provider.js';
 
 async function getConfig(barbeariaId) {
   const { rows } = await query(
@@ -15,7 +12,7 @@ async function getConfig(barbeariaId) {
 function normalizarTelefone(tel) {
   let n = (tel || '').replace(/\D/g, '');
   if (n.length <= 11) n = '55' + n;
-  return n + '@s.whatsapp.net';
+  return n;
 }
 
 async function registrarMensagem(barbeariaId, { agendamentoId, telefone, mensagem, tipo, status }) {
@@ -26,58 +23,30 @@ async function registrarMensagem(barbeariaId, { agendamentoId, telefone, mensage
   );
 }
 
-async function enviarViaOpenWA(config, telefone, mensagem) {
-  const baseUrl = config.openwa_url || OPENWA_DEFAULT_URL;
-  const apiKey = config.openwa_api_key || OPENWA_DEFAULT_KEY;
-  const session = config.openwa_session_name;
-  if (!session) throw new Error('Sessão OpenWA não configurada');
-
-  const remoteJid = normalizarTelefone(telefone);
-  const { data } = await axios.post(
-    `${baseUrl}/api/sessions/${session}/messages/send-text`,
-    { chatId: remoteJid, text: mensagem },
-    {
-      headers: {
-        'X-API-Key': apiKey,
-        'Content-Type': 'application/json',
-      },
-      timeout: 15000,
-    }
-  );
-  return data;
-}
-
-function getOpenWABaseUrl(config) {
-  return config.openwa_url || OPENWA_DEFAULT_URL;
-}
-
-function getOpenWAApiKey(config) {
-  return config.openwa_api_key || OPENWA_DEFAULT_KEY;
-}
-
 export async function enviarMensagem(barbeariaId, { telefone, mensagem, tipo, agendamentoId }) {
   const config = await getConfig(barbeariaId);
+  const tel = normalizarTelefone(telefone);
 
   if (!config.enabled || config.provider === 'log') {
     await registrarMensagem(barbeariaId, {
-      agendamentoId, telefone, mensagem, tipo, status: 'enviada',
+      agendamentoId, telefone: tel, mensagem, tipo, status: 'enviada',
     });
-    console.log(`📱 [WhatsApp:log] -> ${telefone}: ${mensagem}`);
+    console.log(`📱 [WhatsApp:log] -> ${tel}: ${mensagem}`);
     return { ok: true, provider: 'log', status: 'enviada' };
   }
 
   try {
-    await enviarViaOpenWA(config, telefone, mensagem);
+    await enviarMensagemBaileys(barbeariaId, tel, mensagem);
     await registrarMensagem(barbeariaId, {
-      agendamentoId, telefone, mensagem, tipo, status: 'enviada',
+      agendamentoId, telefone: tel, mensagem, tipo, status: 'enviada',
     });
-    return { ok: true, provider: 'openwa', status: 'enviada' };
+    return { ok: true, provider: 'baileys', status: 'enviada' };
   } catch (err) {
-    console.error('❌ Erro WhatsApp OpenWA:', err.response?.data || err.message);
+    console.error('❌ Erro WhatsApp Baileys:', err.message);
     await registrarMensagem(barbeariaId, {
-      agendamentoId, telefone, mensagem, tipo, status: 'erro',
+      agendamentoId, telefone: tel, mensagem, tipo, status: 'erro',
     });
-    return { ok: false, provider: 'openwa', status: 'erro', erro: err.message };
+    return { ok: false, provider: 'baileys', status: 'erro', erro: err.message };
   }
 }
 
@@ -154,88 +123,4 @@ export async function notificarBarbeiroNovoAgendamento(barbeariaId, agendamentoI
     console.error('Falha ao notificar barbeiro:', err.message);
     return { ok: false, motivo: err.message };
   }
-}
-
-export async function criarSessaoOpenWA(barbeariaId, nome, config) {
-  const baseUrl = getOpenWABaseUrl(config);
-  const apiKey = getOpenWAApiKey(config);
-  const sessionName = nome || `barb_${barbeariaId.replace(/-/g, '').slice(0, 12)}`;
-
-  const { data } = await axios.post(
-    `${baseUrl}/api/sessions`,
-    { name: sessionName },
-    {
-      headers: { 'X-API-Key': apiKey, 'Content-Type': 'application/json' },
-      timeout: 10000,
-    }
-  );
-
-  return { sessionId: data.id || data._id, sessionName };
-}
-
-export async function iniciarSessaoOpenWA(barbeariaId, config) {
-  const baseUrl = getOpenWABaseUrl(config);
-  const apiKey = getOpenWAApiKey(config);
-  const session = config.openwa_session_name;
-  if (!session) throw new Error('Sessão não configurada');
-
-  await axios.post(
-    `${baseUrl}/api/sessions/${session}/start`,
-    {},
-    {
-      headers: { 'X-API-Key': apiKey, 'Content-Type': 'application/json' },
-      timeout: 10000,
-    }
-  );
-}
-
-export async function obterQRSessaoOpenWA(barbeariaId, config) {
-  const baseUrl = getOpenWABaseUrl(config);
-  const apiKey = getOpenWAApiKey(config);
-  const session = config.openwa_session_name;
-  if (!session) throw new Error('Sessão não configurada');
-
-  const { data } = await axios.get(
-    `${baseUrl}/api/sessions/${session}/qr`,
-    {
-      headers: { 'X-API-Key': apiKey },
-      timeout: 15000,
-    }
-  );
-  return data;
-}
-
-export async function statusSessaoOpenWA(barbeariaId, config) {
-  const baseUrl = getOpenWABaseUrl(config);
-  const apiKey = getOpenWAApiKey(config);
-  const session = config.openwa_session_name;
-  if (!session) return 'disconnected';
-
-  try {
-    const { data } = await axios.get(
-      `${baseUrl}/api/sessions/${session}/status`,
-      {
-        headers: { 'X-API-Key': apiKey },
-        timeout: 10000,
-      }
-    );
-    return data.status || data.state || 'unknown';
-  } catch {
-    return 'disconnected';
-  }
-}
-
-export async function desconectarSessaoOpenWA(barbeariaId, config) {
-  const baseUrl = getOpenWABaseUrl(config);
-  const apiKey = getOpenWAApiKey(config);
-  const session = config.openwa_session_name;
-  if (!session) throw new Error('Sessão não configurada');
-
-  await axios.delete(
-    `${baseUrl}/api/sessions/${session}`,
-    {
-      headers: { 'X-API-Key': apiKey },
-      timeout: 10000,
-    }
-  );
 }
