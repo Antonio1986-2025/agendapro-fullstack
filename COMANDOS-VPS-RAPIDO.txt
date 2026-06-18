@@ -1,0 +1,126 @@
+🚀 COMANDOS PARA EXECUTAR NA VPS (COPIE E COLE)
+=================================================
+
+📋 ETAPA 1: CONECTAR E NAVEGAR
+------------------------------
+ssh seu-usuario@seu-ip-vps
+cd /caminho/do/agendapro-fullstack
+
+
+📋 ETAPA 2: ATUALIZAR CÓDIGO (OPÇÃO A - Se já existe)
+------------------------------------------------------
+git pull origin main
+npm install --production
+pm2 restart all
+pm2 logs
+
+
+📋 ETAPA 2: DEPLOY NOVO (OPÇÃO B - Se não existe)
+--------------------------------------------------
+git clone https://github.com/Antonio1986-2025/agendapro-fullstack.git
+cd agendapro-fullstack
+npm install --production
+
+
+📋 ETAPA 3: CONFIGURAR .env (COPIE TUDO ABAIXO)
+------------------------------------------------
+nano .env
+
+# Cole isto (Ctrl+Shift+V):
+DATABASE_URL=postgresql://postgres.yavvktjanvbejsrramnc:Aaa30269041%23@aws-1-us-east-1.pooler.supabase.com:6543/postgres
+DB_SSL=true
+SUPABASE_URL=https://yavvktjanvbejsrramnc.supabase.co
+SUPABASE_ANON_KEY=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InlhdnZrdGphbnZiZWpzcnJhbW5jIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODE3MTMzNDYsImV4cCI6MjA5NzI4OTM0Nn0.kosbz5B2l9of_9zqS4JFHAtz_4UUk-rCq9MNxzw2nwI
+SUPABASE_SERVICE_KEY=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InlhdnZrdGphbnZiZWpzcnJhbW5jIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc4MTcxMzM0NiwiZXhwIjoyMDk3Mjg5MzQ2fQ.kza59hJ17dfBh1JSMebOiiREQt6zfcdpLZwLPLWkXsI
+OPENAI_API_KEY=SUA_CHAVE_OPENAI_AQUI
+PORT=3000
+NODE_ENV=production
+AUTO_MIGRATE=true
+TZ=America/Sao_Paulo
+JWT_SECRET=mude-para-algo-aleatorio-seguro-123456
+JWT_EXPIRATION=7d
+
+# Salvar: Ctrl+O, Enter, Ctrl+X
+
+
+📋 ETAPA 4: RODAR MIGRATIONS
+-----------------------------
+npm run migrate
+
+
+📋 ETAPA 5: INICIAR COM PM2
+----------------------------
+npm install -g pm2
+pm2 start npm --name "agendapro" -- start
+pm2 save
+pm2 startup
+
+
+📋 ETAPA 6: VERIFICAR SE ESTÁ RODANDO
+--------------------------------------
+pm2 status
+pm2 logs --lines 30
+curl http://localhost:3000/api/health
+
+
+📋 ETAPA 7: TESTAR AGENTE IA
+-----------------------------
+node test-ai.js
+
+
+📋 ETAPA 8: CONFIGURAR FIREWALL (se necessário)
+------------------------------------------------
+sudo ufw allow 3000
+sudo ufw status
+
+
+📋 COMANDOS ÚTEIS:
+------------------
+# Ver logs em tempo real
+pm2 logs
+
+# Reiniciar
+pm2 restart all
+
+# Parar
+pm2 stop all
+
+# Status
+pm2 status
+
+# Monitorar recursos
+pm2 monit
+
+# Atualizar código depois
+cd /caminho/do/projeto
+git pull origin main
+pm2 restart all
+
+
+✅ PRONTO! Acesse: http://seu-ip-ou-dominio:3000
+
+
+🎯 ATIVAR AGENTE IA NO PAINEL:
+-------------------------------
+1. Acesse http://seu-ip:3000
+2. Faça login
+3. Menu → Configurações → WhatsApp
+4. Clique "Conectar WhatsApp"
+5. Escaneie QR Code
+6. Marque "Agente IA Ativado"
+7. Salvar
+
+
+🐛 SE DER ERRO:
+---------------
+# Ver logs detalhados
+pm2 logs --lines 100
+
+# Reiniciar servidor
+pm2 restart all
+
+# Verificar porta
+sudo lsof -i :3000
+
+# Testar manualmente
+npm start

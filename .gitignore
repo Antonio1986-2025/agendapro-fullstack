@@ -1,5 +1,7 @@
 node_modules/
 .env
+.env.vps
 *.log
 .DS_Store
 Thumbs.db
+COMANDOS-VPS-RAPIDO.txt
