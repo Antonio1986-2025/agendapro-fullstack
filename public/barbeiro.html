@@ -7,22 +7,23 @@
   <link rel="stylesheet" href="design-system.css">
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
   <style>
-    body { background: var(--bg-primary); min-height: 100vh; }
-    .barbeiro-app { max-width: 480px; margin: 0 auto; min-height: 100vh; background: var(--bg-primary); }
     .topo { background: linear-gradient(135deg, var(--primary), var(--primary-dark)); color: #fff; padding: var(--space-lg) var(--space-md); }
     .topo-header { display: flex; justify-content: space-between; align-items: flex-start; }
     .topo-saudacao { font-size: var(--text-sm); opacity: 0.9; }
     .topo-nome { font-size: var(--text-xl); font-weight: var(--font-bold); margin-top: 2px; }
-    .topo-data { font-size: var(--text-sm); opacity: 0.85; margin-top: var(--space-xs); }
+    .date-nav { display: flex; align-items: center; justify-content: center; gap: var(--space-md); margin-top: var(--space-md); }
+    .date-nav button { background: rgba(255,255,255,0.2); border: none; color: #fff; width: 36px; height: 36px; border-radius: var(--radius-md); cursor: pointer; }
+    .date-nav button:hover { background: rgba(255,255,255,0.3); }
+    .date-atual { font-weight: var(--font-semibold); font-size: var(--text-sm); text-transform: capitalize; min-width: 180px; text-align: center; }
     .topo-stats { display: flex; gap: var(--space-md); margin-top: var(--space-md); }
-    .stat-item { background: rgba(255,255,255,0.15); border-radius: var(--radius-md); padding: var(--space-sm) var(--space-md); text-align: center; min-width: 80px; }
+    .stat-item { background: rgba(255,255,255,0.15); border-radius: var(--radius-md); padding: var(--space-sm) var(--space-md); text-align: center; flex: 1; }
     .stat-num { font-size: var(--text-xl); font-weight: var(--font-bold); }
     .stat-label { font-size: var(--text-xs); opacity: 0.85; }
     .topo-acoes { display: flex; gap: var(--space-sm); }
     .topo-acoes button { background: rgba(255,255,255,0.2); border: none; color: #fff; width: 40px; height: 40px; border-radius: var(--radius-md); cursor: pointer; font-size: var(--text-lg); }
     .main-content { padding: var(--space-md); }
     .filtros { display: flex; gap: var(--space-sm); margin-bottom: var(--space-md); overflow-x: auto; padding-bottom: var(--space-xs); }
-    .filtro-btn { background: var(--bg-secondary); border: none; padding: var(--space-xs) var(--space-md); border-radius: var(--radius-full); font-size: var(--text-sm); cursor: pointer; color: var(--text-secondary); white-space: nowrap; }
+    .filtro-btn { background: var(--bg-secondary); border: none; padding: var(--space-xs) var(--space-md); border-radius: var(--radius-full); font-size: var(--text-sm); cursor: pointer; color: var(--text-secondary); white-space: nowrap; transition: all var(--transition-fast); }
     .filtro-btn.active { background: var(--primary); color: #fff; }
     .ag-card { background: var(--bg-card); border: 1px solid var(--border-color); border-radius: var(--radius-lg); padding: var(--space-md); margin-bottom: var(--space-sm); display: flex; align-items: center; gap: var(--space-md); border-left: 4px solid var(--border-color); }
     .ag-card.st-agendado { border-left-color: var(--warning); }
@@ -34,58 +35,100 @@
     .ag-cliente { font-weight: var(--font-semibold); color: var(--text-primary); }
     .ag-serv { font-size: var(--text-sm); color: var(--text-secondary); }
     .ag-acoes { display: flex; gap: 4px; }
-    .ag-acoes button { background: var(--bg-secondary); border: none; width: 34px; height: 34px; border-radius: var(--radius-md); cursor: pointer; color: var(--text-secondary); font-size: var(--text-sm); }
+    .ag-acoes button { background: var(--bg-secondary); border: none; width: 34px; height: 34px; border-radius: var(--radius-md); cursor: pointer; color: var(--text-secondary); font-size: var(--text-sm); transition: all var(--transition-fast); }
     .ag-acoes button:hover { background: var(--primary-light); color: var(--primary); }
     .empty { text-align: center; padding: var(--space-2xl); color: var(--text-muted); }
     .empty i { font-size: 2.5rem; margin-bottom: var(--space-md); display: block; opacity: 0.5; }
     .nav-inferior { position: fixed; bottom: 0; left: 50%; transform: translateX(-50%); width: 100%; max-width: 480px; background: var(--bg-card); border-top: 1px solid var(--border-color); padding: var(--space-sm) 0; z-index: var(--z-sticky); }
     .nav-itens { display: flex; justify-content: space-around; }
-    .nav-item { display: flex; flex-direction: column; align-items: center; padding: var(--space-sm); text-decoration: none; color: var(--text-secondary); border-radius: var(--radius-md); min-width: 60px; }
+    .nav-item { display: flex; flex-direction: column; align-items: center; padding: var(--space-sm); text-decoration: none; color: var(--text-secondary); border-radius: var(--radius-md); min-width: 60px; transition: all var(--transition-fast); }
     .nav-item.active { color: var(--primary); background: var(--primary-light); }
     .nav-icon { font-size: var(--text-lg); margin-bottom: var(--space-xs); }
     .nav-label { font-size: var(--text-xs); font-weight: var(--font-medium); }
+    .ag-especial { font-size: 10px; background: var(--warning); color: #fff; padding: 1px 6px; border-radius: var(--radius-full); margin-left: 4px; vertical-align: middle; }
+    @media (min-width: 768px) {
+      .mobile-app { max-width: 100%; padding: 0 var(--space-lg); }
+      .bottom-nav { display: none; }
+    }
     .theme-toggle { background: rgba(255,255,255,0.2); border: none; color: #fff; width: 40px; height: 40px; border-radius: var(--radius-md); cursor: pointer; font-size: var(--text-lg); }
-    @media (min-width: 768px) { .barbeiro-app { max-width: 100%; padding: 0 var(--space-lg); } .nav-inferior { display: none; } }
   </style>
 </head>
 <body>
-  <div class="barbeiro-app">
-    <div class="topo">
-      <div class="topo-header">
+  <div class="desktop-layout">
+    <aside class="sidebar desktop-only">
+      <div class="sidebar-logo"><i class="fas fa-calendar-check"></i><span>AgendaPro</span></div>
+      <nav class="sidebar-nav">
+        <div class="nav-section">Principal</div>
+        <a href="barbeiro.html" class="sidebar-item active"><i class="fas fa-calendar-day"></i> Minha Agenda</a>
+        <a href="clientes-mobile.html" class="sidebar-item"><i class="fas fa-users"></i> Clientes</a>
+        <div class="nav-section">Acesso</div>
+        <a href="configuracoes-mobile.html" class="sidebar-item"><i class="fas fa-cog"></i> Configurações</a>
+      </nav>
+      <div class="sidebar-footer">
+        <div class="sidebar-user" onclick="API.logout()" title="Sair">
+          <div class="avatar" id="sidebar-avatar">B</div>
+          <div class="user-info">
+            <div class="user-name" id="sidebar-name">Barbeiro</div>
+            <div class="user-role" id="sidebar-role">Barbeiro</div>
+          </div>
+          <i class="fas fa-sign-out-alt" style="color: var(--text-muted); font-size: var(--text-sm);"></i>
+        </div>
+      </div>
+    </aside>
+    <div class="desktop-content">
+      <div class="desktop-header desktop-only">
         <div>
-          <div class="topo-saudacao">Olá,</div>
-          <div class="topo-nome" id="barbeiro-nome">Carregando...</div>
-          <div class="topo-data" id="barbeiro-data"></div>
+          <h1 class="page-title">Minha Agenda</h1>
+          <p class="page-subtitle" id="desktop-data">Carregando...</p>
         </div>
-        <div class="topo-acoes">
-          <button class="theme-toggle" onclick="toggleTheme()"><i class="fas fa-moon" id="theme-icon"></i></button>
-          <button onclick="API.logout()" title="Sair"><i class="fas fa-sign-out-alt"></i></button>
+        <div class="header-actions">
+          <button class="theme-toggle" onclick="toggleTheme()" style="background: var(--bg-card); border: 1px solid var(--border-color); padding: var(--space-sm) var(--space-md); border-radius: var(--radius-md); cursor: pointer; color: var(--text-secondary);">
+            <i class="fas fa-moon" id="theme-icon-desk"></i>
+          </button>
         </div>
       </div>
-      <div class="topo-stats">
-        <div class="stat-item"><div class="stat-num" id="stat-hoje">0</div><div class="stat-label">Hoje</div></div>
-        <div class="stat-item"><div class="stat-num" id="stat-pendentes">0</div><div class="stat-label">Pendentes</div></div>
-        <div class="stat-item"><div class="stat-num" id="stat-concluidos">0</div><div class="stat-label">Concluídos</div></div>
+      <div class="mobile-app">
+        <div class="topo">
+          <div class="topo-header">
+            <div>
+              <div class="topo-saudacao">Olá,</div>
+              <div class="topo-nome" id="barbeiro-nome">Carregando...</div>
+            </div>
+            <div class="topo-acoes">
+              <button class="theme-toggle" onclick="toggleTheme()"><i class="fas fa-moon" id="theme-icon"></i></button>
+              <button onclick="API.logout()" title="Sair"><i class="fas fa-sign-out-alt"></i></button>
+            </div>
+          </div>
+          <div class="date-nav">
+            <button onclick="mudarDia(-1)" title="Dia anterior"><i class="fas fa-chevron-left"></i></button>
+            <span class="date-atual" id="data-label">Hoje</span>
+            <button onclick="mudarDia(1)" title="Próximo dia"><i class="fas fa-chevron-right"></i></button>
+          </div>
+          <div class="topo-stats">
+            <div class="stat-item"><div class="stat-num" id="stat-hoje">0</div><div class="stat-label">Total</div></div>
+            <div class="stat-item"><div class="stat-num" id="stat-pendentes">0</div><div class="stat-label">Pendentes</div></div>
+            <div class="stat-item"><div class="stat-num" id="stat-concluidos">0</div><div class="stat-label">Concluídos</div></div>
+          </div>
+        </div>
+        <div class="main-content" style="padding-bottom:80px;">
+          <div class="filtros" id="filtros">
+            <button class="filtro-btn active" onclick="filtrar('todos', this)">Todos</button>
+            <button class="filtro-btn" onclick="filtrar('agendado', this)">Agendados</button>
+            <button class="filtro-btn" onclick="filtrar('confirmado', this)">Confirmados</button>
+            <button class="filtro-btn" onclick="filtrar('concluido', this)">Concluídos</button>
+            <button class="filtro-btn" onclick="filtrar('cancelado', this)">Cancelados</button>
+          </div>
+          <div id="agenda-lista"><div class="empty"><i class="fas fa-spinner fa-spin"></i>Carregando...</div></div>
+        </div>
+        <nav class="nav-inferior bottom-nav">
+          <div class="nav-itens">
+            <a href="#" class="nav-item active"><i class="nav-icon fas fa-calendar-day"></i><span class="nav-label">Agenda</span></a>
+            <a href="clientes-mobile.html" class="nav-item"><i class="nav-icon fas fa-users"></i><span class="nav-label">Clientes</span></a>
+            <a href="configuracoes-mobile.html" class="nav-item"><i class="nav-icon fas fa-cog"></i><span class="nav-label">Config</span></a>
+          </div>
+        </nav>
       </div>
     </div>
-
-    <div class="main-content">
-      <div class="filtros" id="filtros">
-        <button class="filtro-btn active" onclick="filtrar('todos', this)">Todos</button>
-        <button class="filtro-btn" onclick="filtrar('agendado', this)">Agendados</button>
-        <button class="filtro-btn" onclick="filtrar('confirmado', this)">Confirmados</button>
-        <button class="filtro-btn" onclick="filtrar('concluido', this)">Concluídos</button>
-      </div>
-      <div id="agenda-lista" style="text-align:center;padding:var(--space-2xl);color:var(--text-muted);"><i class="fas fa-spinner fa-spin fa-2x"></i><br>Carregando...</div>
-    </div>
-
-    <nav class="nav-inferior">
-      <div class="nav-itens">
-        <a href="#" class="nav-item active"><i class="nav-icon fas fa-calendar-day"></i><span class="nav-label">Minha Agenda</span></a>
-        <a href="clientes-mobile.html" class="nav-item"><i class="nav-icon fas fa-users"></i><span class="nav-label">Clientes</span></a>
-        <a href="configuracoes-mobile.html" class="nav-item"><i class="nav-icon fas fa-cog"></i><span class="nav-label">Config</span></a>
-      </div>
-    </nav>
   </div>
 
   <script src="api.js"></script>
@@ -94,17 +137,34 @@
 
     let todosAgendamentos = [];
     let filtroAtual = 'todos';
-    let profissionalVinculado = null;
+    let dataAtual = new Date();
+    let profissionalId = null;
+    let refreshTimer = null;
 
     function toggleTheme() {
       const html = document.documentElement;
       const isDark = html.getAttribute('data-theme') === 'dark';
       if (isDark) { html.removeAttribute('data-theme'); localStorage.setItem('theme','light'); }
       else { html.setAttribute('data-theme','dark'); localStorage.setItem('theme','dark'); }
-      document.getElementById('theme-icon').className = 'fas ' + (isDark ? 'fa-moon' : 'fa-sun');
+      document.querySelectorAll('#theme-icon, #theme-icon-desk').forEach(el => el.className = 'fas ' + (isDark ? 'fa-moon' : 'fa-sun'));
     }
 
-    function hojeISO() { return new Date().toISOString().slice(0,10); }
+    function dataISO(d) { return d.getFullYear() + '-' + String(d.getMonth()+1).padStart(2,'0') + '-' + String(d.getDate()).padStart(2,'0'); }
+
+    function formatarData(d) {
+      const hoje = new Date();
+      const amanha = new Date(hoje); amanha.setDate(amanha.getDate()+1);
+      const ontem = new Date(hoje); ontem.setDate(ontem.getDate()-1);
+      if (dataISO(d) === dataISO(hoje)) return 'Hoje';
+      if (dataISO(d) === dataISO(amanha)) return 'Amanhã';
+      if (dataISO(d) === dataISO(ontem)) return 'Ontem';
+      return d.toLocaleDateString('pt-BR', { weekday: 'long', day: 'numeric', month: 'long' });
+    }
+
+    function mudarDia(delta) {
+      dataAtual.setDate(dataAtual.getDate() + delta);
+      carregar();
+    }
 
     function filtrar(status, btn) {
       filtroAtual = status;
@@ -119,16 +179,18 @@
         if (!user) return;
 
         document.getElementById('barbeiro-nome').textContent = user.nome || 'Barbeiro';
-        document.getElementById('barbeiro-data').textContent = new Date().toLocaleDateString('pt-BR', { weekday: 'long', day: 'numeric', month: 'long' });
+        document.getElementById('sidebar-name').textContent = user.nome || 'Barbeiro';
+        document.getElementById('sidebar-avatar').textContent = (user.nome || 'B').charAt(0).toUpperCase();
+        document.getElementById('sidebar-role').textContent = 'Barbeiro';
 
-        // Carrega profissionais para vincular pelo nome
-        const profs = await API.get('/profissionais');
-        profissionalVinculado = profs.find(p => p.nome.toLowerCase() === (user.nome || '').toLowerCase()) || null;
+        profissionalId = user.profissional_id || null;
+        document.getElementById('data-label').textContent = formatarData(dataAtual);
+        document.getElementById('desktop-data').textContent = formatarData(dataAtual) + ' — ' + dataAtual.toLocaleDateString('pt-BR');
 
-        const data = await API.get('/agendamentos?data=' + hojeISO());
+        const data = await API.get('/agendamentos?data=' + dataISO(dataAtual));
         todosAgendamentos = data || [];
-        if (profissionalVinculado) {
-          todosAgendamentos = todosAgendamentos.filter(a => a.profissional_id === profissionalVinculado.id);
+        if (profissionalId) {
+          todosAgendamentos = todosAgendamentos.filter(a => a.profissional_id === profissionalId);
         }
 
         renderizar();
@@ -149,19 +211,20 @@
       document.getElementById('stat-concluidos').textContent = concluidos;
 
       if (!lista.length) {
-        el.innerHTML = '<div class="empty"><i class="fas fa-calendar-check"></i>Nenhum agendamento encontrado</div>';
+        el.innerHTML = '<div class="empty"><i class="fas fa-calendar-check"></i>Nenhum agendamento ' + (filtroAtual !== 'todos' ? filtroAtual : '') + ' nesse dia</div>';
         return;
       }
 
       el.innerHTML = lista.map(a => {
         const statusLabel = { agendado: 'Agendado', confirmado: 'Confirmado', concluido: 'Concluído', cancelado: 'Cancelado' }[a.status] || a.status;
         const hora = new Date(a.data_hora).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
+        const valor = a.preco ? 'R$ ' + parseFloat(a.preco).toFixed(2) : '';
         return `
           <div class="ag-card st-${a.status}">
             <div class="ag-hora">${hora}</div>
             <div class="ag-info">
               <div class="ag-cliente">${a.cliente_nome || 'Cliente'}</div>
-              <div class="ag-serv">${a.servico_nome || 'Serviço'} ${a.is_especial ? '<span class="ag-especial">Especial</span>' : ''}</div>
+              <div class="ag-serv">${a.servico_nome || 'Serviço'} ${valor ? ' • ' + valor : ''} ${a.is_especial ? '<span class="ag-especial">Especial</span>' : ''}</div>
             </div>
             <div class="ag-acoes">
               ${a.status === 'agendado' ? `<button onclick="mudarStatus('${a.id}','confirmado')" title="Confirmar"><i class="fas fa-check"></i></button>` : ''}
@@ -185,9 +248,11 @@
     document.addEventListener('DOMContentLoaded', async function() {
       if (localStorage.getItem('theme') === 'dark') {
         document.documentElement.setAttribute('data-theme', 'dark');
-        document.getElementById('theme-icon').className = 'fas fa-sun';
+        document.querySelectorAll('#theme-icon, #theme-icon-desk').forEach(el => el.className = 'fas fa-sun');
       }
       await carregar();
+      // Auto-refresh a cada 30s
+      refreshTimer = setInterval(carregar, 30000);
     });
   </script>
 </body>

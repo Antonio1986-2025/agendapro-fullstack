@@ -117,7 +117,7 @@ router.post('/login', async (req, res) => {
 // GET /api/auth/me  -> dados do usuario logado
 router.get('/me', autenticar, async (req, res) => {
   const { rows } = await query(
-    `SELECT u.id, u.nome, u.email, u.role, u.barbearia_id,
+    `SELECT u.id, u.nome, u.email, u.role, u.barbearia_id, u.profissional_id,
             b.nome AS barbearia_nome, b.slug AS barbearia_slug, b.horario_config
        FROM usuarios u JOIN barbearias b ON b.id = u.barbearia_id
       WHERE u.id = $1`,
@@ -158,9 +158,9 @@ router.post('/convidar', autenticar, exigirRole('owner'), async (req, res) => {
 
   const senhaHash = bcrypt.hashSync(senha, 10);
   const { rows } = await query(
-    `INSERT INTO usuarios (barbearia_id, nome, email, senha_hash, role)
-     VALUES ($1,$2,$3,$4,'staff') RETURNING id, nome, email, role, created_at`,
-    [req.barbeariaId, nome, email, senhaHash]
+    `INSERT INTO usuarios (barbearia_id, nome, email, senha_hash, role, profissional_id)
+     VALUES ($1,$2,$3,$4,'staff',$5) RETURNING id, nome, email, role, profissional_id, created_at`,
+    [req.barbeariaId, nome, email, senhaHash, profissional_id || null]
   );
 
   res.status(201).json(rows[0]);
@@ -169,8 +169,11 @@ router.post('/convidar', autenticar, exigirRole('owner'), async (req, res) => {
 // GET /api/auth/usuarios -> lista usuarios da barbearia (só owner)
 router.get('/usuarios', autenticar, exigirRole('owner'), async (req, res) => {
   const { rows } = await query(
-    `SELECT id, nome, email, role, ativo, created_at
-       FROM usuarios WHERE barbearia_id = $1 ORDER BY created_at`,
+    `SELECT u.id, u.nome, u.email, u.role, u.ativo, u.profissional_id, u.created_at,
+            p.nome AS profissional_nome
+       FROM usuarios u
+       LEFT JOIN profissionais p ON p.id = u.profissional_id
+      WHERE u.barbearia_id = $1 ORDER BY u.created_at`,
     [req.barbeariaId]
   );
   res.json(rows);
@@ -181,6 +184,16 @@ router.patch('/usuarios/:id/desativar', autenticar, exigirRole('owner'), async (
   await query(
     `UPDATE usuarios SET ativo = NOT ativo WHERE id = $1 AND barbearia_id = $2`,
     [req.params.id, req.barbeariaId]
+  );
+  res.json({ ok: true });
+});
+
+// PATCH /api/auth/usuarios/:id/vincular -> vincula a um profissional (só owner)
+router.patch('/usuarios/:id/vincular', autenticar, exigirRole('owner'), async (req, res) => {
+  const { profissional_id } = req.body;
+  await query(
+    `UPDATE usuarios SET profissional_id = $1 WHERE id = $2 AND barbearia_id = $3`,
+    [profissional_id || null, req.params.id, req.barbeariaId]
   );
   res.json({ ok: true });
 });

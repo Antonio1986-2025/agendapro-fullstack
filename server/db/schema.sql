@@ -258,6 +258,9 @@ CREATE INDEX IF NOT EXISTS idx_comanda_itens_comanda ON comanda_itens(comanda_id
 CREATE INDEX IF NOT EXISTS idx_caixa_barbearia ON caixa_registros(barbearia_id);
 CREATE INDEX IF NOT EXISTS idx_caixa_data ON caixa_registros(data);
 CREATE INDEX IF NOT EXISTS idx_caixa_mov_caixa ON caixa_movimentos(caixa_id);
+
+-- Coluna pra vincular usuario staff ao profissional
+ALTER TABLE usuarios ADD COLUMN IF NOT EXISTS profissional_id UUID REFERENCES profissionais(id) ON DELETE SET NULL;
 CREATE INDEX IF NOT EXISTS idx_transacoes_barbearia ON transacoes(barbearia_id);
 CREATE INDEX IF NOT EXISTS idx_transacoes_data ON transacoes(data);
 CREATE INDEX IF NOT EXISTS idx_estoque_barbearia ON estoque_itens(barbearia_id);

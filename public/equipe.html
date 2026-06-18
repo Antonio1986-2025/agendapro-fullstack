@@ -138,6 +138,10 @@
         <label>Senha (min. 6 caracteres)</label>
         <input class="input" type="password" id="conv-senha" minlength="6" placeholder="••••••" required>
       </div>
+      <div class="field">
+        <label>Vincular a profissional (opcional)</label>
+        <select class="input" id="conv-prof"><option value="">Nenhum</option></select>
+      </div>
       <div style="display:flex;gap:var(--space-sm);margin-top:var(--space-md);">
         <button class="btn btn-secondary btn-full" onclick="fecharModal()">Cancelar</button>
         <button class="btn btn-primary btn-full" id="btn-convidar" onclick="convidar()"><i class="fas fa-paper-plane"></i> Convidar</button>
@@ -167,9 +171,15 @@
     }
     function esconderAlerta() { document.getElementById('conv-alerta').className = 'alert'; }
 
+  let profissionaisLista = [];
+
     async function carregarEquipe() {
       try {
-        const data = await API.get('/auth/usuarios');
+        const [data, profs] = await Promise.all([
+          API.get('/auth/usuarios'),
+          API.get('/profissionais'),
+        ]);
+        profissionaisLista = profs || [];
         const el = document.getElementById('equipe-lista');
         if (!data.length) {
           el.innerHTML = '<div class="empty-state"><i class="fas fa-users" style="font-size:2rem;margin-bottom:var(--space-md);display:block;"></i>Nenhum membro na equipe</div>';
@@ -183,11 +193,15 @@
                 <div class="team-name">${u.nome}</div>
                 <div class="team-email">${u.email}</div>
                 <div class="team-role">${u.role === 'owner' ? 'Proprietário' : 'Barbeiro'}</div>
+                ${u.role !== 'owner' ? `<div style="font-size:var(--text-xs);color:var(--text-muted);margin-top:2px;">${u.profissional_nome ? 'Vinculado a: ' + u.profissional_nome : 'Sem vínculo'}</div>` : ''}
               </div>
             </div>
             <div style="text-align:right;">
               <div class="team-status ${u.ativo ? 'ativo' : 'inativo'}">${u.ativo ? 'Ativo' : 'Inativo'}</div>
-              ${u.role !== 'owner' ? `<button class="btn btn-sm ${u.ativo ? 'btn-secondary' : 'btn-primary'}" style="margin-top:4px;font-size:var(--text-xs);padding:2px 8px;" onclick="toggleStatus('${u.id}')">${u.ativo ? 'Desativar' : 'Ativar'}</button>` : ''}
+              ${u.role !== 'owner' ? `
+                <button class="btn btn-sm btn-secondary" style="margin-top:4px;font-size:var(--text-xs);padding:2px 8px;" onclick="vincularProf('${u.id}', '${u.profissional_id || ''}')">Vincular</button>
+                <button class="btn btn-sm ${u.ativo ? 'btn-secondary' : 'btn-primary'}" style="margin-top:4px;font-size:var(--text-xs);padding:2px 8px;" onclick="toggleStatus('${u.id}')">${u.ativo ? 'Desativar' : 'Ativar'}</button>
+              ` : ''}
             </div>
           </div>
         `).join('') + '</div>';
@@ -196,17 +210,34 @@
       }
     }
 
+    async function vincularProf(usuarioId, atual) {
+      const profs = profissionaisLista;
+      const options = profs.map(p =>
+        `<option value="${p.id}" ${p.id === atual ? 'selected' : ''}>${p.nome}</option>`
+      ).join('');
+      const sel = prompt('ID do profissional para vincular (deixe vazio para desvincular):\n\n' +
+        profs.map((p, i) => `${i+1}. ${p.nome} (${p.id})`).join('\n'));
+      if (sel === null) return;
+      try {
+        await API.patch('/auth/usuarios/' + usuarioId + '/vincular', { profissional_id: sel || null });
+        await carregarEquipe();
+      } catch (e) {
+        alert('Erro: ' + e.message);
+      }
+    }
+
     async function convidar() {
       const nome = document.getElementById('conv-nome').value.trim();
       const email = document.getElementById('conv-email').value.trim();
       const senha = document.getElementById('conv-senha').value;
+      const profissional_id = document.getElementById('conv-prof').value || null;
       if (!nome || !email || !senha) return mostrarAlerta('Preencha todos os campos');
       if (senha.length < 6) return mostrarAlerta('Senha deve ter ao menos 6 caracteres');
 
       const btn = document.getElementById('btn-convidar');
       btn.disabled = true; btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Enviando...';
       try {
-        await API.post('/auth/convidar', { nome, email, senha });
+        await API.post('/auth/convidar', { nome, email, senha, profissional_id });
         fecharModal();
         document.getElementById('conv-nome').value = '';
         document.getElementById('conv-email').value = '';
@@ -241,6 +272,14 @@
         document.getElementById('sidebar-role').textContent = user.role === 'owner' ? 'Proprietário' : 'Barbeiro';
       }
       await carregarEquipe();
+      // Preenche select de profissionais no modal
+      try {
+        const profs = await API.get('/profissionais');
+        const sel = document.getElementById('conv-prof');
+        sel.innerHTML = '<option value="">Nenhum</option>' + profs.map(p =>
+          `<option value="${p.id}">${p.nome}</option>`
+        ).join('');
+      } catch (e) {}
     });
   </script>
 </body>
