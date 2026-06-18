@@ -688,8 +688,8 @@
           btn.textContent = 'Fechar Caixa';
           btn.style.display = 'block';
           
-          const entrada = data.total_entradas || 0;
-          const saida = data.total_saidas || 0;
+          const entrada = parseFloat(data.total_entradas) || 0;
+          const saida = parseFloat(data.total_saidas) || 0;
           const saldo = entrada - saida;
           
           document.getElementById('caixa-status').innerHTML = `
