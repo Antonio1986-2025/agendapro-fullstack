@@ -105,7 +105,7 @@ async function start() {
     console.error('⚠️ Falha ao aplicar migrations (seguindo mesmo assim):', e.message);
   }
 
-  app.listen(PORT, () => {
+  app.listen(PORT, async () => {
     console.log('\n============================================');
     console.log('✅ AGENDAPRO FULLSTACK ONLINE');
     console.log('============================================');
@@ -113,6 +113,84 @@ async function start() {
     console.log(`Frontend: http://localhost:${PORT}`);
     console.log(`API health: http://localhost:${PORT}/api/health`);
     console.log('============================================\n');
+
+    // Auto-reconecta WhatsApp pra todas as barbearias que tinham provider baileys
+    try {
+      const { rows } = await pool.query(
+        `SELECT barbearia_id, provider, enabled
+           FROM whatsapp_config WHERE provider = 'baileys' AND enabled = true`
+      );
+      if (rows.length > 0) {
+        const { conectarWhatsApp, getStatus } = await import('./services/baileys-provider.js');
+        const { processarMensagem, getConversa, salvarConversa } = await import('./services/ai.js');
+        const { enviarMensagemBaileys } = await import('./services/baileys-provider.js');
+
+        for (const cfg of rows) {
+          const barbId = cfg.barbearia_id;
+          if (getStatus(barbId) === 'connected') continue;
+
+          console.log(`🔄 Auto-reconectando WhatsApp para ${barbId}...`);
+
+          conectarWhatsApp(
+            barbId,
+            () => {},
+            async (userId) => {
+              console.log(`✅ WhatsApp reconectado para ${barbId}: ${userId}`);
+              try {
+                await pool.query(
+                  `UPDATE whatsapp_config SET session_status = 'connected' WHERE barbearia_id = $1`,
+                  [barbId]
+                );
+              } catch {}
+            },
+            async (telefone, mensagem) => {
+              try {
+                const cfgData = await pool.query(
+                  `SELECT ai_enabled, ai_prompt, (SELECT nome FROM barbearias WHERE id = $1) AS barbearia_nome
+                     FROM whatsapp_config WHERE barbearia_id = $1`,
+                  [barbId]
+                );
+                const config = cfgData.rows[0];
+                if (!config?.ai_enabled) return;
+
+                await pool.query(
+                  `INSERT INTO whatsapp_mensagens (barbearia_id, telefone, mensagem, tipo, status)
+                   VALUES ($1, $2, $3, 'recebida', 'recebida')`,
+                  [barbId, telefone, mensagem]
+                );
+
+                const conversa = await getConversa(barbId, telefone);
+                const historico = conversa?.historico || [];
+
+                const { resposta } = await processarMensagem(
+                  barbId, config.barbearia_nome, mensagem, historico, config.ai_prompt
+                );
+
+                if (resposta) {
+                  await enviarMensagemBaileys(barbId, telefone, resposta);
+                  await pool.query(
+                    `INSERT INTO whatsapp_mensagens (barbearia_id, telefone, mensagem, tipo, status)
+                     VALUES ($1, $2, $3, 'ia_resposta', 'enviada')`,
+                    [barbId, telefone, resposta]
+                  );
+                }
+
+                const novoHistorico = [
+                  ...historico,
+                  { role: 'user', content: mensagem },
+                  { role: 'assistant', content: resposta },
+                ];
+                await salvarConversa(barbId, telefone, novoHistorico);
+              } catch (err) {
+                console.error(`Erro ao processar mensagem IA (${barbId}):`, err.message);
+              }
+            }
+          ).catch(e => console.error(`Falha ao auto-reconectar WhatsApp ${barbId}:`, e.message));
+        }
+      }
+    } catch (e) {
+      console.error('Erro na auto-reconexão WhatsApp:', e.message);
+    }
   });
 }
 
