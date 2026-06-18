@@ -12,6 +12,11 @@ if (!fs.existsSync(AUTH_DIR)) fs.mkdirSync(AUTH_DIR, { recursive: true });
 
 const sockets = {};
 
+export function temAuthState(barbeariaId) {
+  const dir = path.join(AUTH_DIR, barbeariaId.replace(/-/g, ''));
+  return fs.existsSync(dir) && fs.readdirSync(dir).length > 0;
+}
+
 async function getAuthDir(barbeariaId) {
   const dir = path.join(AUTH_DIR, barbeariaId.replace(/-/g, ''));
   if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true });
@@ -43,6 +48,10 @@ export async function conectarWhatsApp(barbeariaId, onQr, onConnected, onMessage
     }
     if (connection === 'close') {
       delete sockets[barbeariaId];
+      try {
+        const { query } = await import('../config/database.js');
+        await query(`UPDATE whatsapp_config SET session_status = 'disconnected' WHERE barbearia_id = $1`, [barbeariaId]);
+      } catch {}
       if (lastDisconnect?.error?.output?.statusCode !== 401) {
         setTimeout(() => conectarWhatsApp(barbeariaId, onQr, onConnected, onMessage), 5000);
       }

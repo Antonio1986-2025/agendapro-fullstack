@@ -121,13 +121,25 @@ async function start() {
            FROM whatsapp_config WHERE provider = 'baileys' AND enabled = true`
       );
       if (rows.length > 0) {
-        const { conectarWhatsApp, getStatus } = await import('./services/baileys-provider.js');
+        const { conectarWhatsApp, getStatus, temAuthState } = await import('./services/baileys-provider.js');
         const { processarMensagem, getConversa, salvarConversa } = await import('./services/ai.js');
         const { enviarMensagemBaileys } = await import('./services/baileys-provider.js');
 
         for (const cfg of rows) {
           const barbId = cfg.barbearia_id;
           if (getStatus(barbId) === 'connected') continue;
+
+          // So tenta reconectar se ja tem auth state salvo (evita loop com QR code invisivel)
+          if (!temAuthState(barbId)) {
+            console.log(`⏭️  Auto-reconnect ignorado para ${barbId} (sem auth state, precisa de QR)`);
+            try {
+              await pool.query(
+                `UPDATE whatsapp_config SET session_status = 'disconnected' WHERE barbearia_id = $1`,
+                [barbId]
+              );
+            } catch {}
+            continue;
+          }
 
           console.log(`🔄 Auto-reconectando WhatsApp para ${barbId}...`);
 
