@@ -24,6 +24,12 @@ async function getAuthDir(barbeariaId) {
 }
 
 export async function conectarWhatsApp(barbeariaId, onQr, onConnected, onMessage) {
+  // Fecha socket anterior se existir (evita handlers duplicados)
+  if (sockets[barbeariaId]) {
+    try { sockets[barbeariaId].end(undefined); } catch {}
+    delete sockets[barbeariaId];
+  }
+
   const authDir = await getAuthDir(barbeariaId);
   const { state, saveCreds } = await useMultiFileAuthState(authDir);
   const { version } = await fetchLatestBaileysVersion();
