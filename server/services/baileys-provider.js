@@ -70,9 +70,10 @@ export async function conectarWhatsApp(barbeariaId, onQr, onConnected, onMessage
     const msg = m.messages[0];
     if (!msg || msg.key.fromMe || msg.key.remoteJid?.includes('@g.us') || msg.key.remoteJid?.includes('@broadcast')) return;
     const texto = msg.message?.conversation || msg.message?.extendedTextMessage?.text || '';
-    const telefone = msg.key.remoteJid?.split('@')[0] || '';
+    const remoteJid = msg.key.remoteJid || '';
+    const telefone = remoteJid.split('@')[0] || '';
     if (!texto || !telefone || !onMessage) return;
-    onMessage(telefone, texto);
+    onMessage(telefone, texto, remoteJid);
   });
 
   // Aguarda conexão

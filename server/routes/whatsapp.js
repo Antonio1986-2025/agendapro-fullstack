@@ -153,8 +153,9 @@ router.post('/conectar', async (req, res) => {
           [req.barbeariaId]); } catch {}
         console.log(`WhatsApp conectado para barbearia ${req.barbeariaId}: ${userId}`);
       },
-      async (telefone, mensagem) => {
+      async (telefone, mensagem, remoteJid) => {
         try {
+          console.log(`📩 Mensagem recebida de ${telefone} (remoteJid: ${remoteJid}): ${mensagem.substring(0,50)}`);
           const cfg = await query(
             `SELECT ai_enabled, ai_prompt, (SELECT nome FROM barbearias WHERE id = $1) AS barbearia_nome
                FROM whatsapp_config WHERE barbearia_id = $1`,
@@ -177,6 +178,10 @@ router.post('/conectar', async (req, res) => {
           );
 
           if (resposta) {
+            console.log(`📤 Enviando resposta para ${telefone}: ${resposta.substring(0,50)}`);
+            const jid = telefone.includes('@') ? telefone : `${telefone.replace(/\D/g, '')}@s.whatsapp.net`;
+            // Usa remoteJid original se disponivel, senao monta o jid
+            const alvo = remoteJid || jid;
             await enviarMensagemBaileys(req.barbeariaId, telefone, resposta);
             await query(
               `INSERT INTO whatsapp_mensagens (barbearia_id, telefone, mensagem, tipo, status)

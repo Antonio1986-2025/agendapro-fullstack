@@ -155,8 +155,9 @@ async function start() {
                 );
               } catch {}
             },
-            async (telefone, mensagem) => {
+            async (telefone, mensagem, remoteJid) => {
               try {
+                console.log(`📩 Auto: msg de ${telefone} (remoteJid: ${remoteJid}): ${mensagem.substring(0,50)}`);
                 const cfgData = await pool.query(
                   `SELECT ai_enabled, ai_prompt, (SELECT nome FROM barbearias WHERE id = $1) AS barbearia_nome
                      FROM whatsapp_config WHERE barbearia_id = $1`,
@@ -179,6 +180,7 @@ async function start() {
                 );
 
                 if (resposta) {
+                  console.log(`📤 Auto: enviando resposta para ${telefone}: ${resposta.substring(0,50)}`);
                   await enviarMensagemBaileys(barbId, telefone, resposta);
                   await pool.query(
                     `INSERT INTO whatsapp_mensagens (barbearia_id, telefone, mensagem, tipo, status)
