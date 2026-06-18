@@ -318,3 +318,11 @@ CREATE INDEX IF NOT EXISTS idx_transacoes_barbearia ON transacoes(barbearia_id);
 CREATE INDEX IF NOT EXISTS idx_transacoes_data ON transacoes(data);
 CREATE INDEX IF NOT EXISTS idx_estoque_barbearia ON estoque_itens(barbearia_id);
 CREATE INDEX IF NOT EXISTS idx_estoque_mov_item ON estoque_movimentos(item_id);
+
+-- Migracoes para tabelas existentes (add column if not exists)
+ALTER TABLE whatsapp_config ADD COLUMN IF NOT EXISTS session_status VARCHAR(30) DEFAULT 'disconnected';
+ALTER TABLE whatsapp_config ADD COLUMN IF NOT EXISTS openwa_session_name VARCHAR(120);
+ALTER TABLE whatsapp_config ADD COLUMN IF NOT EXISTS openwa_url VARCHAR(255);
+ALTER TABLE whatsapp_config ADD COLUMN IF NOT EXISTS openwa_api_key VARCHAR(255);
+ALTER TABLE whatsapp_config ADD COLUMN IF NOT EXISTS ai_enabled BOOLEAN DEFAULT false;
+ALTER TABLE whatsapp_config ADD COLUMN IF NOT EXISTS ai_prompt TEXT;

@@ -60,42 +60,71 @@ router.use(autenticar);
 
 // GET /api/whatsapp/config
 router.get('/config', async (req, res) => {
-  const { rows } = await query(
-    `SELECT provider, enabled, session_status, ai_enabled, ai_prompt,
-            openwa_session_name, openwa_url, openwa_api_key
-       FROM whatsapp_config WHERE barbearia_id = $1`,
-    [req.barbeariaId]
-  );
-  const cfg = rows[0] || { provider: 'log', enabled: false, session_status: 'disconnected', ai_enabled: false };
+  try {
+    const { rows } = await query(
+      `SELECT provider, enabled, session_status, ai_enabled, ai_prompt,
+              openwa_session_name, openwa_url, openwa_api_key
+         FROM whatsapp_config WHERE barbearia_id = $1`,
+      [req.barbeariaId]
+    );
+    const cfg = rows[0] || { provider: 'log', enabled: false, ai_enabled: false };
 
-  // Atualiza status real do Baileys
-  if (cfg.provider === 'baileys') {
-    cfg.session_status = getStatus(req.barbeariaId);
-    const tel = getTelefone(req.barbeariaId);
-    if (tel) cfg.phone_number_id = tel;
-    await query(`UPDATE whatsapp_config SET session_status = $1 WHERE barbearia_id = $2`,
-      [cfg.session_status, req.barbeariaId]);
+    // Atualiza status real do Baileys
+    if (cfg.provider === 'baileys') {
+      cfg.session_status = getStatus(req.barbeariaId);
+      const tel = getTelefone(req.barbeariaId);
+      if (tel) cfg.phone_number_id = tel;
+      try {
+        await query(`UPDATE whatsapp_config SET session_status = $1 WHERE barbearia_id = $2`,
+          [cfg.session_status, req.barbeariaId]);
+      } catch {}
+    }
+
+    res.json(cfg);
+  } catch (e) {
+    // Fallback: colunas novas podem nao existir ainda
+    try {
+      const { rows } = await query(
+        `SELECT provider, enabled FROM whatsapp_config WHERE barbearia_id = $1`,
+        [req.barbeariaId]
+      );
+      res.json(rows[0] || { provider: 'log', enabled: false });
+    } catch {
+      res.json({ provider: 'log', enabled: false });
+    }
   }
-
-  res.json(cfg);
 });
 
 // PUT /api/whatsapp/config
 router.put('/config', async (req, res) => {
   const { provider, enabled, ai_enabled, ai_prompt } = req.body;
-  const { rows } = await query(
-    `INSERT INTO whatsapp_config (barbearia_id, provider, enabled, ai_enabled, ai_prompt, updated_at)
-     VALUES ($1,$2,$3,$4,$5, now())
-     ON CONFLICT (barbearia_id) DO UPDATE SET
-        provider = COALESCE(NULLIF(EXCLUDED.provider, NULL), whatsapp_config.provider),
-        enabled = COALESCE(NULLIF(EXCLUDED.enabled, NULL), whatsapp_config.enabled),
-        ai_enabled = COALESCE(NULLIF(EXCLUDED.ai_enabled, NULL), whatsapp_config.ai_enabled),
-        ai_prompt = COALESCE(NULLIF(EXCLUDED.ai_prompt, NULL), whatsapp_config.ai_prompt),
-        updated_at = now()
-     RETURNING provider, enabled, session_status, ai_enabled, ai_prompt`,
-    [req.barbeariaId, provider || 'baileys', enabled !== false, !!ai_enabled, ai_prompt || null]
-  );
-  res.json(rows[0]);
+  try {
+    const { rows } = await query(
+      `INSERT INTO whatsapp_config (barbearia_id, provider, enabled, ai_enabled, ai_prompt, updated_at)
+       VALUES ($1,$2,$3,$4,$5, now())
+       ON CONFLICT (barbearia_id) DO UPDATE SET
+          provider = COALESCE(NULLIF(EXCLUDED.provider, NULL), whatsapp_config.provider),
+          enabled = COALESCE(NULLIF(EXCLUDED.enabled, NULL), whatsapp_config.enabled),
+          ai_enabled = COALESCE(NULLIF(EXCLUDED.ai_enabled, NULL), whatsapp_config.ai_enabled),
+          ai_prompt = COALESCE(NULLIF(EXCLUDED.ai_prompt, NULL), whatsapp_config.ai_prompt),
+          updated_at = now()
+       RETURNING provider, enabled, ai_enabled, ai_prompt`,
+      [req.barbeariaId, provider || 'baileys', enabled !== false, !!ai_enabled, ai_prompt || null]
+    );
+    res.json(rows[0]);
+  } catch (e) {
+    const { rows } = await query(
+      `INSERT INTO whatsapp_config (barbearia_id, provider, enabled, updated_at)
+       VALUES ($1,$2,$3, now())
+       ON CONFLICT (barbearia_id) DO UPDATE SET
+          provider = COALESCE(NULLIF(EXCLUDED.provider, NULL), whatsapp_config.provider),
+          enabled = COALESCE(NULLIF(EXCLUDED.enabled, NULL), whatsapp_config.enabled),
+          updated_at = now()
+       RETURNING provider, enabled`,
+      [req.barbeariaId, provider || 'baileys', enabled !== false]
+    );
+    res.json(rows[0]);
+  }
 });
 
 // POST /api/whatsapp/conectar -> conecta via Baileys
@@ -109,8 +138,10 @@ router.post('/conectar', async (req, res) => {
       [req.barbeariaId]
     );
 
-    await query(`UPDATE whatsapp_config SET session_status = 'connecting' WHERE barbearia_id = $1`,
-      [req.barbeariaId]);
+    try {
+      await query(`UPDATE whatsapp_config SET session_status = 'connecting' WHERE barbearia_id = $1`,
+        [req.barbeariaId]);
+    } catch {}
 
     let qrCodeResolvido = null;
 
@@ -118,8 +149,8 @@ router.post('/conectar', async (req, res) => {
       req.barbeariaId,
       (qr) => { qrCodeResolvido = qr; },
       async (userId) => {
-        await query(`UPDATE whatsapp_config SET session_status = 'connected' WHERE barbearia_id = $1`,
-          [req.barbeariaId]);
+        try { await query(`UPDATE whatsapp_config SET session_status = 'connected' WHERE barbearia_id = $1`,
+          [req.barbeariaId]); } catch {}
         console.log(`WhatsApp conectado para barbearia ${req.barbeariaId}: ${userId}`);
       },
       async (telefone, mensagem) => {
@@ -186,8 +217,7 @@ router.post('/conectar', async (req, res) => {
 router.get('/status', async (req, res) => {
   const st = getStatus(req.barbeariaId);
   const tel = getTelefone(req.barbeariaId);
-  await query(`UPDATE whatsapp_config SET session_status = $1 WHERE barbearia_id = $2`,
-    [st, req.barbeariaId]);
+  try { await query(`UPDATE whatsapp_config SET session_status = $1 WHERE barbearia_id = $2`, [st, req.barbeariaId]); } catch {}
   res.json({ status: st, telefone: tel });
 });
 
@@ -195,8 +225,7 @@ router.get('/status', async (req, res) => {
 router.post('/desconectar', async (req, res) => {
   try {
     await desconectarWhatsApp(req.barbeariaId);
-    await query(`UPDATE whatsapp_config SET session_status = 'disconnected' WHERE barbearia_id = $1`,
-      [req.barbeariaId]);
+    try { await query(`UPDATE whatsapp_config SET session_status = 'disconnected' WHERE barbearia_id = $1`, [req.barbeariaId]); } catch {}
     res.json({ ok: true });
   } catch (err) {
     res.status(500).json({ erro: err.message });
