@@ -249,7 +249,7 @@ async function executarTool(barbeariaId, toolName, args) {
           `SELECT id, nome, duracao_minutos, preco, categoria
              FROM servicos 
             WHERE barbearia_id = $1 AND ativo = true 
-            ORDER BY ordem, nome`,
+            ORDER BY nome`,
           [barbeariaId]
         );
         console.log(`✅ ${rows.length} serviços encontrados`);
@@ -261,7 +261,7 @@ async function executarTool(barbeariaId, toolName, args) {
           `SELECT id, nome, especialidade, telefone
              FROM profissionais 
             WHERE barbearia_id = $1 AND ativo = true 
-            ORDER BY ordem, nome`,
+            ORDER BY nome`,
           [barbeariaId]
         );
         console.log(`✅ ${rows.length} profissionais encontrados`);

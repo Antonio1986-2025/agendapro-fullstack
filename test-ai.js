@@ -5,25 +5,39 @@
 
 import 'dotenv/config';
 import { processarMensagem, getConversa, salvarConversa } from './server/services/ai.js';
+import { query } from './server/config/database.js';
 
-// Dados de teste (substitua pelo ID real da sua barbearia)
-const BARBEARIA_ID_TESTE = '00000000-0000-0000-0000-000000000001'; // Ajuste conforme necessário
-const BARBEARIA_NOME = 'Barbearia Teste';
 const TELEFONE_TESTE = '11999887766';
 
 console.log('🧪 ====== TESTE DO AGENTE IA ======\n');
-console.log(`📍 Barbearia: ${BARBEARIA_NOME}`);
-console.log(`📱 Telefone teste: ${TELEFONE_TESTE}`);
 console.log(`🔑 API Key: ${process.env.OPENAI_API_KEY ? 'Configurada ✅' : 'NÃO configurada ❌'}\n`);
 
 async function testar() {
   try {
+    // Busca uma barbearia real do banco
+    console.log('🔍 Buscando barbearia no banco...');
+    const { rows } = await query(
+      `SELECT id, nome FROM barbearias WHERE ativo = true LIMIT 1`
+    );
+    
+    if (!rows[0]) {
+      console.error('❌ Nenhuma barbearia encontrada no banco!');
+      console.log('💡 Dica: Execute primeiro o seed: npm run seed');
+      process.exit(1);
+    }
+    
+    const BARBEARIA_ID = rows[0].id;
+    const BARBEARIA_NOME = rows[0].nome;
+    
+    console.log(`✅ Barbearia encontrada: ${BARBEARIA_NOME} (${BARBEARIA_ID})\n`);
+    console.log(`📱 Telefone teste: ${TELEFONE_TESTE}\n`);
+    
     // Teste 1: Mensagem simples
     console.log('\n📝 TESTE 1: Mensagem simples de saudação\n');
     console.log('Usuário: Olá, bom dia!');
     
     const teste1 = await processarMensagem(
-      BARBEARIA_ID_TESTE,
+      BARBEARIA_ID,
       BARBEARIA_NOME,
       'Olá, bom dia!',
       [],
@@ -38,7 +52,7 @@ async function testar() {
     console.log('Usuário: Quais serviços vocês oferecem?');
     
     const teste2 = await processarMensagem(
-      BARBEARIA_ID_TESTE,
+      BARBEARIA_ID,
       BARBEARIA_NOME,
       'Quais serviços vocês oferecem?',
       [
@@ -55,12 +69,8 @@ async function testar() {
     console.log('\n\n📝 TESTE 3: Verificar disponibilidade para uma data\n');
     console.log('Usuário: Quais horários estão disponíveis amanhã?');
     
-    const amanha = new Date();
-    amanha.setDate(amanha.getDate() + 1);
-    const dataAmanha = amanha.toISOString().split('T')[0];
-    
     const teste3 = await processarMensagem(
-      BARBEARIA_ID_TESTE,
+      BARBEARIA_ID,
       BARBEARIA_NOME,
       'Quais horários estão disponíveis amanhã?',
       [],
@@ -80,17 +90,17 @@ async function testar() {
       { role: 'assistant', content: 'Claro! Qual data você prefere?' }
     ];
     
-    await salvarConversa(BARBEARIA_ID_TESTE, TELEFONE_TESTE, historico);
+    await salvarConversa(BARBEARIA_ID, TELEFONE_TESTE, historico);
     console.log('✅ Conversa salva no banco');
     
-    const conversaRecuperada = await getConversa(BARBEARIA_ID_TESTE, TELEFONE_TESTE);
+    const conversaRecuperada = await getConversa(BARBEARIA_ID, TELEFONE_TESTE);
     console.log('✅ Conversa recuperada:', conversaRecuperada ? 'Sucesso' : 'Falhou');
     console.log('   Mensagens no histórico:', conversaRecuperada?.historico?.length || 0);
     
     console.log('\n\n✅ ====== TODOS OS TESTES CONCLUÍDOS ======\n');
     
   } catch (err) {
-    console.error('\n❌ ERRO durante os testes:', err);
+    console.error('\n❌ ERRO durante os testes:', err.message);
     console.error('Stack:', err.stack);
   }
   
