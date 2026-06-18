@@ -1,11 +1,26 @@
 import OpenAI from 'openai';
 import { query } from '../config/database.js';
+import fs from 'fs';
+import path from 'path';
+import { fileURLToPath } from 'url';
 
-const apiKey = process.env.OPENAI_API_KEY;
+const __dirname = path.dirname(fileURLToPath(import.meta.url));
+const CONFIG_PATH = path.join(__dirname, '..', 'wa_auth', '.env');
 
-let openai = null;
-if (apiKey) {
-  openai = new OpenAI({ apiKey });
+let _openai = null;
+
+function getOpenAI() {
+  if (_openai) return _openai;
+  let key = process.env.OPENAI_API_KEY;
+  if (!key && fs.existsSync(CONFIG_PATH)) {
+    const content = fs.readFileSync(CONFIG_PATH, 'utf-8');
+    const match = content.match(/^OPENAI_API_KEY=(.+)$/m);
+    if (match) key = match[1].trim();
+  }
+  if (key) {
+    _openai = new OpenAI({ apiKey: key });
+  }
+  return _openai;
 }
 
 const tools = [
@@ -314,7 +329,8 @@ function formatarRespostaTool(toolName, resultado) {
 }
 
 export async function processarMensagem(barbeariaId, barbeariaNome, mensagemCliente, historico, promptPersonalizado) {
-  if (!openai) return { resposta: 'Agente IA nao configurado. Configure a chave OPENAI_API_KEY no servidor.' };
+  const ai = getOpenAI();
+  if (!ai) return { resposta: 'Agente IA nao configurado. Configure a chave OPENAI_API_KEY no servidor.' };
 
   const systemPrompt = promptPersonalizado ||
     `Voce e o assistente virtual da barbearia "${barbeariaNome}". ` +
@@ -329,7 +345,7 @@ export async function processarMensagem(barbeariaId, barbeariaNome, mensagemClie
     { role: 'user', content: mensagemCliente },
   ];
 
-  const response = await openai.chat.completions.create({
+  const response = await ai.chat.completions.create({
     model: 'gpt-4o-mini',
     messages,
     tools,
@@ -358,7 +374,7 @@ export async function processarMensagem(barbeariaId, barbeariaNome, mensagemClie
       });
     }
 
-    const finalResponse = await openai.chat.completions.create({
+    const finalResponse = await ai.chat.completions.create({
       model: 'gpt-4o-mini',
       messages: toolMessages,
       temperature: 0.7,
