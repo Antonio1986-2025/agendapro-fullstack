@@ -181,6 +181,18 @@ export async function desconectarWhatsApp(barbeariaId) {
 export async function enviarMensagemBaileys(barbeariaId, telefone, texto) {
   const sock = sockets[barbeariaId];
   if (!sock) throw new Error('WhatsApp desconectado');
+  
+  // Se já vem com @, usa direto; senão normaliza para @s.whatsapp.net
   const jid = telefone.includes('@') ? telefone : `${telefone.replace(/\D/g, '')}@s.whatsapp.net`;
+  
+  console.log(`📤 ====== ENVIANDO MENSAGEM (BAILEYS) ======`);
+  console.log(`🏪 Barbearia: ${barbeariaId}`);
+  console.log(`📞 Telefone original: ${telefone}`);
+  console.log(`🆔 JID normalizado: ${jid}`);
+  console.log(`💬 Texto: ${texto.substring(0, 100)}...`);
+  console.log(`==========================================\n`);
+  
   await sock.sendMessage(jid, { text: texto });
+  
+  console.log(`✅ Mensagem enviada com sucesso para ${jid}\n`);
 }

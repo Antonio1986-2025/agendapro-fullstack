@@ -200,13 +200,19 @@ async function start() {
                 console.log('==========================================\n');
 
                 if (resposta) {
-                  console.log(`📤 Auto: enviando resposta para ${telefone}: ${resposta.substring(0,50)}`);
-                  await enviarMensagemBaileys(barbId, telefone, resposta);
+                  console.log(`📤 Enviando resposta para ${telefone} (remoteJid: ${remoteJid})`);
+                  console.log(`📤 Resposta: ${resposta.substring(0,100)}...`);
+                  
+                  // IMPORTANTE: Usa remoteJid original para responder corretamente
+                  await enviarMensagemBaileys(barbId, remoteJid, resposta);
+                  
                   await pool.query(
                     `INSERT INTO whatsapp_mensagens (barbearia_id, telefone, mensagem, tipo, status)
                      VALUES ($1, $2, $3, 'ia_resposta', 'enviada')`,
                     [barbId, telefone, resposta]
                   );
+                  
+                  console.log(`✅ Resposta enviada com sucesso para ${remoteJid}`);
                 }
 
                 const novoHistorico = [
