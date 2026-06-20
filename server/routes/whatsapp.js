@@ -6,56 +6,202 @@ import {
   conectarWhatsApp, getStatus, getTelefone,
   desconectarWhatsApp, enviarMensagemBaileys
 } from '../services/baileys-provider.js';
+import {
+  criarInstancia,
+  conectarInstancia,
+  getStatusInstancia,
+  desconectarInstancia,
+  deletarInstancia,
+  enviarMensagemEvolution,
+  testarEvolutionAPI,
+} from '../services/evolution-provider.js';
 import { processarMensagem, getConversa, salvarConversa } from '../services/ai.js';
 
 const router = Router();
 
-// POST /api/whatsapp/webhook -> recebe mensagens do Baileys
+// ============================================================
+// WEBHOOK EVOLUTION API (sem autenticação - chamado pela Evolution)
+// ============================================================
+router.post('/webhook/evolution/:barbeariaId', async (req, res) => {
+  // Responde imediatamente para evitar timeout
+  res.sendStatus(200);
+  
+  try {
+    const { barbeariaId } = req.params;
+    const body = req.body || {};
+    const event = body.event || body.eventName;
+    
+    console.log(`\n📥 ====== WEBHOOK EVOLUTION ======`);
+    console.log(`🏪 Barbearia: ${barbeariaId}`);
+    console.log(`📡 Evento: ${event}`);
+    
+    // Atualização de conexão
+    if (event === 'connection.update' || event === 'CONNECTION_UPDATE') {
+      const state = body.data?.state || body.state;
+      console.log(`🔌 Estado da conexão: ${state}`);
+      
+      let dbStatus = 'disconnected';
+      if (state === 'open') dbStatus = 'connected';
+      else if (state === 'connecting') dbStatus = 'connecting';
+      
+      try {
+        await query(
+          `UPDATE whatsapp_config SET session_status = $1, updated_at = now() WHERE barbearia_id = $2`,
+          [dbStatus, barbeariaId]
+        );
+      } catch {}
+      return;
+    }
+    
+    // Mensagem recebida
+    if (event === 'messages.upsert' || event === 'MESSAGES_UPSERT') {
+      const data = body.data || body;
+      const key = data.key || {};
+      const message = data.message || {};
+      
+      console.log(`📨 fromMe: ${key.fromMe}`);
+      console.log(`📞 remoteJid: ${key.remoteJid}`);
+      
+      // Ignora mensagens próprias, grupos e broadcasts
+      if (key.fromMe) {
+        console.log(`⏭️  Ignorada: mensagem própria`);
+        return;
+      }
+      if (key.remoteJid?.includes('@g.us')) {
+        console.log(`⏭️  Ignorada: grupo`);
+        return;
+      }
+      if (key.remoteJid?.includes('@broadcast') || key.remoteJid === 'status@broadcast') {
+        console.log(`⏭️  Ignorada: broadcast`);
+        return;
+      }
+      
+      // Extrai texto
+      const texto = message.conversation 
+                 || message.extendedTextMessage?.text 
+                 || message.imageMessage?.caption 
+                 || '';
+      
+      if (!texto) {
+        console.log(`⚠️  Mensagem sem texto`);
+        return;
+      }
+      
+      // Extrai telefone
+      const telefone = (key.remoteJid || '').split('@')[0].replace(/\D/g, '');
+      
+      if (!telefone || telefone.length < 10) {
+        console.log(`⚠️  Telefone inválido: ${telefone}`);
+        return;
+      }
+      
+      console.log(`📞 Telefone: ${telefone}`);
+      console.log(`💬 Texto: ${texto}`);
+      
+      // Processa mensagem com IA
+      await processarMensagemRecebida(barbeariaId, telefone, texto);
+    }
+  } catch (err) {
+    console.error('❌ Erro no webhook Evolution:', err.message);
+    console.error(err.stack);
+  }
+});
+
+/**
+ * Processa mensagem recebida (compartilhado entre Baileys e Evolution)
+ */
+async function processarMensagemRecebida(barbeariaId, telefone, mensagem) {
+  try {
+    const cfg = await query(
+      `SELECT ai_enabled, ai_prompt, provider,
+              (SELECT nome FROM barbearias WHERE id = $1) AS barbearia_nome
+         FROM whatsapp_config WHERE barbearia_id = $1`,
+      [barbeariaId]
+    );
+    const config = cfg.rows[0];
+    
+    if (!config?.ai_enabled) {
+      console.log(`⏭️  IA desabilitada para esta barbearia`);
+      return;
+    }
+    
+    // Salva mensagem recebida
+    await query(
+      `INSERT INTO whatsapp_mensagens (barbearia_id, telefone, mensagem, tipo, status)
+       VALUES ($1, $2, $3, 'recebida', 'recebida')`,
+      [barbeariaId, telefone, mensagem]
+    );
+    
+    // Busca histórico
+    const conversa = await getConversa(barbeariaId, telefone);
+    const historico = conversa?.historico || [];
+    console.log(`📚 Histórico: ${historico.length} mensagens`);
+    
+    // Processa com IA
+    const { resposta } = await processarMensagem(
+      barbeariaId, config.barbearia_nome, mensagem, historico, config.ai_prompt
+    );
+    
+    if (resposta) {
+      console.log(`💬 Resposta IA: ${resposta.substring(0, 100)}...`);
+      
+      // Envia resposta usando o provider correto
+      try {
+        if (config.provider === 'evolution') {
+          await enviarMensagemEvolution(barbeariaId, telefone, resposta);
+        } else if (config.provider === 'baileys') {
+          await enviarMensagemBaileys(barbeariaId, telefone, resposta);
+        } else {
+          console.log(`⚠️  Provider ${config.provider} não suporta envio automático`);
+        }
+        
+        // Salva resposta no banco
+        await query(
+          `INSERT INTO whatsapp_mensagens (barbearia_id, telefone, mensagem, tipo, status)
+           VALUES ($1, $2, $3, 'ia_resposta', 'enviada')`,
+          [barbeariaId, telefone, resposta]
+        );
+      } catch (err) {
+        console.error(`❌ Erro ao enviar resposta:`, err.message);
+        await query(
+          `INSERT INTO whatsapp_mensagens (barbearia_id, telefone, mensagem, tipo, status)
+           VALUES ($1, $2, $3, 'ia_resposta', 'erro')`,
+          [barbeariaId, telefone, resposta]
+        );
+      }
+    }
+    
+    // Atualiza histórico
+    const novoHistorico = [
+      ...historico,
+      { role: 'user', content: mensagem },
+      { role: 'assistant', content: resposta || '' },
+    ];
+    await salvarConversa(barbeariaId, telefone, novoHistorico);
+  } catch (err) {
+    console.error('❌ Erro ao processar mensagem:', err.message);
+    console.error(err.stack);
+  }
+}
+
+// ============================================================
+// WEBHOOK BAILEYS (legacy)
+// ============================================================
 router.post('/webhook', async (req, res) => {
   try {
     const { barbearia_id, telefone, mensagem } = req.body;
     if (!barbearia_id || !telefone || !mensagem) return res.sendStatus(200);
-
-    const cfg = await query(
-      `SELECT ai_enabled, ai_prompt, (SELECT nome FROM barbearias WHERE id = $1) AS barbearia_nome
-         FROM whatsapp_config WHERE barbearia_id = $1`,
-      [barbearia_id]
-    );
-    const config = cfg.rows[0];
-    if (!config?.ai_enabled) return res.sendStatus(200);
-
-    // Registra mensagem recebida
-    await query(
-      `INSERT INTO whatsapp_mensagens (barbearia_id, telefone, mensagem, tipo, status)
-       VALUES ($1, $2, $3, 'recebida', 'recebida')`,
-      [barbearia_id, telefone, mensagem]
-    );
-
-    // Processa com IA
-    const conversa = await getConversa(barbearia_id, telefone);
-    const historico = conversa?.historico || [];
-
-    const { resposta } = await processarMensagem(
-      barbearia_id, config.barbearia_nome, mensagem, historico, config.ai_prompt
-    );
-
-    if (resposta) {
-      await enviarMensagem(barbearia_id, { telefone, mensagem: resposta, tipo: 'ia_resposta' });
-    }
-
-    const novoHistorico = [
-      ...historico,
-      { role: 'user', content: mensagem },
-      { role: 'assistant', content: resposta },
-    ];
-    await salvarConversa(barbearia_id, telefone, novoHistorico);
+    
+    await processarMensagemRecebida(barbearia_id, telefone, mensagem);
   } catch (err) {
     console.error('Erro webhook WhatsApp:', err.message);
   }
   res.sendStatus(200);
 });
 
-// ----- Rotas autenticadas -----
+// ============================================================
+// ROTAS AUTENTICADAS
+// ============================================================
 router.use(autenticar);
 
 // GET /api/whatsapp/config
@@ -63,35 +209,37 @@ router.get('/config', async (req, res) => {
   try {
     const { rows } = await query(
       `SELECT provider, enabled, session_status, ai_enabled, ai_prompt,
-              openwa_session_name, openwa_url, openwa_api_key
+              evolution_instance_name, evolution_phone,
+              openwa_session_name
          FROM whatsapp_config WHERE barbearia_id = $1`,
       [req.barbeariaId]
     );
-    const cfg = rows[0] || { provider: 'log', enabled: false, ai_enabled: false };
+    const cfg = rows[0] || { provider: 'evolution', enabled: false, ai_enabled: false };
 
-    // Atualiza status real do Baileys
+    // Atualiza status real conforme o provider
     if (cfg.provider === 'baileys') {
       cfg.session_status = getStatus(req.barbeariaId);
       const tel = getTelefone(req.barbeariaId);
       if (tel) cfg.phone_number_id = tel;
+    } else if (cfg.provider === 'evolution' && cfg.evolution_instance_name) {
       try {
-        await query(`UPDATE whatsapp_config SET session_status = $1 WHERE barbearia_id = $2`,
-          [cfg.session_status, req.barbeariaId]);
+        const stat = await getStatusInstancia(req.barbeariaId);
+        cfg.session_status = stat.status;
+        if (stat.telefone) cfg.evolution_phone = stat.telefone;
       } catch {}
     }
+    
+    try {
+      await query(
+        `UPDATE whatsapp_config SET session_status = $1 WHERE barbearia_id = $2`,
+        [cfg.session_status, req.barbeariaId]
+      );
+    } catch {}
 
     res.json(cfg);
   } catch (e) {
-    // Fallback: colunas novas podem nao existir ainda
-    try {
-      const { rows } = await query(
-        `SELECT provider, enabled FROM whatsapp_config WHERE barbearia_id = $1`,
-        [req.barbeariaId]
-      );
-      res.json(rows[0] || { provider: 'log', enabled: false });
-    } catch {
-      res.json({ provider: 'log', enabled: false });
-    }
+    console.error('Erro ao buscar config:', e.message);
+    res.json({ provider: 'evolution', enabled: false });
   }
 });
 
@@ -109,28 +257,56 @@ router.put('/config', async (req, res) => {
           ai_prompt = COALESCE(NULLIF(EXCLUDED.ai_prompt, NULL), whatsapp_config.ai_prompt),
           updated_at = now()
        RETURNING provider, enabled, ai_enabled, ai_prompt`,
-      [req.barbeariaId, provider || 'baileys', enabled !== false, !!ai_enabled, ai_prompt || null]
+      [req.barbeariaId, provider || 'evolution', enabled !== false, !!ai_enabled, ai_prompt || null]
     );
     res.json(rows[0]);
   } catch (e) {
-    const { rows } = await query(
-      `INSERT INTO whatsapp_config (barbearia_id, provider, enabled, updated_at)
-       VALUES ($1,$2,$3, now())
-       ON CONFLICT (barbearia_id) DO UPDATE SET
-          provider = COALESCE(NULLIF(EXCLUDED.provider, NULL), whatsapp_config.provider),
-          enabled = COALESCE(NULLIF(EXCLUDED.enabled, NULL), whatsapp_config.enabled),
-          updated_at = now()
-       RETURNING provider, enabled`,
-      [req.barbeariaId, provider || 'baileys', enabled !== false]
-    );
-    res.json(rows[0]);
+    console.error('Erro ao salvar config:', e.message);
+    res.status(500).json({ erro: e.message });
   }
 });
 
-// POST /api/whatsapp/conectar -> conecta via Baileys
+// POST /api/whatsapp/conectar -> conecta via provider configurado (default: evolution)
 router.post('/conectar', async (req, res) => {
   try {
-    // Define provider como baileys
+    // Verifica/cria registro
+    const cfgRow = await query(
+      `SELECT provider FROM whatsapp_config WHERE barbearia_id = $1`,
+      [req.barbeariaId]
+    );
+    const provider = cfgRow.rows[0]?.provider || 'evolution';
+    
+    if (provider === 'evolution') {
+      // ===== EVOLUTION API =====
+      await query(
+        `INSERT INTO whatsapp_config (barbearia_id, provider, enabled, updated_at)
+         VALUES ($1, 'evolution', true, now())
+         ON CONFLICT (barbearia_id) DO UPDATE SET 
+            provider = 'evolution', 
+            enabled = true, 
+            updated_at = now()`,
+        [req.barbeariaId]
+      );
+      
+      try {
+        const result = await conectarInstancia(req.barbeariaId);
+        return res.json({
+          ok: true,
+          provider: 'evolution',
+          qr: result.qr,
+          status: result.status,
+          instanceName: result.instanceName,
+        });
+      } catch (err) {
+        console.error('Erro ao conectar Evolution:', err.message);
+        return res.status(500).json({ 
+          erro: err.message,
+          dica: 'Verifique se EVOLUTION_API_URL e EVOLUTION_API_KEY estão configurados'
+        });
+      }
+    }
+    
+    // ===== BAILEYS (legacy) =====
     await query(
       `INSERT INTO whatsapp_config (barbearia_id, provider, enabled, updated_at)
        VALUES ($1, 'baileys', true, now())
@@ -154,63 +330,18 @@ router.post('/conectar', async (req, res) => {
         console.log(`WhatsApp conectado para barbearia ${req.barbeariaId}: ${userId}`);
       },
       async (telefone, mensagem, remoteJid) => {
-        try {
-          console.log(`📩 Mensagem recebida de ${telefone} (remoteJid: ${remoteJid}): ${mensagem.substring(0,50)}`);
-          const cfg = await query(
-            `SELECT ai_enabled, ai_prompt, (SELECT nome FROM barbearias WHERE id = $1) AS barbearia_nome
-               FROM whatsapp_config WHERE barbearia_id = $1`,
-            [req.barbeariaId]
-          );
-          const config = cfg.rows[0];
-          if (!config?.ai_enabled) return;
-
-          await query(
-            `INSERT INTO whatsapp_mensagens (barbearia_id, telefone, mensagem, tipo, status)
-             VALUES ($1, $2, $3, 'recebida', 'recebida')`,
-            [req.barbeariaId, telefone, mensagem]
-          );
-
-          const conversa = await getConversa(req.barbeariaId, telefone);
-          const historico = conversa?.historico || [];
-
-          const { resposta } = await processarMensagem(
-            req.barbeariaId, config.barbearia_nome, mensagem, historico, config.ai_prompt
-          );
-
-          if (resposta) {
-            console.log(`📤 Enviando resposta para ${telefone}: ${resposta.substring(0,50)}`);
-            const jid = telefone.includes('@') ? telefone : `${telefone.replace(/\D/g, '')}@s.whatsapp.net`;
-            // Usa remoteJid original se disponivel, senao monta o jid
-            const alvo = remoteJid || jid;
-            await enviarMensagemBaileys(req.barbeariaId, telefone, resposta);
-            await query(
-              `INSERT INTO whatsapp_mensagens (barbearia_id, telefone, mensagem, tipo, status)
-               VALUES ($1, $2, $3, 'ia_resposta', 'enviada')`,
-              [req.barbeariaId, telefone, resposta]
-            );
-          }
-
-          const novoHistorico = [
-            ...historico,
-            { role: 'user', content: mensagem },
-            { role: 'assistant', content: resposta },
-          ];
-          await salvarConversa(req.barbeariaId, telefone, novoHistorico);
-        } catch (err) {
-          console.error('Erro ao processar mensagem IA:', err.message);
-        }
+        await processarMensagemRecebida(req.barbeariaId, telefone, mensagem);
       }
     );
 
-    // Espera um pouco para o QR ser gerado
     await new Promise(r => setTimeout(r, 2000));
 
     if (qrCodeResolvido) {
-      res.json({ ok: true, qr: qrCodeResolvido, status: 'connecting' });
+      res.json({ ok: true, provider: 'baileys', qr: qrCodeResolvido, status: 'connecting' });
     } else if (resultado.status === 'connected') {
-      res.json({ ok: true, status: 'connected' });
+      res.json({ ok: true, provider: 'baileys', status: 'connected' });
     } else {
-      res.json({ ok: true, qr: null, status: 'timeout', mensagem: 'Tempo limite. Tente novamente.' });
+      res.json({ ok: true, provider: 'baileys', qr: null, status: 'timeout' });
     }
   } catch (err) {
     console.error('Erro ao conectar WhatsApp:', err.message);
@@ -220,32 +351,102 @@ router.post('/conectar', async (req, res) => {
 
 // GET /api/whatsapp/status
 router.get('/status', async (req, res) => {
-  const st = getStatus(req.barbeariaId);
-  const tel = getTelefone(req.barbeariaId);
-  try { await query(`UPDATE whatsapp_config SET session_status = $1 WHERE barbearia_id = $2`, [st, req.barbeariaId]); } catch {}
-  res.json({ status: st, telefone: tel });
+  try {
+    const { rows } = await query(
+      `SELECT provider FROM whatsapp_config WHERE barbearia_id = $1`,
+      [req.barbeariaId]
+    );
+    const provider = rows[0]?.provider || 'evolution';
+    
+    if (provider === 'evolution') {
+      const stat = await getStatusInstancia(req.barbeariaId);
+      try {
+        await query(
+          `UPDATE whatsapp_config SET session_status = $1 WHERE barbearia_id = $2`,
+          [stat.status, req.barbeariaId]
+        );
+      } catch {}
+      return res.json({ status: stat.status, telefone: stat.telefone, provider });
+    }
+    
+    // Baileys
+    const st = getStatus(req.barbeariaId);
+    const tel = getTelefone(req.barbeariaId);
+    try { await query(`UPDATE whatsapp_config SET session_status = $1 WHERE barbearia_id = $2`, [st, req.barbeariaId]); } catch {}
+    res.json({ status: st, telefone: tel, provider });
+  } catch (err) {
+    res.status(500).json({ erro: err.message });
+  }
 });
 
 // POST /api/whatsapp/desconectar
 router.post('/desconectar', async (req, res) => {
   try {
-    await desconectarWhatsApp(req.barbeariaId);
-    try { await query(`UPDATE whatsapp_config SET session_status = 'disconnected' WHERE barbearia_id = $1`, [req.barbeariaId]); } catch {}
+    const { rows } = await query(
+      `SELECT provider FROM whatsapp_config WHERE barbearia_id = $1`,
+      [req.barbeariaId]
+    );
+    const provider = rows[0]?.provider || 'evolution';
+    
+    if (provider === 'evolution') {
+      await desconectarInstancia(req.barbeariaId);
+    } else {
+      await desconectarWhatsApp(req.barbeariaId);
+      try { await query(`UPDATE whatsapp_config SET session_status = 'disconnected' WHERE barbearia_id = $1`, [req.barbeariaId]); } catch {}
+    }
+    
     res.json({ ok: true });
   } catch (err) {
     res.status(500).json({ erro: err.message });
   }
 });
 
+// POST /api/whatsapp/deletar -> deleta instância completamente
+router.post('/deletar', async (req, res) => {
+  try {
+    await deletarInstancia(req.barbeariaId);
+    res.json({ ok: true });
+  } catch (err) {
+    res.status(500).json({ erro: err.message });
+  }
+});
+
+// GET /api/whatsapp/teste-evolution -> testa se Evolution API está respondendo
+router.get('/teste-evolution', async (req, res) => {
+  const result = await testarEvolutionAPI();
+  res.json(result);
+});
+
 // POST /api/whatsapp/enviar -> envio manual
 router.post('/enviar', async (req, res) => {
   const { telefone, mensagem } = req.body;
   if (!telefone || !mensagem) return res.status(400).json({ erro: 'telefone e mensagem obrigatorios' });
-  const r = await enviarMensagem(req.barbeariaId, { telefone, mensagem, tipo: 'manual' });
-  res.json(r);
+  
+  try {
+    const { rows } = await query(
+      `SELECT provider FROM whatsapp_config WHERE barbearia_id = $1`,
+      [req.barbeariaId]
+    );
+    const provider = rows[0]?.provider || 'evolution';
+    
+    if (provider === 'evolution') {
+      await enviarMensagemEvolution(req.barbeariaId, telefone, mensagem);
+      await query(
+        `INSERT INTO whatsapp_mensagens (barbearia_id, telefone, mensagem, tipo, status)
+         VALUES ($1, $2, $3, 'manual', 'enviada')`,
+        [req.barbeariaId, telefone, mensagem]
+      );
+      return res.json({ ok: true, provider: 'evolution', status: 'enviada' });
+    }
+    
+    const r = await enviarMensagem(req.barbeariaId, { telefone, mensagem, tipo: 'manual' });
+    res.json(r);
+  } catch (err) {
+    res.status(500).json({ erro: err.message });
+  }
 });
 
-// GET /api/whatsapp/mensagens -> historico
+// GET /api/whatsapp/mensagens
 router.get('/mensagens', async (req, res) => {
   const { rows } = await query(
     `SELECT * FROM whatsapp_mensagens WHERE barbearia_id = $1 ORDER BY created_at DESC LIMIT 100`,

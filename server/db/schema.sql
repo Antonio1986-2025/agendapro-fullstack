@@ -326,3 +326,8 @@ ALTER TABLE whatsapp_config ADD COLUMN IF NOT EXISTS openwa_url VARCHAR(255);
 ALTER TABLE whatsapp_config ADD COLUMN IF NOT EXISTS openwa_api_key VARCHAR(255);
 ALTER TABLE whatsapp_config ADD COLUMN IF NOT EXISTS ai_enabled BOOLEAN DEFAULT false;
 ALTER TABLE whatsapp_config ADD COLUMN IF NOT EXISTS ai_prompt TEXT;
+
+-- Evolution API: cada barbearia tem sua própria instância
+ALTER TABLE whatsapp_config ADD COLUMN IF NOT EXISTS evolution_instance_name VARCHAR(120);
+ALTER TABLE whatsapp_config ADD COLUMN IF NOT EXISTS evolution_api_key VARCHAR(255);
+ALTER TABLE whatsapp_config ADD COLUMN IF NOT EXISTS evolution_phone VARCHAR(30);
