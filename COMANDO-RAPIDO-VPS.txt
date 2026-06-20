@@ -1,0 +1,71 @@
+========================================
+🚀 COMANDO SUPER RÁPIDO - VPS
+========================================
+
+COPIE TUDO ISSO E COLE NA VPS:
+
+========================================
+cd ~ && \
+git clone https://github.com/Antonio1986-2025/agendapro-fullstack.git agendapro-new && \
+cd agendapro-new && \
+echo "Agora vou te fazer algumas perguntas..." && \
+read -p "OPENAI_API_KEY: " OPENAI_KEY && \
+cat > .env << EOF
+DATABASE_URL=postgresql://postgres.yavvktjanvbejsrramnc:Aaa30269041%23@aws-1-us-east-1.pooler.supabase.com:6543/postgres
+DB_SSL=true
+SUPABASE_URL=https://yavvktjanvbejsrramnc.supabase.co
+SUPABASE_ANON_KEY=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InlhdnZrdGphbnZiZWpzcnJhbW5jIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODE3MTMzNDYsImV4cCI6MjA5NzI4OTM0Nn0.kosbz5B2l9of_9zqS4JFHAtz_4UUk-rCq9MNxzw2nwI
+SUPABASE_SERVICE_KEY=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InlhdnZrdGphbnZiZWpzcnJhbW5jIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc4MTcxMzM0NiwiZXhwIjoyMDk3Mjg5MzQ2fQ.kza59hJ17dfBh1JSMebOiiREQt6zfcdpLZwLPLWkXsI
+OPENAI_API_KEY=$OPENAI_KEY
+PORT=3001
+NODE_ENV=production
+AUTO_MIGRATE=true
+TZ=America/Sao_Paulo
+JWT_SECRET=$(openssl rand -base64 32)
+JWT_EXPIRATION=7d
+EOF
+npm install --production && \
+npm run migrate && \
+node test-ai.js && \
+pm2 delete agendapro-new 2>/dev/null || true && \
+pm2 start npm --name "agendapro-new" -- start && \
+pm2 save && \
+echo "" && \
+echo "========================================" && \
+echo "  ✅ INSTALAÇÃO COMPLETA!" && \
+echo "========================================" && \
+echo "" && \
+echo "Acesse: http://$(curl -s ifconfig.me):3001" && \
+echo "" && \
+echo "Ver logs: pm2 logs agendapro-new" && \
+echo ""
+========================================
+
+ISSO VAI:
+1. Clonar repositório
+2. Pedir sua chave OpenAI
+3. Criar .env automaticamente
+4. Instalar dependências
+5. Rodar migrations
+6. Testar IA
+7. Iniciar com PM2
+8. Mostrar URL
+
+TEMPO: 5 minutos ⚡
+
+DEPOIS:
+- Acesse http://seu-ip:3001
+- Login: demo@agendapro.com / 123456
+- Configurações → WhatsApp → Conectar
+- Ativar "Agente IA"
+- Testar!
+
+VER LOGS:
+pm2 logs agendapro-new
+
+PROBLEMAS:
+node test-ai.js (testa IA)
+cat .env (ver configurações)
+pm2 restart agendapro-new (reiniciar)
+
+========================================
