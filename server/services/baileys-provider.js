@@ -1,4 +1,4 @@
-import { makeWASocket, useMultiFileAuthState, fetchLatestBaileysVersion, Browsers } from '@whiskeysockets/baileys';
+import { makeWASocket, useMultiFileAuthState, fetchLatestBaileysVersion, Browsers, DisconnectReason } from '@whiskeysockets/baileys';
 import qrcode from 'qrcode';
 import path from 'path';
 import fs from 'fs';
@@ -11,6 +11,13 @@ const AUTH_DIR = path.join(__dirname, '..', '..', 'wa_auth');
 if (!fs.existsSync(AUTH_DIR)) fs.mkdirSync(AUTH_DIR, { recursive: true });
 
 const sockets = {};
+const conflictCount = {}; // Contador de conflitos
+const reconnectTimers = {}; // Timers de reconexão
+const messageQueue = {}; // Fila de mensagens pendentes
+const lastConnectionTime = {}; // Timestamp da última conexão estável
+
+const MAX_CONFLICTS = 5; // Máximo de conflitos antes de parar
+const CONFLICT_WINDOW = 60000; // Janela de 1 minuto para contar conflitos
 
 export function temAuthState(barbeariaId) {
   const dir = path.join(AUTH_DIR, barbeariaId.replace(/-/g, ''));
@@ -23,11 +30,74 @@ async function getAuthDir(barbeariaId) {
   return dir;
 }
 
+/**
+ * Verifica se o socket está realmente conectado e pronto para enviar
+ */
+function isSocketReady(barbeariaId) {
+  const sock = sockets[barbeariaId];
+  if (!sock) return false;
+  if (!sock.user) return false;
+  // Verifica se está conectado há pelo menos 2 segundos (conexão estável)
+  const lastConn = lastConnectionTime[barbeariaId];
+  if (!lastConn) return false;
+  return (Date.now() - lastConn) > 2000;
+}
+
+/**
+ * Aguarda conexão ficar estável (com timeout)
+ */
+async function aguardarConexao(barbeariaId, maxWaitMs = 15000) {
+  const start = Date.now();
+  while (Date.now() - start < maxWaitMs) {
+    if (isSocketReady(barbeariaId)) {
+      return true;
+    }
+    await new Promise(resolve => setTimeout(resolve, 500));
+  }
+  return false;
+}
+
+/**
+ * Processa fila de mensagens pendentes quando conexão fica estável
+ */
+async function processarFilaMensagens(barbeariaId) {
+  const fila = messageQueue[barbeariaId] || [];
+  if (fila.length === 0) return;
+  
+  console.log(`📦 Processando fila: ${fila.length} mensagens pendentes`);
+  
+  while (fila.length > 0) {
+    const msg = fila.shift();
+    try {
+      await enviarMensagemDireto(barbeariaId, msg.jid, msg.texto);
+      console.log(`✅ Mensagem da fila enviada para ${msg.jid}`);
+    } catch (err) {
+      console.error(`❌ Falha ao enviar mensagem da fila:`, err.message);
+      // Re-adiciona no início se for erro de conexão (tenta de novo depois)
+      if (err.message.includes('desconectado') || err.message.includes('conexão')) {
+        fila.unshift(msg);
+        break;
+      }
+    }
+  }
+}
+
 export async function conectarWhatsApp(barbeariaId, onQr, onConnected, onMessage) {
+  // Cancela timer de reconexão anterior se existir
+  if (reconnectTimers[barbeariaId]) {
+    clearTimeout(reconnectTimers[barbeariaId]);
+    delete reconnectTimers[barbeariaId];
+  }
+  
   // Fecha socket anterior se existir (evita handlers duplicados)
   if (sockets[barbeariaId]) {
     try { sockets[barbeariaId].end(undefined); } catch {}
     delete sockets[barbeariaId];
+  }
+
+  // Inicializa fila se não existir
+  if (!messageQueue[barbeariaId]) {
+    messageQueue[barbeariaId] = [];
   }
 
   const authDir = await getAuthDir(barbeariaId);
@@ -40,6 +110,8 @@ export async function conectarWhatsApp(barbeariaId, onQr, onConnected, onMessage
     auth: state,
     printQRInTerminal: false,
     syncFullHistory: false,
+    connectTimeoutMs: 60000,
+    keepAliveIntervalMs: 30000,
   });
 
   sockets[barbeariaId] = socket;
@@ -49,18 +121,90 @@ export async function conectarWhatsApp(barbeariaId, onQr, onConnected, onMessage
       const qrBase64 = await qrcode.toDataURL(qr);
       onQr(qrBase64);
     }
-    if (connection === 'open' && onConnected) {
-      onConnected(socket.user.id);
+    
+    if (connection === 'open') {
+      lastConnectionTime[barbeariaId] = Date.now();
+      console.log(`✅ WhatsApp conectado para barbearia ${barbeariaId}: ${socket.user?.id}`);
+      
+      // Reseta contador de conflitos após conexão estável
+      setTimeout(() => {
+        if (isSocketReady(barbeariaId)) {
+          conflictCount[barbeariaId] = 0;
+          console.log(`✅ Conexão estável - contador de conflitos resetado`);
+          // Processa fila de mensagens
+          processarFilaMensagens(barbeariaId);
+        }
+      }, 3000);
+      
+      if (onConnected) {
+        onConnected(socket.user.id);
+      }
     }
+    
     if (connection === 'close') {
       delete sockets[barbeariaId];
+      delete lastConnectionTime[barbeariaId];
+      
+      const statusCode = lastDisconnect?.error?.output?.statusCode;
+      const errorMsg = lastDisconnect?.error?.message || '';
+      const isConflict = errorMsg.includes('conflict') || statusCode === 440;
+      
       try {
-        const { query } = await import('../config/database.js');
         await query(`UPDATE whatsapp_config SET session_status = 'disconnected' WHERE barbearia_id = $1`, [barbeariaId]);
       } catch {}
-      if (lastDisconnect?.error?.output?.statusCode !== 401) {
-        setTimeout(() => conectarWhatsApp(barbeariaId, onQr, onConnected, onMessage), 5000);
+      
+      // Se foi logout (401), não tenta reconectar
+      if (statusCode === DisconnectReason.loggedOut || statusCode === 401) {
+        console.log(`🚪 WhatsApp deslogado (401) - precisa de novo QR Code`);
+        return;
       }
+      
+      // Trata conflito (outro dispositivo conectado)
+      if (isConflict) {
+        if (!conflictCount[barbeariaId]) conflictCount[barbeariaId] = 0;
+        conflictCount[barbeariaId]++;
+        
+        console.warn(`⚠️  CONFLITO detectado (${conflictCount[barbeariaId]}/${MAX_CONFLICTS}): outro dispositivo está conectado com este WhatsApp`);
+        
+        if (conflictCount[barbeariaId] >= MAX_CONFLICTS) {
+          console.error(`❌ Muitos conflitos! Parando reconexão automática.`);
+          console.error(`📱 SOLUÇÃO: Desconecte outros dispositivos do WhatsApp:`);
+          console.error(`   1. Abra o WhatsApp no celular`);
+          console.error(`   2. Vá em Configurações > Aparelhos conectados`);
+          console.error(`   3. Desconecte TODOS os dispositivos`);
+          console.error(`   4. Reconecte pelo painel do sistema`);
+          
+          try {
+            await query(
+              `UPDATE whatsapp_config SET session_status = 'conflito_multiplos_dispositivos' WHERE barbearia_id = $1`,
+              [barbeariaId]
+            );
+          } catch {}
+          
+          // Reseta contador depois de 5 minutos
+          setTimeout(() => {
+            conflictCount[barbeariaId] = 0;
+            console.log(`🔄 Contador de conflitos resetado após 5 minutos`);
+          }, 5 * 60 * 1000);
+          
+          return;
+        }
+        
+        // Aguarda mais tempo entre conflitos (backoff exponencial)
+        const delay = Math.min(5000 * Math.pow(2, conflictCount[barbeariaId] - 1), 60000);
+        console.log(`⏳ Aguardando ${delay/1000}s antes de tentar reconectar...`);
+        
+        reconnectTimers[barbeariaId] = setTimeout(() => {
+          conectarWhatsApp(barbeariaId, onQr, onConnected, onMessage);
+        }, delay);
+        return;
+      }
+      
+      // Reconexão normal (não conflito)
+      console.log(`🔄 Reconectando WhatsApp em 5 segundos...`);
+      reconnectTimers[barbeariaId] = setTimeout(() => {
+        conectarWhatsApp(barbeariaId, onQr, onConnected, onMessage);
+      }, 5000);
     }
   });
 
@@ -98,7 +242,7 @@ export async function conectarWhatsApp(barbeariaId, onQr, onConnected, onMessage
                  || msg.message?.imageMessage?.caption
                  || '';
       
-      // CORREÇÃO IMPORTANTE: Se o remoteJid é @lid (LID = Linked ID),
+      // CORREÇÃO: Se o remoteJid é @lid (LID = Linked ID),
       // usa o remoteJidAlt que tem o número real do WhatsApp
       let remoteJid = msg.key.remoteJid || '';
       
@@ -107,9 +251,9 @@ export async function conectarWhatsApp(barbeariaId, onQr, onConnected, onMessage
         remoteJid = msg.key.remoteJidAlt;
       }
       
-      // Normaliza telefone - remove tudo que não é número
+      // Normaliza telefone
       let telefone = remoteJid.split('@')[0] || '';
-      telefone = telefone.replace(/\D/g, ''); // Remove tudo que não é dígito
+      telefone = telefone.replace(/\D/g, '');
       
       console.log('📞 Telefone extraído:', telefone);
       console.log('💬 Texto:', texto);
@@ -121,8 +265,8 @@ export async function conectarWhatsApp(barbeariaId, onQr, onConnected, onMessage
         return;
       }
       
-      if (!telefone) {
-        console.log('⚠️  Não foi possível extrair telefone');
+      if (!telefone || telefone.length < 10) {
+        console.log(`⚠️  Telefone inválido: ${telefone}`);
         return;
       }
       
@@ -131,21 +275,13 @@ export async function conectarWhatsApp(barbeariaId, onQr, onConnected, onMessage
         return;
       }
       
-      // Validação adicional: telefone deve ter pelo menos 10 dígitos
-      if (telefone.length < 10) {
-        console.log(`⚠️  Telefone muito curto (${telefone.length} dígitos): ${telefone}`);
-        return;
-      }
-      
       console.log('✅ Mensagem válida, chamando onMessage handler');
       console.log('==========================================\n');
       
-      // Chama o handler
       onMessage(telefone, texto, remoteJid);
       
     } catch (err) {
       console.error('❌ Erro ao processar mensagem upsert:', err);
-      console.error('Stack:', err.stack);
     }
   });
 
@@ -174,6 +310,17 @@ export function getTelefone(barbeariaId) {
 }
 
 export async function desconectarWhatsApp(barbeariaId) {
+  // Cancela timers
+  if (reconnectTimers[barbeariaId]) {
+    clearTimeout(reconnectTimers[barbeariaId]);
+    delete reconnectTimers[barbeariaId];
+  }
+  
+  // Reseta contadores
+  delete conflictCount[barbeariaId];
+  delete lastConnectionTime[barbeariaId];
+  delete messageQueue[barbeariaId];
+  
   const sock = sockets[barbeariaId];
   if (sock) {
     sock.end(undefined);
@@ -185,21 +332,71 @@ export async function desconectarWhatsApp(barbeariaId) {
   }
 }
 
-export async function enviarMensagemBaileys(barbeariaId, telefone, texto) {
+/**
+ * Envia mensagem direto (sem fila) - usado internamente
+ */
+async function enviarMensagemDireto(barbeariaId, telefone, texto) {
   const sock = sockets[barbeariaId];
-  if (!sock) throw new Error('WhatsApp desconectado');
+  if (!sock || !sock.user) {
+    throw new Error('WhatsApp desconectado');
+  }
   
-  // Se já vem com @, usa direto; senão normaliza para @s.whatsapp.net
+  const jid = telefone.includes('@') ? telefone : `${telefone.replace(/\D/g, '')}@s.whatsapp.net`;
+  
+  await sock.sendMessage(jid, { text: texto });
+  return jid;
+}
+
+/**
+ * Envia mensagem com retry e fila
+ */
+export async function enviarMensagemBaileys(barbeariaId, telefone, texto) {
   const jid = telefone.includes('@') ? telefone : `${telefone.replace(/\D/g, '')}@s.whatsapp.net`;
   
   console.log(`📤 ====== ENVIANDO MENSAGEM (BAILEYS) ======`);
   console.log(`🏪 Barbearia: ${barbeariaId}`);
-  console.log(`📞 Telefone original: ${telefone}`);
-  console.log(`🆔 JID normalizado: ${jid}`);
+  console.log(`📞 Telefone: ${telefone}`);
+  console.log(`🆔 JID: ${jid}`);
   console.log(`💬 Texto: ${texto.substring(0, 100)}...`);
-  console.log(`==========================================\n`);
   
-  await sock.sendMessage(jid, { text: texto });
+  // Se conexão não está pronta, aguarda
+  if (!isSocketReady(barbeariaId)) {
+    console.log(`⏳ Conexão instável, aguardando ficar pronta...`);
+    const conectou = await aguardarConexao(barbeariaId, 15000);
+    
+    if (!conectou) {
+      console.warn(`⚠️  Conexão não ficou estável, adicionando à fila`);
+      if (!messageQueue[barbeariaId]) messageQueue[barbeariaId] = [];
+      messageQueue[barbeariaId].push({ jid, texto, timestamp: Date.now() });
+      console.log(`📦 Mensagem adicionada à fila (${messageQueue[barbeariaId].length} pendentes)`);
+      throw new Error('WhatsApp instável - mensagem adicionada à fila');
+    }
+  }
   
-  console.log(`✅ Mensagem enviada com sucesso para ${jid}\n`);
+  // Tenta enviar com retry
+  let lastError;
+  for (let tentativa = 1; tentativa <= 3; tentativa++) {
+    try {
+      await enviarMensagemDireto(barbeariaId, telefone, texto);
+      console.log(`✅ Mensagem enviada com sucesso para ${jid} (tentativa ${tentativa})`);
+      console.log(`==========================================\n`);
+      return;
+    } catch (err) {
+      lastError = err;
+      console.warn(`⚠️  Tentativa ${tentativa}/3 falhou: ${err.message}`);
+      
+      if (tentativa < 3) {
+        // Aguarda antes de tentar de novo
+        await new Promise(resolve => setTimeout(resolve, 2000));
+      }
+    }
+  }
+  
+  // Se falhou todas as tentativas, adiciona à fila
+  console.error(`❌ Falhou após 3 tentativas, adicionando à fila`);
+  if (!messageQueue[barbeariaId]) messageQueue[barbeariaId] = [];
+  messageQueue[barbeariaId].push({ jid, texto, timestamp: Date.now() });
+  console.log(`📦 Mensagem na fila (${messageQueue[barbeariaId].length} pendentes)`);
+  
+  throw lastError || new Error('Falha ao enviar mensagem');
 }
