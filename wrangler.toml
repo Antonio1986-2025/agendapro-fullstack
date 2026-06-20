@@ -1,0 +1,21 @@
+name = "agendapro-api"
+main = "cloudflare-workers/index.js"
+compatibility_date = "2024-01-01"
+
+# Cloudflare Workers configuration for AgendaPro API
+
+[env.production]
+name = "agendapro-api-prod"
+workers_dev = false
+route = "api.agendapro.com/*"
+
+[env.development]
+name = "agendapro-api-dev"
+workers_dev = true
+
+# Variáveis de ambiente (configure no Cloudflare Dashboard)
+# DATABASE_URL
+# OPENAI_API_KEY
+# JWT_SECRET
+# SUPABASE_URL
+# SUPABASE_ANON_KEY
