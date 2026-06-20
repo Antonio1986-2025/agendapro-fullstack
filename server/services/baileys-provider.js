@@ -72,9 +72,9 @@ export async function conectarWhatsApp(barbeariaId, onQr, onConnected, onMessage
       
       // Log completo para debug
       console.log('\n📱 ====== MENSAGEM RECEBIDA (BAILEYS) ======');
-      console.log('Raw message:', JSON.stringify(msg, null, 2));
       console.log('fromMe:', msg.key.fromMe);
       console.log('remoteJid:', msg.key.remoteJid);
+      console.log('remoteJidAlt:', msg.key.remoteJidAlt);
       
       // Ignora mensagens próprias, grupos e broadcasts
       if (!msg || msg.key.fromMe) {
@@ -98,7 +98,14 @@ export async function conectarWhatsApp(barbeariaId, onQr, onConnected, onMessage
                  || msg.message?.imageMessage?.caption
                  || '';
       
-      const remoteJid = msg.key.remoteJid || '';
+      // CORREÇÃO IMPORTANTE: Se o remoteJid é @lid (LID = Linked ID),
+      // usa o remoteJidAlt que tem o número real do WhatsApp
+      let remoteJid = msg.key.remoteJid || '';
+      
+      if (remoteJid.includes('@lid') && msg.key.remoteJidAlt) {
+        console.log(`🔄 LID detectado! Usando remoteJidAlt: ${msg.key.remoteJidAlt}`);
+        remoteJid = msg.key.remoteJidAlt;
+      }
       
       // Normaliza telefone - remove tudo que não é número
       let telefone = remoteJid.split('@')[0] || '';
@@ -106,7 +113,7 @@ export async function conectarWhatsApp(barbeariaId, onQr, onConnected, onMessage
       
       console.log('📞 Telefone extraído:', telefone);
       console.log('💬 Texto:', texto);
-      console.log('🆔 RemoteJid:', remoteJid);
+      console.log('🆔 RemoteJid final:', remoteJid);
       
       // Validações
       if (!texto) {
