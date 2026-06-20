@@ -9,10 +9,43 @@ async function getConfig(barbeariaId) {
   return rows[0] || { provider: 'log', enabled: false, session_status: 'disconnected' };
 }
 
+/**
+ * Normaliza número de telefone removendo caracteres especiais
+ * e tratando formatos diferentes
+ */
 function normalizarTelefone(tel) {
-  let n = (tel || '').replace(/\D/g, '');
-  if (n.length <= 11) n = '55' + n;
-  return n;
+  if (!tel) return '';
+  
+  // Remove tudo que não é número
+  let numero = tel.replace(/\D/g, '');
+  
+  console.log(`🔧 Normalizando telefone: "${tel}" → "${numero}"`);
+  
+  // Se tem menos de 10 dígitos, retorna vazio (inválido)
+  if (numero.length < 10) {
+    console.log(`⚠️  Telefone muito curto: ${numero.length} dígitos`);
+    return '';
+  }
+  
+  // Se começa com código de país diferente de 55 (Brasil), pode ser spam/internacional
+  // Mas vamos aceitar números brasileiros
+  if (numero.length >= 12 && numero.startsWith('55')) {
+    // Já tem código do país (55)
+    return numero;
+  }
+  
+  // Se tem 11 dígitos (DDD + 9 + número), adiciona 55
+  if (numero.length === 11) {
+    return '55' + numero;
+  }
+  
+  // Se tem 10 dígitos (DDD + número), adiciona 55
+  if (numero.length === 10) {
+    return '55' + numero;
+  }
+  
+  // Retorna como está se tiver mais de 12 dígitos
+  return numero;
 }
 
 async function registrarMensagem(barbeariaId, { agendamentoId, telefone, mensagem, tipo, status }) {

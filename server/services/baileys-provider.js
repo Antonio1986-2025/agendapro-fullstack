@@ -67,13 +67,79 @@ export async function conectarWhatsApp(barbeariaId, onQr, onConnected, onMessage
   socket.ev.on('creds.update', saveCreds);
 
   socket.ev.on('messages.upsert', async (m) => {
-    const msg = m.messages[0];
-    if (!msg || msg.key.fromMe || msg.key.remoteJid?.includes('@g.us') || msg.key.remoteJid?.includes('@broadcast')) return;
-    const texto = msg.message?.conversation || msg.message?.extendedTextMessage?.text || '';
-    const remoteJid = msg.key.remoteJid || '';
-    const telefone = remoteJid.split('@')[0] || '';
-    if (!texto || !telefone || !onMessage) return;
-    onMessage(telefone, texto, remoteJid);
+    try {
+      const msg = m.messages[0];
+      
+      // Log completo para debug
+      console.log('\n📱 ====== MENSAGEM RECEBIDA (BAILEYS) ======');
+      console.log('Raw message:', JSON.stringify(msg, null, 2));
+      console.log('fromMe:', msg.key.fromMe);
+      console.log('remoteJid:', msg.key.remoteJid);
+      
+      // Ignora mensagens próprias, grupos e broadcasts
+      if (!msg || msg.key.fromMe) {
+        console.log('⏭️  Ignorada: mensagem própria');
+        return;
+      }
+      
+      if (msg.key.remoteJid?.includes('@g.us')) {
+        console.log('⏭️  Ignorada: mensagem de grupo');
+        return;
+      }
+      
+      if (msg.key.remoteJid?.includes('@broadcast')) {
+        console.log('⏭️  Ignorada: broadcast');
+        return;
+      }
+      
+      // Extrai texto da mensagem
+      const texto = msg.message?.conversation 
+                 || msg.message?.extendedTextMessage?.text 
+                 || msg.message?.imageMessage?.caption
+                 || '';
+      
+      const remoteJid = msg.key.remoteJid || '';
+      
+      // Normaliza telefone - remove tudo que não é número
+      let telefone = remoteJid.split('@')[0] || '';
+      telefone = telefone.replace(/\D/g, ''); // Remove tudo que não é dígito
+      
+      console.log('📞 Telefone extraído:', telefone);
+      console.log('💬 Texto:', texto);
+      console.log('🆔 RemoteJid:', remoteJid);
+      
+      // Validações
+      if (!texto) {
+        console.log('⚠️  Mensagem sem texto, ignorando');
+        return;
+      }
+      
+      if (!telefone) {
+        console.log('⚠️  Não foi possível extrair telefone');
+        return;
+      }
+      
+      if (!onMessage) {
+        console.log('⚠️  onMessage handler não definido');
+        return;
+      }
+      
+      // Validação adicional: telefone deve ter pelo menos 10 dígitos
+      if (telefone.length < 10) {
+        console.log(`⚠️  Telefone muito curto (${telefone.length} dígitos): ${telefone}`);
+        return;
+      }
+      
+      console.log('✅ Mensagem válida, chamando onMessage handler');
+      console.log('==========================================\n');
+      
+      // Chama o handler
+      onMessage(telefone, texto, remoteJid);
+      
+    } catch (err) {
+      console.error('❌ Erro ao processar mensagem upsert:', err);
+      console.error('Stack:', err.stack);
+    }
   });
 
   // Aguarda conexão

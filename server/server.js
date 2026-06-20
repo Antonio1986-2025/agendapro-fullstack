@@ -157,27 +157,47 @@ async function start() {
             },
             async (telefone, mensagem, remoteJid) => {
               try {
-                console.log(`📩 Auto: msg de ${telefone} (remoteJid: ${remoteJid}): ${mensagem.substring(0,50)}`);
+                console.log('\n🎯 ====== MENSAGEM PROCESSANDO (SERVER) ======');
+                console.log(`📱 Telefone: ${telefone}`);
+                console.log(`🆔 RemoteJid: ${remoteJid}`);
+                console.log(`💬 Mensagem: ${mensagem}`);
+                console.log(`🏪 Barbearia: ${barbId}`);
+                
                 const cfgData = await pool.query(
                   `SELECT ai_enabled, ai_prompt, (SELECT nome FROM barbearias WHERE id = $1) AS barbearia_nome
                      FROM whatsapp_config WHERE barbearia_id = $1`,
                   [barbId]
                 );
                 const config = cfgData.rows[0];
-                if (!config?.ai_enabled) return;
+                
+                console.log(`🤖 IA habilitada: ${config?.ai_enabled ? 'SIM' : 'NÃO'}`);
+                
+                if (!config?.ai_enabled) {
+                  console.log('⏭️  IA desabilitada, não processando');
+                  return;
+                }
 
+                // Salvar mensagem recebida
                 await pool.query(
                   `INSERT INTO whatsapp_mensagens (barbearia_id, telefone, mensagem, tipo, status)
                    VALUES ($1, $2, $3, 'recebida', 'recebida')`,
                   [barbId, telefone, mensagem]
                 );
+                console.log('💾 Mensagem salva no banco');
 
+                // Buscar histórico
                 const conversa = await getConversa(barbId, telefone);
                 const historico = conversa?.historico || [];
+                console.log(`📚 Histórico: ${historico.length} mensagens`);
 
+                // Processar com IA
+                console.log('🤖 Chamando processarMensagem...');
                 const { resposta } = await processarMensagem(
                   barbId, config.barbearia_nome, mensagem, historico, config.ai_prompt
                 );
+
+                console.log(`💬 Resposta gerada: ${resposta?.substring(0, 100)}...`);
+                console.log('==========================================\n');
 
                 if (resposta) {
                   console.log(`📤 Auto: enviando resposta para ${telefone}: ${resposta.substring(0,50)}`);
