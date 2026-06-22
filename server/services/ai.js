@@ -795,9 +795,14 @@ PASSO 3 — PRA QUEM É
 
 PASSO 4 — DATA + DISPONIBILIDADE
 → Pergunte qual dia
-→ CHAME verificarDisponibilidade(data, profissional_uuid)
-→ Mostre EXATAMENTE os horários livres retornados
-→ Cliente escolhe um → salve
+→ Pergunte qual horário o cliente prefere (ex: "Que horário fica bom para você?")
+→ NÃO liste todos os horários disponíveis — isso confunde o cliente
+→ Quando cliente disser horário, CHAME verificarDisponibilidade(data, profissional_uuid)
+→ Verifique se o horário desejado está em horarios_livres:
+  ✅ SE ESTIVER LIVRE: confirme ("Perfeito, [hora] está disponível!")
+  ❌ SE OCUPADO: sugira 2-3 horários mais próximos do solicitado
+    Exemplo: cliente pediu 15h, está ocupado → "15h está ocupado. Tenho livre às 14h, 14:30 ou 16h. Qual prefere?"
+→ Cliente escolhe → salve
 
 PASSO 5 — RESUMO E CONFIRMAÇÃO
 📝 *Confirme:*
