@@ -533,6 +533,85 @@ router.post('/limpar-conversas', async (req, res) => {
   }
 });
 
+// POST /api/whatsapp/desativar-servico -> desativa um serviço pelo nome ou ID
+router.post('/desativar-servico', async (req, res) => {
+  try {
+    const { nome, id } = req.body;
+    
+    if (!nome && !id) {
+      return res.status(400).json({ erro: 'Forneça nome ou id do serviço' });
+    }
+    
+    let sql, params;
+    if (id) {
+      sql = `UPDATE servicos SET ativo = false WHERE id = $1 AND barbearia_id = $2 RETURNING id, nome`;
+      params = [id, req.barbeariaId];
+    } else {
+      sql = `UPDATE servicos SET ativo = false WHERE LOWER(nome) LIKE LOWER($1) AND barbearia_id = $2 RETURNING id, nome`;
+      params = [`%${nome}%`, req.barbeariaId];
+    }
+    
+    const { rows } = await query(sql, params);
+    res.json({ 
+      ok: true, 
+      desativados: rows.length,
+      servicos: rows,
+    });
+  } catch (err) {
+    res.status(500).json({ erro: err.message });
+  }
+});
+
+// POST /api/whatsapp/corrigir-servico -> corrige nome ou preço de um serviço
+router.post('/corrigir-servico', async (req, res) => {
+  try {
+    const { id, nome, novo_nome, novo_preco } = req.body;
+    
+    if (!id && !nome) {
+      return res.status(400).json({ erro: 'Forneça id ou nome do serviço para identificar' });
+    }
+    
+    const updates = [];
+    const params = [req.barbeariaId];
+    let paramIdx = 2;
+    
+    if (novo_nome) {
+      updates.push(`nome = $${paramIdx++}`);
+      params.push(novo_nome);
+    }
+    if (novo_preco !== undefined) {
+      updates.push(`preco = $${paramIdx++}`);
+      params.push(novo_preco);
+    }
+    
+    if (updates.length === 0) {
+      return res.status(400).json({ erro: 'Forneça novo_nome ou novo_preco' });
+    }
+    
+    let whereSql;
+    if (id) {
+      params.push(id);
+      whereSql = `id = $${paramIdx}`;
+    } else {
+      params.push(`%${nome}%`);
+      whereSql = `LOWER(nome) LIKE LOWER($${paramIdx})`;
+    }
+    
+    const sql = `UPDATE servicos SET ${updates.join(', ')} 
+                 WHERE barbearia_id = $1 AND ${whereSql}
+                 RETURNING id, nome, preco, ativo`;
+    
+    const { rows } = await query(sql, params);
+    res.json({ 
+      ok: true, 
+      atualizados: rows.length,
+      servicos: rows,
+    });
+  } catch (err) {
+    res.status(500).json({ erro: err.message });
+  }
+});
+
 // POST /api/whatsapp/enviar -> envio manual
 router.post('/enviar', async (req, res) => {
   const { telefone, mensagem } = req.body;
