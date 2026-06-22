@@ -282,15 +282,37 @@ router.put('/config', async (req, res) => {
 // POST /api/whatsapp/conectar -> conecta via provider configurado (default: evolution)
 router.post('/conectar', async (req, res) => {
   try {
-    // Verifica/cria registro
-    const cfgRow = await query(
-      `SELECT provider FROM whatsapp_config WHERE barbearia_id = $1`,
-      [req.barbeariaId]
-    );
-    const provider = cfgRow.rows[0]?.provider || 'evolution';
+    // FORÇA EVOLUTION se as variáveis estão configuradas (override do banco)
+    const evolutionConfigured = !!(process.env.EVOLUTION_API_URL && process.env.EVOLUTION_API_KEY);
+    
+    // Provider pode vir do body (force) ou do banco
+    let provider = req.body?.provider;
+    
+    if (!provider) {
+      const cfgRow = await query(
+        `SELECT provider FROM whatsapp_config WHERE barbearia_id = $1`,
+        [req.barbeariaId]
+      );
+      provider = cfgRow.rows[0]?.provider;
+    }
+    
+    // Se Evolution está configurado e não tem provider explícito de baileys, usa Evolution
+    if (evolutionConfigured && provider !== 'baileys') {
+      provider = 'evolution';
+    } else if (!provider) {
+      provider = evolutionConfigured ? 'evolution' : 'baileys';
+    }
+    
+    console.log(`🔗 Conectando WhatsApp com provider: ${provider}`);
     
     if (provider === 'evolution') {
       // ===== EVOLUTION API =====
+      
+      // Se estava usando Baileys, desconecta primeiro
+      try {
+        await desconectarWhatsApp(req.barbeariaId);
+      } catch {}
+      
       await query(
         `INSERT INTO whatsapp_config (barbearia_id, provider, enabled, updated_at)
          VALUES ($1, 'evolution', true, now())
@@ -419,6 +441,94 @@ router.post('/deletar', async (req, res) => {
   try {
     await deletarInstancia(req.barbeariaId);
     res.json({ ok: true });
+  } catch (err) {
+    res.status(500).json({ erro: err.message });
+  }
+});
+
+// POST /api/whatsapp/migrar-evolution -> força migração para Evolution
+router.post('/migrar-evolution', async (req, res) => {
+  try {
+    console.log(`🔄 Migrando barbearia ${req.barbeariaId} para Evolution API...`);
+    
+    // Desconecta Baileys se estiver conectado
+    try {
+      await desconectarWhatsApp(req.barbeariaId);
+    } catch {}
+    
+    // Atualiza banco para Evolution
+    await query(
+      `INSERT INTO whatsapp_config (barbearia_id, provider, enabled, session_status, updated_at)
+       VALUES ($1, 'evolution', true, 'disconnected', now())
+       ON CONFLICT (barbearia_id) DO UPDATE SET 
+          provider = 'evolution',
+          enabled = true,
+          session_status = 'disconnected',
+          updated_at = now()`,
+      [req.barbeariaId]
+    );
+    
+    // Cria instância Evolution
+    const instancia = await criarInstancia(req.barbeariaId);
+    
+    // Já gera o QR Code
+    const conexao = await conectarInstancia(req.barbeariaId);
+    
+    res.json({
+      ok: true,
+      provider: 'evolution',
+      instanceName: instancia.instanceName,
+      qr: conexao.qr,
+      status: conexao.status,
+      mensagem: 'Migrado para Evolution API. Escaneie o QR Code para conectar.',
+    });
+  } catch (err) {
+    console.error('Erro ao migrar:', err.message);
+    res.status(500).json({ erro: err.message });
+  }
+});
+
+// GET /api/whatsapp/diagnostico -> diagnostica configuração atual
+router.get('/diagnostico', async (req, res) => {
+  try {
+    const { rows } = await query(
+      `SELECT provider, enabled, session_status, ai_enabled,
+              evolution_instance_name, evolution_phone
+         FROM whatsapp_config WHERE barbearia_id = $1`,
+      [req.barbeariaId]
+    );
+    
+    const cfg = rows[0] || {};
+    
+    // Testa Evolution
+    let evolutionStatus = null;
+    try {
+      const test = await testarEvolutionAPI();
+      evolutionStatus = test.ok ? '✅ Online' : `❌ ${test.erro}`;
+    } catch (err) {
+      evolutionStatus = `❌ ${err.message}`;
+    }
+    
+    res.json({
+      barbearia_id: req.barbeariaId,
+      provider_atual: cfg.provider || 'não configurado',
+      enabled: cfg.enabled || false,
+      session_status: cfg.session_status || 'desconhecido',
+      ia_ativada: cfg.ai_enabled || false,
+      evolution: {
+        api_url_configurada: !!process.env.EVOLUTION_API_URL,
+        api_key_configurada: !!process.env.EVOLUTION_API_KEY,
+        sistema_url_configurada: !!process.env.SISTEMA_URL,
+        api_status: evolutionStatus,
+        instance_name: cfg.evolution_instance_name || 'sem instância',
+        telefone: cfg.evolution_phone || null,
+      },
+      acao_recomendada: cfg.provider === 'baileys' 
+        ? 'Migrar para Evolution: POST /api/whatsapp/migrar-evolution'
+        : cfg.provider === 'evolution' && !cfg.evolution_instance_name
+          ? 'Conectar para criar instância: POST /api/whatsapp/conectar'
+          : '✅ Configuração OK',
+    });
   } catch (err) {
     res.status(500).json({ erro: err.message });
   }
