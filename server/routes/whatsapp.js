@@ -612,6 +612,82 @@ router.post('/corrigir-servico', async (req, res) => {
   }
 });
 
+// POST /api/whatsapp/limpar-cliente -> apaga todos dados de um cliente (testes)
+router.post('/limpar-cliente', async (req, res) => {
+  try {
+    const { telefone } = req.body;
+    if (!telefone) {
+      return res.status(400).json({ erro: 'Forneça o telefone do cliente' });
+    }
+    
+    const tel = telefone.replace(/\D/g, '');
+    
+    // Busca o cliente
+    const { rows: clientes } = await query(
+      `SELECT id FROM clientes 
+        WHERE barbearia_id = $1 AND telefone LIKE $2`,
+      [req.barbeariaId, `%${tel.slice(-11)}%`]
+    );
+    
+    if (clientes.length === 0) {
+      return res.json({ ok: true, mensagem: 'Cliente não encontrado' });
+    }
+    
+    const clienteIds = clientes.map(c => c.id);
+    
+    // Apaga em ordem de dependências
+    const result = {};
+    
+    // Comandas e itens
+    const { rows: comandas } = await query(
+      `SELECT id FROM comandas WHERE cliente_id = ANY($1)`,
+      [clienteIds]
+    );
+    if (comandas.length > 0) {
+      const comandaIds = comandas.map(c => c.id);
+      const r1 = await query(`DELETE FROM comanda_itens WHERE comanda_id = ANY($1)`, [comandaIds]);
+      const r2 = await query(`DELETE FROM comandas WHERE id = ANY($1)`, [comandaIds]);
+      result.comanda_itens = r1.rowCount;
+      result.comandas = r2.rowCount;
+    }
+    
+    // Agendamentos
+    const r3 = await query(
+      `DELETE FROM agendamentos WHERE cliente_id = ANY($1)`,
+      [clienteIds]
+    );
+    result.agendamentos = r3.rowCount;
+    
+    // Mensagens WhatsApp
+    const r4 = await query(
+      `DELETE FROM whatsapp_mensagens 
+        WHERE barbearia_id = $1 AND telefone LIKE $2`,
+      [req.barbeariaId, `%${tel.slice(-11)}%`]
+    );
+    result.mensagens = r4.rowCount;
+    
+    // Conversas IA
+    const r5 = await query(
+      `DELETE FROM ai_conversas 
+        WHERE barbearia_id = $1 AND cliente_telefone LIKE $2`,
+      [req.barbeariaId, `%${tel.slice(-11)}%`]
+    );
+    result.conversas = r5.rowCount;
+    
+    // Cliente
+    const r6 = await query(`DELETE FROM clientes WHERE id = ANY($1)`, [clienteIds]);
+    result.clientes = r6.rowCount;
+    
+    res.json({ 
+      ok: true, 
+      telefone: tel,
+      apagado: result,
+    });
+  } catch (err) {
+    res.status(500).json({ erro: err.message });
+  }
+});
+
 // POST /api/whatsapp/enviar -> envio manual
 router.post('/enviar', async (req, res) => {
   const { telefone, mensagem } = req.body;
