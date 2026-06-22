@@ -46,6 +46,24 @@ router.post('/webhook/evolution/:barbeariaId', async (req, res) => {
           [dbStatus, barbeariaId]
         );
       } catch {}
+      
+      // Se desconectou, agenda tentativa de reconexão silenciosa em 30 segundos
+      if (state === 'close' || state === 'closed') {
+        console.log(`⚠️  Conexão fechada. Agendando reconexão automática em 30s...`);
+        setTimeout(async () => {
+          try {
+            const { reconectarInstanciaSilencioso } = await import('../services/evolution-provider.js');
+            const result = await reconectarInstanciaSilencioso(barbeariaId);
+            if (result.ok) {
+              console.log(`✅ Reconexão automática bem-sucedida para ${barbeariaId}`);
+            } else {
+              console.log(`⚠️  Reconexão automática falhou: ${result.motivo}`);
+            }
+          } catch (err) {
+            console.error(`❌ Erro na reconexão automática:`, err.message);
+          }
+        }, 30000);
+      }
       return;
     }
     
@@ -377,6 +395,17 @@ router.post('/scheduler/executar', async (req, res) => {
     const { executarManualmente } = await import('../services/scheduler.js');
     await executarManualmente();
     res.json({ ok: true, mensagem: 'Scheduler executado. Verifique os logs.' });
+  } catch (err) {
+    res.status(500).json({ erro: err.message });
+  }
+});
+
+// POST /api/whatsapp/reconectar -> tenta reconectar silenciosamente (sem QR)
+router.post('/reconectar', async (req, res) => {
+  try {
+    const { reconectarInstanciaSilencioso } = await import('../services/evolution-provider.js');
+    const result = await reconectarInstanciaSilencioso(req.barbeariaId);
+    res.json(result);
   } catch (err) {
     res.status(500).json({ erro: err.message });
   }

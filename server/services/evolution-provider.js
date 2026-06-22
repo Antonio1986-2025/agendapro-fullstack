@@ -176,6 +176,122 @@ export async function conectarInstancia(barbeariaId) {
 }
 
 /**
+ * Reconecta uma instância silenciosamente (sem retornar QR para usuário).
+ * Se a sessão já existe na Evolution, ela retoma automaticamente.
+ * Se não existe, vai falhar (precisa QR Code novo).
+ */
+export async function reconectarInstanciaSilencioso(barbeariaId) {
+  const { rows } = await query(
+    `SELECT evolution_instance_name, evolution_api_key 
+       FROM whatsapp_config WHERE barbearia_id = $1`,
+    [barbeariaId]
+  );
+  
+  const instanceName = rows[0]?.evolution_instance_name;
+  const apiKey = rows[0]?.evolution_api_key;
+  
+  if (!instanceName) {
+    return { ok: false, motivo: 'sem_instancia' };
+  }
+  
+  try {
+    const client = getClient(apiKey);
+    
+    // Verifica estado atual
+    const statusResp = await client.get(`/instance/connectionState/${instanceName}`);
+    const state = statusResp.data?.instance?.state || statusResp.data?.state;
+    
+    // Já conectado? Não faz nada
+    if (state === 'open') {
+      return { ok: true, status: 'connected', motivo: 'ja_conectado' };
+    }
+    
+    // Tenta conectar (retoma sessão se existir)
+    console.log(`🔄 Tentando reconectar ${instanceName} (estado atual: ${state})...`);
+    await client.get(`/instance/connect/${instanceName}`);
+    
+    // Aguarda alguns segundos e verifica de novo
+    await new Promise(resolve => setTimeout(resolve, 3000));
+    
+    const novoStatus = await client.get(`/instance/connectionState/${instanceName}`);
+    const novoState = novoStatus.data?.instance?.state || novoStatus.data?.state;
+    
+    if (novoState === 'open') {
+      console.log(`✅ ${instanceName} reconectada com sucesso!`);
+      
+      await query(
+        `UPDATE whatsapp_config SET session_status = 'connected', updated_at = now()
+          WHERE barbearia_id = $1`,
+        [barbeariaId]
+      );
+      
+      return { ok: true, status: 'connected' };
+    }
+    
+    if (novoState === 'connecting') {
+      console.log(`⏳ ${instanceName} ainda conectando...`);
+      return { ok: true, status: 'connecting', motivo: 'conectando' };
+    }
+    
+    console.log(`⚠️  ${instanceName} não conectou (estado: ${novoState}). Pode precisar de QR novo.`);
+    return { ok: false, status: novoState, motivo: 'precisa_qr_novo' };
+    
+  } catch (err) {
+    console.error(`❌ Erro ao reconectar ${instanceName}:`, err.message);
+    return { ok: false, motivo: err.message };
+  }
+}
+
+/**
+ * Verifica e reconecta TODAS as instâncias que estão offline
+ */
+export async function reconectarTodasOffline() {
+  console.log(`🔄 ====== VERIFICANDO INSTÂNCIAS OFFLINE ======`);
+  
+  try {
+    // Busca todas barbearias com Evolution configurada
+    const { rows: barbearias } = await query(
+      `SELECT barbearia_id, evolution_instance_name, session_status 
+         FROM whatsapp_config 
+        WHERE provider = 'evolution' 
+          AND evolution_instance_name IS NOT NULL
+          AND enabled = true`
+    );
+    
+    if (barbearias.length === 0) {
+      console.log(`   ℹ️  Nenhuma barbearia com Evolution configurada`);
+      return { total: 0 };
+    }
+    
+    console.log(`   📋 ${barbearias.length} barbearia(s) Evolution`);
+    
+    let reconectadas = 0;
+    let jaConectadas = 0;
+    let falhas = 0;
+    
+    for (const barb of barbearias) {
+      const result = await reconectarInstanciaSilencioso(barb.barbearia_id);
+      
+      if (result.motivo === 'ja_conectado') {
+        jaConectadas++;
+      } else if (result.ok) {
+        reconectadas++;
+      } else {
+        falhas++;
+      }
+    }
+    
+    console.log(`   ✅ ${jaConectadas} já conectadas, ${reconectadas} reconectadas, ${falhas} falhas`);
+    console.log(`====== FIM VERIFICAÇÃO ======\n`);
+    
+    return { total: barbearias.length, jaConectadas, reconectadas, falhas };
+  } catch (err) {
+    console.error(`❌ Erro:`, err.message);
+    return { erro: err.message };
+  }
+}
+
+/**
  * Verifica status da conexão
  */
 export async function getStatusInstancia(barbeariaId) {

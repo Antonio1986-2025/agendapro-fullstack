@@ -331,7 +331,18 @@ async function executarVerificacoes() {
   console.log(`\n⏰ ====== SCHEDULER (${new Date().toLocaleString('pt-BR')}) ======`);
   
   try {
+    // 1. Reconecta instâncias offline (importante para resiliência)
+    try {
+      const { reconectarTodasOffline } = await import('./evolution-provider.js');
+      await reconectarTodasOffline();
+    } catch (err) {
+      console.error(`⚠️  Falha ao verificar reconexões:`, err.message);
+    }
+    
+    // 2. Lembretes 30min
     await enviarLembretes30Min();
+    
+    // 3. Mensagens de retorno
     await enviarMensagensRetorno();
   } catch (err) {
     console.error(`❌ Erro no scheduler:`, err.message);

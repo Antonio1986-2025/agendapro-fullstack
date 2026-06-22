@@ -119,6 +119,17 @@ async function start() {
     if (process.env.EVOLUTION_API_URL && process.env.EVOLUTION_API_KEY) {
       console.log(`✅ Evolution API: ${process.env.EVOLUTION_API_URL}`);
       
+      // Tenta reconectar todas as instâncias 5 segundos após boot
+      // (importante para resiliência: se servidor reiniciou, instâncias podem estar offline)
+      setTimeout(async () => {
+        try {
+          const { reconectarTodasOffline } = await import('./services/evolution-provider.js');
+          await reconectarTodasOffline();
+        } catch (err) {
+          console.error(`⚠️  Falha ao reconectar instâncias após boot:`, err.message);
+        }
+      }, 5000);
+      
       // Inicia scheduler de notificações automáticas
       try {
         const { iniciarScheduler } = await import('./services/scheduler.js');
