@@ -133,9 +133,14 @@ async function processarMensagemRecebida(barbeariaId, telefone, mensagem) {
     const historico = conversa?.historico || [];
     console.log(`📚 Histórico: ${historico.length} mensagens`);
     
-    // Processa com IA
+    // Processa com IA (PASSANDO O TELEFONE DO CLIENTE)
     const { resposta } = await processarMensagem(
-      barbeariaId, config.barbearia_nome, mensagem, historico, config.ai_prompt
+      barbeariaId, 
+      config.barbearia_nome, 
+      mensagem, 
+      historico, 
+      config.ai_prompt,
+      telefone  // <-- Telefone do cliente para o agente saber automaticamente
     );
     
     if (resposta) {
