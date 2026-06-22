@@ -199,6 +199,19 @@ router.post('/webhook', async (req, res) => {
   res.sendStatus(200);
 });
 
+// GET /api/whatsapp/teste-evolution -> testa se Evolution API está respondendo (PÚBLICO)
+router.get('/teste-evolution', async (req, res) => {
+  const result = await testarEvolutionAPI();
+  res.json({
+    ...result,
+    config: {
+      url: process.env.EVOLUTION_API_URL || 'NÃO CONFIGURADO',
+      apiKey: process.env.EVOLUTION_API_KEY ? '✅ Configurada' : '❌ NÃO CONFIGURADO',
+      sistemaUrl: process.env.SISTEMA_URL || 'NÃO CONFIGURADO',
+    }
+  });
+});
+
 // ============================================================
 // ROTAS AUTENTICADAS
 // ============================================================
@@ -409,12 +422,6 @@ router.post('/deletar', async (req, res) => {
   } catch (err) {
     res.status(500).json({ erro: err.message });
   }
-});
-
-// GET /api/whatsapp/teste-evolution -> testa se Evolution API está respondendo
-router.get('/teste-evolution', async (req, res) => {
-  const result = await testarEvolutionAPI();
-  res.json(result);
 });
 
 // POST /api/whatsapp/enviar -> envio manual
