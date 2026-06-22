@@ -357,7 +357,7 @@ Caso contrário, comece um NOVO atendimento normalmente.`;
  */
 function textoProximoPasso(slot, slots) {
   const instrucoes = {
-    cliente: 'Identifique o cliente pelo telefone (use buscarCliente). Se não existir, peça nome completo e use cadastrarCliente.',
+    cliente: 'Cliente NÃO está cadastrado. Peça o NOME COMPLETO ao cliente e use cadastrarClientePrincipal(nome) para cadastrar.',
     
     servico: 'Pergunte qual serviço o cliente deseja. Se ele mencionar termo genérico (corte, barba), use listarServicos para mostrar opções. Use definirServico para registrar a escolha.',
     

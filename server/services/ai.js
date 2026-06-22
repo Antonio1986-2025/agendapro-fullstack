@@ -276,6 +276,24 @@ const tools = [
   {
     type: 'function',
     function: {
+      name: 'cadastrarClientePrincipal',
+      description: 'Cadastra o CLIENTE QUE ESTÁ CONVERSANDO (telefone do WhatsApp atual). Use quando cliente é novo e forneceu o nome. Não use para cadastrar terceiros (usar definirParaQuem com tipo=terceiro para isso).',
+      parameters: {
+        type: 'object',
+        properties: {
+          nome: {
+            type: 'string',
+            description: 'Nome completo do cliente que está conversando agora',
+          },
+        },
+        required: ['nome'],
+        additionalProperties: false,
+      },
+    },
+  },
+  {
+    type: 'function',
+    function: {
       name: 'definirServico',
       description: 'Define o serviço escolhido para o agendamento em andamento. Aceita: UUID, nome do serviço (ou parte dele), ou número da posição na lista (ex: "1"). Sistema valida na base e atualiza o checklist.',
       parameters: {
@@ -476,8 +494,59 @@ async function executarTool(ctx, toolName, args) {
             cliente_identificado: !!clienteData,
             cliente: clienteData,
             mensagem: clienteData 
-              ? `Fluxo de agendamento iniciado. Cliente identificado: ${clienteData.nome}` 
-              : 'Fluxo iniciado. Cliente NOVO - você precisa pedir o nome completo antes de continuar.',
+              ? `Fluxo iniciado. Cliente identificado: ${clienteData.nome}` 
+              : 'Fluxo iniciado. Cliente NOVO - peça o nome COMPLETO e use cadastrarClientePrincipal.',
+          },
+          novoEstado,
+        };
+      }
+      
+      // ───── CADASTRAR CLIENTE PRINCIPAL (quem está conversando) ─────
+      case 'cadastrarClientePrincipal': {
+        if (estado.fluxo_ativo !== 'agendamento') {
+          return { resultado: { erro: 'Inicie o fluxo de agendamento primeiro com iniciarAgendamento.' } };
+        }
+        
+        const nome = String(args.nome || '').trim();
+        if (nome.length < 2) {
+          return { resultado: { erro: 'Nome inválido. Peça o nome COMPLETO.' } };
+        }
+        
+        const tel = String(telefone || '').replace(/\D/g, '');
+        
+        // Verifica se já existe
+        const { rows: existentes } = await query(
+          `SELECT id, nome FROM clientes 
+            WHERE barbearia_id = $1 AND telefone = $2 LIMIT 1`,
+          [barbeariaId, tel]
+        );
+        
+        let clienteId, clienteNome;
+        if (existentes[0]) {
+          clienteId = existentes[0].id;
+          clienteNome = existentes[0].nome;
+          console.log(`   ℹ️  Cliente já existia: ${clienteNome}`);
+        } else {
+          const { rows: novo } = await query(
+            `INSERT INTO clientes (barbearia_id, nome, telefone, total_visitas)
+             VALUES ($1, $2, $3, 0) RETURNING id, nome`,
+            [barbeariaId, nome, tel]
+          );
+          clienteId = novo[0].id;
+          clienteNome = novo[0].nome;
+          console.log(`   ✅ Cliente cadastrado: ${clienteNome}`);
+        }
+        
+        const novoEstado = ws.definirSlot(estado, 'cliente', {
+          id: clienteId,
+          nome: clienteNome,
+        });
+        
+        return {
+          resultado: {
+            sucesso: true,
+            cliente: { id: clienteId, nome: clienteNome },
+            mensagem: `Cliente ${clienteNome} cadastrado/identificado. Continue para o próximo passo.`,
           },
           novoEstado,
         };
@@ -1127,12 +1196,22 @@ ${estadoTexto}
 O sistema possui um CHECKLIST INTERNO que controla o fluxo. Você usa TOOLS para preenchê-lo.
 
 REGRAS DE OURO:
-1. Cliente quer agendar? → Chame iniciarAgendamento (ele identifica o cliente automaticamente).
-2. Use as tools "definir*" para registrar cada decisão do cliente. O sistema mantém o estado.
-3. NÃO pergunte sobre slots já preenchidos (✅) — eles estão no checklist acima.
-4. Para FINALIZAR, todos os slots devem estar ✅ — então use finalizarAgendamento.
-5. Se cliente quiser MUDAR algo já preenchido, use a tool "definir*" novamente (sobrescreve).
-6. Se cliente desistir, use cancelarFluxoAtual.
+1. Cliente quer agendar? → Chame iniciarAgendamento PRIMEIRO.
+2. Se cliente é NOVO (não cadastrado): peça nome COMPLETO e use cadastrarClientePrincipal.
+3. Use as tools "definir*" para registrar cada decisão. O sistema mantém o estado.
+4. NÃO pergunte sobre slots já preenchidos (✅) — eles estão no checklist acima.
+5. Para FINALIZAR, todos os slots devem estar ✅ — use finalizarAgendamento.
+6. Se cliente quiser MUDAR algo já preenchido, use a tool "definir*" novamente (sobrescreve).
+7. Se cliente desistir, use cancelarFluxoAtual.
+8. NÃO chame a mesma tool múltiplas vezes em sequência - se uma tool falhou, leia o erro e ajuste.
+
+ORDEM DOS SLOTS (preencha um de cada vez):
+1️⃣ cliente (use iniciarAgendamento + cadastrarClientePrincipal se novo)
+2️⃣ servico (definirServico)
+3️⃣ profissional (definirProfissional)
+4️⃣ para_quem (definirParaQuem)
+5️⃣ data (definirData)
+6️⃣ horario (definirHorario)
 
 ESTILO DE RESPOSTA:
 - Português brasileiro, natural e amigável
@@ -1147,7 +1226,7 @@ QUANDO O CHECKLIST ESTÁ COMPLETO (todos ✅):
 - Depois confirme o agendamento criado para o cliente
 
 PERGUNTAS FORA DO CONTEXTO:
-- Cliente pode perguntar sobre preço, endereço, horário de funcionamento a qualquer momento
+- Cliente pode perguntar sobre preço, endereço, horário a qualquer momento
 - Use as tools de query (consultarInfoBarbearia, listarServicos) para responder
 - Depois retome o fluxo no slot pendente
 
@@ -1198,10 +1277,11 @@ export async function processarMensagem(barbeariaId, barbeariaNome, mensagemClie
   
   const ctx = { barbeariaId, telefone: telefoneCliente, estado };
   const toolsExecutados = [];
+  const ultimasTools = [];  // Detecta loops
   
   try {
     let iteracao = 0;
-    const MAX_ITERACOES = 8;
+    const MAX_ITERACOES = 6;
     
     while (iteracao < MAX_ITERACOES) {
       iteracao++;
@@ -1226,6 +1306,18 @@ export async function processarMensagem(barbeariaId, barbeariaNome, mensagemClie
         const resposta = msg.content || 'Desculpe, não consegui processar. Pode reformular?';
         console.log(`✅ Resposta: ${resposta.substring(0, 80)}...`);
         return { resposta, toolsExecutados };
+      }
+      
+      // Detecta loop: mesma tool 3x seguidas
+      const nomesTools = msg.tool_calls.map(tc => tc.function.name).join(',');
+      ultimasTools.push(nomesTools);
+      if (ultimasTools.length >= 2 && ultimasTools[ultimasTools.length - 1] === ultimasTools[ultimasTools.length - 2]) {
+        console.warn(`⚠️  Loop detectado: ${nomesTools} chamado repetidamente. Forçando resposta.`);
+        await ws.salvarEstado(barbeariaId, telefoneCliente, ctx.estado);
+        return {
+          resposta: 'Desculpe, tive uma confusão. Pode me dizer novamente o que precisa?',
+          toolsExecutados,
+        };
       }
       
       // Executa tools
@@ -1270,11 +1362,26 @@ export async function processarMensagem(barbeariaId, barbeariaNome, mensagemClie
       ];
     }
     
-    // Limite de iterações - força resposta
-    console.warn('⚠️  Limite de iterações');
+    // Limite de iterações - força resposta sem tools
+    console.warn('⚠️  Limite de iterações atingido, forçando resposta final');
+    
+    const respostaFinal = await ai.chat.completions.create({
+      model: 'gpt-4o-mini',
+      messages: [
+        ...messages,
+        { 
+          role: 'system', 
+          content: 'IMPORTANTE: Não chame mais tools. Responda ao cliente diretamente baseado no que já foi coletado. Se faltarem dados, peça ao cliente.' 
+        },
+      ],
+      temperature: 0.3,
+      max_tokens: 800,
+    });
+    
     await ws.salvarEstado(barbeariaId, telefoneCliente, ctx.estado);
+    
     return {
-      resposta: 'Desculpe, tive dificuldade em processar. Pode tentar novamente?',
+      resposta: respostaFinal.choices[0].message.content || 'Pode me dizer novamente o que precisa?',
       toolsExecutados,
     };
     
