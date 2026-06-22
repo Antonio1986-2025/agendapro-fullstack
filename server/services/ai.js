@@ -597,6 +597,38 @@ async function executarTool(barbeariaId, toolName, args) {
         console.log(`      Profissional: ${prof[0].nome}`);
         console.log(`      Data/Hora: ${rows[0].data_hora}`);
         
+        // Cria comanda automaticamente (igual à API tradicional)
+        try {
+          const proxNum = await query(
+            `SELECT COALESCE(MAX(numero),0) + 1 AS prox FROM comandas WHERE barbearia_id = $1`,
+            [barbeariaId]
+          );
+          
+          const cmd = await query(
+            `INSERT INTO comandas (barbearia_id, agendamento_id, numero, cliente_id, cliente_nome, valor)
+             VALUES ($1, $2, $3, $4, $5, $6) RETURNING id`,
+            [
+              barbeariaId, 
+              rows[0].id, 
+              proxNum.rows[0].prox, 
+              cli[0].id, 
+              cli[0].nome, 
+              servico[0].preco
+            ]
+          );
+          
+          if (cmd.rows[0]) {
+            await query(
+              `INSERT INTO comanda_itens (comanda_id, descricao, valor, tipo, profissional_id)
+               VALUES ($1, $2, $3, 'servico', $4)`,
+              [cmd.rows[0].id, servico[0].nome, servico[0].preco, args.profissional_id]
+            );
+            console.log(`   ✅ Comanda criada: #${proxNum.rows[0].prox}`);
+          }
+        } catch (err) {
+          console.error('   ⚠️  Erro ao criar comanda (agendamento foi criado):', err.message);
+        }
+        
         // Notifica barbeiro (não-bloqueante)
         try {
           const { notificarBarbeiroNovoAgendamento } = await import('./whatsapp.js');
