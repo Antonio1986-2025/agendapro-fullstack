@@ -116,6 +116,14 @@ async function start() {
     // Verifica configuração da Evolution API
     if (process.env.EVOLUTION_API_URL && process.env.EVOLUTION_API_KEY) {
       console.log(`✅ Evolution API: ${process.env.EVOLUTION_API_URL}`);
+      
+      // Inicia scheduler de notificações automáticas
+      try {
+        const { iniciarScheduler } = await import('./services/scheduler.js');
+        iniciarScheduler();
+      } catch (err) {
+        console.error(`⚠️  Falha ao iniciar scheduler:`, err.message);
+      }
     } else {
       console.log(`⚠️  Evolution API não configurada (EVOLUTION_API_URL e EVOLUTION_API_KEY)`);
     }

@@ -108,42 +108,7 @@ export function textoNotificacaoBarbeiro({ profissionalNome, clienteNome, client
 }
 
 export async function notificarBarbeiroNovoAgendamento(barbeariaId, agendamentoId) {
-  try {
-    const { rows } = await query(
-      `SELECT p.nome AS profissional_nome, p.telefone AS profissional_telefone,
-              p.notificar_whatsapp,
-              c.nome AS cliente_nome, c.telefone AS cliente_telefone,
-              s.nome AS servico_nome,
-              a.data_hora, a.is_especial
-         FROM agendamentos a
-         JOIN profissionais p ON p.id = a.profissional_id
-         LEFT JOIN clientes c ON c.id = a.cliente_id
-         LEFT JOIN servicos s ON s.id = a.servico_id
-        WHERE a.id = $1 AND a.barbearia_id = $2`,
-      [agendamentoId, barbeariaId]
-    );
-    const d = rows[0];
-    if (!d) return { ok: false, motivo: 'agendamento_nao_encontrado' };
-    if (d.notificar_whatsapp === false) return { ok: false, motivo: 'notificacao_desativada' };
-    if (!d.profissional_telefone) return { ok: false, motivo: 'profissional_sem_telefone' };
-
-    const mensagem = textoNotificacaoBarbeiro({
-      profissionalNome: d.profissional_nome,
-      clienteNome: d.cliente_nome || 'Cliente',
-      clienteTelefone: d.cliente_telefone,
-      servicoNome: d.servico_nome || 'Atendimento',
-      dataHora: d.data_hora,
-      isEspecial: d.is_especial,
-    });
-
-    return await enviarMensagem(barbeariaId, {
-      telefone: d.profissional_telefone,
-      mensagem,
-      tipo: 'novo_agendamento_barbeiro',
-      agendamentoId,
-    });
-  } catch (err) {
-    console.error('Falha ao notificar barbeiro:', err.message);
-    return { ok: false, motivo: err.message };
-  }
+  // Delegado para o scheduler que tem controle de duplicação
+  const { notificarBarbeiroNovoAgendamento: notificar } = await import('./scheduler.js');
+  return notificar(barbeariaId, agendamentoId);
 }

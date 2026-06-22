@@ -179,7 +179,7 @@ CREATE TABLE IF NOT EXISTS whatsapp_mensagens (
     agendamento_id UUID REFERENCES agendamentos(id) ON DELETE SET NULL,
     telefone VARCHAR(30) NOT NULL,
     mensagem TEXT NOT NULL,
-    tipo VARCHAR(30) DEFAULT 'manual',          -- confirmacao|lembrete|manual|novo_agendamento_barbeiro|recebida
+    tipo VARCHAR(30) DEFAULT 'manual',          -- confirmacao|lembrete|manual|novo_agendamento_barbeiro|recebida|lembrete_30min|retorno_20dias
     status VARCHAR(30) DEFAULT 'enviada',       -- enviada|erro|recebida
     created_at TIMESTAMPTZ DEFAULT now()
 );
@@ -331,3 +331,11 @@ ALTER TABLE whatsapp_config ADD COLUMN IF NOT EXISTS ai_prompt TEXT;
 ALTER TABLE whatsapp_config ADD COLUMN IF NOT EXISTS evolution_instance_name VARCHAR(120);
 ALTER TABLE whatsapp_config ADD COLUMN IF NOT EXISTS evolution_api_key VARCHAR(255);
 ALTER TABLE whatsapp_config ADD COLUMN IF NOT EXISTS evolution_phone VARCHAR(30);
+
+-- Controle de notificações automáticas em agendamentos
+ALTER TABLE agendamentos ADD COLUMN IF NOT EXISTS lembrete_enviado_em TIMESTAMPTZ;
+ALTER TABLE agendamentos ADD COLUMN IF NOT EXISTS notificacao_barbeiro_enviada_em TIMESTAMPTZ;
+
+-- Controle de mensagem de retorno (20 dias depois) - por cliente
+ALTER TABLE clientes ADD COLUMN IF NOT EXISTS ultimo_servico_em TIMESTAMPTZ;
+ALTER TABLE clientes ADD COLUMN IF NOT EXISTS retorno_enviado_em TIMESTAMPTZ;

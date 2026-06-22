@@ -340,6 +340,13 @@ router.get('/diagnostico', async (req, res) => {
       evolutionStatus = `❌ ${err.message}`;
     }
     
+    // Status do scheduler
+    let schedulerStatus = null;
+    try {
+      const { getStatusScheduler } = await import('../services/scheduler.js');
+      schedulerStatus = getStatusScheduler();
+    } catch {}
+    
     res.json({
       barbearia_id: req.barbeariaId,
       provider: cfg.provider || 'não configurado',
@@ -354,10 +361,22 @@ router.get('/diagnostico', async (req, res) => {
         instance_name: cfg.evolution_instance_name || 'sem instância',
         telefone: cfg.evolution_phone || null,
       },
+      scheduler: schedulerStatus,
       acao_recomendada: !cfg.evolution_instance_name
         ? 'Conectar para criar instância: POST /api/whatsapp/conectar'
         : '✅ Configuração OK',
     });
+  } catch (err) {
+    res.status(500).json({ erro: err.message });
+  }
+});
+
+// POST /api/whatsapp/scheduler/executar -> roda scheduler manualmente (testar)
+router.post('/scheduler/executar', async (req, res) => {
+  try {
+    const { executarManualmente } = await import('../services/scheduler.js');
+    await executarManualmente();
+    res.json({ ok: true, mensagem: 'Scheduler executado. Verifique os logs.' });
   } catch (err) {
     res.status(500).json({ erro: err.message });
   }
