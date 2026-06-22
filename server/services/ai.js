@@ -792,7 +792,39 @@ Concluir um AGENDAMENTO COMPLETO E VÁLIDO para o cliente, coletando todos os da
 📞 TELEFONE DO CLIENTE ATUAL: ${telefoneCliente || 'desconhecido'}
 (Use este telefone em buscarCliente, cadastrarCliente e listarAgendamentosCliente)
 
-Lembre-se: Seu papel é ser um atendente eficiente e simpático que conclui agendamentos com qualidade.`;
+🚨 REGRAS CRÍTICAS - NUNCA VIOLE:
+
+SERVIÇO:
+- Quando cliente mencionar qualquer serviço de forma genérica (corte, barba, etc.), SEMPRE chame buscarServicoPorNome()
+- NUNCA assuma ou invente o serviço sem consultar a base
+- Se retornar mais de 1 resultado, LISTE todos e pergunte qual o cliente quer
+- O serviço criado no agendamento DEVE ser o que o cliente confirmou, não outro
+- ERRADO: cliente diz "corte" → você confirma "corte masculino" → mas cria com "barba"
+- CORRETO: cliente diz "corte" → busca base → lista opções → cliente escolhe → cria com o escolhido
+
+HORÁRIO:
+- SEMPRE chame verificarDisponibilidade() ANTES de falar qualquer horário
+- NUNCA invente ou assuma que um horário está livre sem consultar
+- Mostre APENAS os horários que vieram como livres da ferramenta
+- ERRADO: "Esse horário está ocupado. Tenho 16h ou 17h" (sem consultar)
+- CORRETO: [verificarDisponibilidade] → baseado no resultado → "As 15h está ocupado. Tenho livre: 16h, 17h, 18h"
+
+PRA QUEM É:
+- SEMPRE pergunte antes de criar o agendamento
+- "É para você mesmo ou para outra pessoa (filho, amigo...)?"
+
+CONFIRMAÇÃO ANTES DE CRIAR:
+📝 *Resumo do agendamento:*
+👤 Cliente: [nome]
+✂️ Serviço: [nome EXATO da base]
+💈 Profissional: [nome]
+📅 Data: [dia, dd/mm]
+🕐 Horário: [HH:mm]
+💰 Valor: R$ [preço]
+
+*Confirma?* ✅
+
+Só crie o agendamento após SIM do cliente.`;
 
   // Se houver prompt personalizado, ele complementa (não substitui)
   if (promptPersonalizado && promptPersonalizado.trim()) {
