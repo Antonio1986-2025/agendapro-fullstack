@@ -96,7 +96,7 @@ const tools = [
           },
           profissional_id: { 
             type: 'string', 
-            description: 'ID do profissional (opcional). Se informado, mostra disponibilidade apenas dele.',
+            description: 'ID do profissional (UUID), ou o NOME do profissional (ex: "Joao"), ou o número da posição na lista (1, 2, 3). Sistema converte automaticamente.',
           },
         },
         required: ['data'],
@@ -262,6 +262,99 @@ NUNCA invente IDs. SEMPRE use IDs reais retornados pelas outras ferramentas.`,
  * EXECUÇÃO DAS FERRAMENTAS
  * ============================================================
  */
+
+/**
+ * Resolve ID do profissional: aceita UUID, nome ou número de posição
+ */
+async function resolverProfissionalId(barbeariaId, valor) {
+  if (!valor) return null;
+  
+  const valorStr = String(valor).trim();
+  
+  // 1. Já é UUID válido?
+  if (/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(valorStr)) {
+    return valorStr;
+  }
+  
+  // 2. Busca todos os profissionais ativos
+  const { rows } = await query(
+    `SELECT id, nome FROM profissionais 
+      WHERE barbearia_id = $1 AND ativo = true 
+      ORDER BY ordem, nome`,
+    [barbeariaId]
+  );
+  
+  if (rows.length === 0) return null;
+  
+  // 3. É um número (posição na lista)? "1", "2", "3"
+  if (/^\d+$/.test(valorStr)) {
+    const idx = parseInt(valorStr, 10) - 1;
+    if (idx >= 0 && idx < rows.length) {
+      console.log(`   🔄 Convertido posição "${valorStr}" → ${rows[idx].nome} (${rows[idx].id})`);
+      return rows[idx].id;
+    }
+  }
+  
+  // 4. É o nome (ou parte dele)?
+  const valorLower = valorStr.toLowerCase();
+  const match = rows.find(p => 
+    p.nome.toLowerCase() === valorLower ||
+    p.nome.toLowerCase().includes(valorLower) ||
+    valorLower.includes(p.nome.toLowerCase())
+  );
+  
+  if (match) {
+    console.log(`   🔄 Convertido nome "${valorStr}" → ${match.nome} (${match.id})`);
+    return match.id;
+  }
+  
+  return null;
+}
+
+/**
+ * Resolve ID do serviço: aceita UUID, nome ou número de posição
+ */
+async function resolverServicoId(barbeariaId, valor) {
+  if (!valor) return null;
+  
+  const valorStr = String(valor).trim();
+  
+  if (/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(valorStr)) {
+    return valorStr;
+  }
+  
+  const { rows } = await query(
+    `SELECT id, nome FROM servicos 
+      WHERE barbearia_id = $1 AND ativo = true 
+      ORDER BY categoria, nome`,
+    [barbeariaId]
+  );
+  
+  if (rows.length === 0) return null;
+  
+  if (/^\d+$/.test(valorStr)) {
+    const idx = parseInt(valorStr, 10) - 1;
+    if (idx >= 0 && idx < rows.length) {
+      console.log(`   🔄 Convertido posição "${valorStr}" → ${rows[idx].nome}`);
+      return rows[idx].id;
+    }
+  }
+  
+  const valorLower = valorStr.toLowerCase();
+  const match = rows.find(s => 
+    s.nome.toLowerCase() === valorLower ||
+    s.nome.toLowerCase().includes(valorLower) ||
+    valorLower.includes(s.nome.toLowerCase())
+  );
+  
+  if (match) {
+    console.log(`   🔄 Convertido nome "${valorStr}" → ${match.nome}`);
+    return match.id;
+  }
+  
+  return null;
+}
+
 async function executarTool(barbeariaId, toolName, args) {
   console.log(`🔧 Executando: ${toolName}`, JSON.stringify(args));
   
@@ -319,10 +412,22 @@ async function executarTool(barbeariaId, toolName, args) {
       }
 
       case 'verificarDisponibilidade': {
-        const { data, profissional_id } = args;
+        const { data } = args;
+        let { profissional_id } = args;
         
         if (!/^\d{4}-\d{2}-\d{2}$/.test(data)) {
           return { erro: 'Formato de data inválido. Use YYYY-MM-DD' };
+        }
+        
+        // Resolve profissional_id (aceita UUID, nome ou número)
+        if (profissional_id) {
+          const resolvido = await resolverProfissionalId(barbeariaId, profissional_id);
+          if (!resolvido) {
+            return { 
+              erro: `Profissional "${profissional_id}" não encontrado. Use listarProfissionais primeiro.`,
+            };
+          }
+          profissional_id = resolvido;
         }
         
         const dataObj = new Date(data + 'T12:00:00');
@@ -509,6 +614,19 @@ async function executarTool(barbeariaId, toolName, args) {
         console.log(`      profissional_id: ${args.profissional_id}`);
         console.log(`      data_hora: ${args.data_hora}`);
         
+        // Resolve IDs (aceita UUID, nome ou número)
+        const servicoIdReal = await resolverServicoId(barbeariaId, args.servico_id);
+        const profissionalIdReal = await resolverProfissionalId(barbeariaId, args.profissional_id);
+        
+        if (!servicoIdReal) {
+          console.log(`   ❌ SERVIÇO INVÁLIDO! "${args.servico_id}"`);
+          return { erro: `Serviço "${args.servico_id}" não foi encontrado. Use listarServicos para ver opções.` };
+        }
+        if (!profissionalIdReal) {
+          console.log(`   ❌ PROFISSIONAL INVÁLIDO! "${args.profissional_id}"`);
+          return { erro: `Profissional "${args.profissional_id}" não foi encontrado. Use listarProfissionais para ver opções.` };
+        }
+        
         const dh = new Date(args.data_hora);
         if (isNaN(dh.getTime())) {
           console.log(`   ❌ Data inválida`);
@@ -525,12 +643,11 @@ async function executarTool(barbeariaId, toolName, args) {
           `SELECT id, duracao_minutos, preco, nome 
              FROM servicos 
             WHERE id = $1 AND barbearia_id = $2 AND ativo = true`,
-          [args.servico_id, barbeariaId]
+          [servicoIdReal, barbeariaId]
         );
         
         if (!servico[0]) {
-          console.log(`   ❌ SERVIÇO INVÁLIDO! ID ${args.servico_id} não existe ou não está ativo nesta barbearia`);
-          return { erro: `Serviço com ID "${args.servico_id}" não foi encontrado. Use listarServicos para obter IDs válidos da barbearia.` };
+          return { erro: `Serviço não encontrado.` };
         }
         console.log(`   ✓ Serviço válido: ${servico[0].nome} - R$ ${servico[0].preco}`);
         
@@ -538,12 +655,11 @@ async function executarTool(barbeariaId, toolName, args) {
         const { rows: prof } = await query(
           `SELECT id, nome FROM profissionais 
             WHERE id = $1 AND barbearia_id = $2 AND ativo = true`,
-          [args.profissional_id, barbeariaId]
+          [profissionalIdReal, barbeariaId]
         );
         
         if (!prof[0]) {
-          console.log(`   ❌ PROFISSIONAL INVÁLIDO! ID ${args.profissional_id} não existe nesta barbearia`);
-          return { erro: `Profissional com ID "${args.profissional_id}" não foi encontrado. Use listarProfissionais para obter IDs válidos.` };
+          return { erro: `Profissional não encontrado.` };
         }
         console.log(`   ✓ Profissional válido: ${prof[0].nome}`);
         
@@ -555,8 +671,8 @@ async function executarTool(barbeariaId, toolName, args) {
         );
         
         if (!cli[0]) {
-          console.log(`   ❌ CLIENTE INVÁLIDO! ID ${args.cliente_id} não existe nesta barbearia`);
-          return { erro: `Cliente com ID "${args.cliente_id}" não foi encontrado. Use buscarCliente ou cadastrarCliente primeiro.` };
+          console.log(`   ❌ CLIENTE INVÁLIDO! ID ${args.cliente_id}`);
+          return { erro: `Cliente não encontrado. Use buscarCliente primeiro.` };
         }
         console.log(`   ✓ Cliente válido: ${cli[0].nome}`);
         
@@ -568,7 +684,7 @@ async function executarTool(barbeariaId, toolName, args) {
               AND data_hora = $3
               AND status NOT IN ('cancelado')
             LIMIT 1`,
-          [barbeariaId, args.profissional_id, dh]
+          [barbeariaId, profissionalIdReal, dh]
         );
         
         if (conflito[0]) {
@@ -584,7 +700,7 @@ async function executarTool(barbeariaId, toolName, args) {
            ) VALUES ($1, $2, $3, $4, $5, $6, $7, 'agendado', $8) 
            RETURNING id, data_hora`,
           [
-            barbeariaId, args.cliente_id, args.servico_id, args.profissional_id, 
+            barbeariaId, args.cliente_id, servicoIdReal, profissionalIdReal, 
             dh, servico[0].duracao_minutos, servico[0].preco,
             args.observacoes || null,
           ]
@@ -621,7 +737,7 @@ async function executarTool(barbeariaId, toolName, args) {
             await query(
               `INSERT INTO comanda_itens (comanda_id, descricao, valor, tipo, profissional_id)
                VALUES ($1, $2, $3, 'servico', $4)`,
-              [cmd.rows[0].id, servico[0].nome, servico[0].preco, args.profissional_id]
+              [cmd.rows[0].id, servico[0].nome, servico[0].preco, profissionalIdReal]
             );
             console.log(`   ✅ Comanda criada: #${proxNum.rows[0].prox}`);
           }
