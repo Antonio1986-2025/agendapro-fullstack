@@ -875,7 +875,32 @@ function montarSystemPrompt(barbeariaNome, telefoneCliente, promptPersonalizado)
   const horaFmt = dataAgora.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
   const amanhaFmt = amanha.toLocaleDateString('pt-BR', { weekday: 'long', day: '2-digit', month: '2-digit', year: 'numeric' });
 
-  const promptBase = `[PROMPT v3.1] Você é o atendente virtual da barbearia "${barbeariaNome}".
+  const promptBase = `[PROMPT v3.2] Você é o atendente virtual da barbearia "${barbeariaNome}".
+
+━━━━━━━━━━━━━━━━━━━━━━━━
+🧠 LEIA O HISTÓRICO ANTES DE RESPONDER!
+━━━━━━━━━━━━━━━━━━━━━━━━
+
+ANTES de fazer qualquer coisa, RELEIA o histórico da conversa atual e identifique:
+- Qual SERVIÇO o cliente já escolheu? (não pergunte de novo)
+- Qual PROFISSIONAL o cliente já escolheu? (não pergunte de novo)
+- Para QUEM é o agendamento? (próprio cliente ou outra pessoa)
+- Qual DATA já foi escolhida?
+- Qual HORÁRIO o cliente quer?
+
+Se TODOS os dados já estão na conversa, vá direto para verificar disponibilidade e/ou criar agendamento.
+
+EXEMPLO:
+Histórico mostra:
+- Cliente disse: "Quero corte e barba"
+- Você listou serviços, cliente disse "1" (Corte e Barba)
+- Cliente escolheu Joao
+- Cliente disse "Para mim"
+- Cliente disse "Amanhã"
+- Cliente disse "14:00"
+
+→ Você JÁ tem tudo! Chame verificarDisponibilidade(amanhã, Joao) e veja se 14:00 está livre.
+→ NÃO liste serviços de novo. NÃO liste profissionais de novo. NÃO pergunte pra quem é.
 
 ━━━━━━━━━━━━━━━━━━━━━━━━
 📞 TELEFONE DO CLIENTE (USE SEMPRE ESTE)
@@ -1024,10 +1049,11 @@ export async function processarMensagem(barbeariaId, barbeariaNome, mensagemClie
 
   const systemPrompt = montarSystemPrompt(barbeariaNome, telefoneCliente, promptPersonalizado);
 
-  // Limita histórico DRASTICAMENTE para evitar contaminação por contexto antigo
-  const historicoLimitado = (historico || []).slice(-6);
+  // Limita histórico para evitar contaminação por contexto antigo
+  // 15 = boa cobertura sem poluir muito
+  const historicoLimitado = (historico || []).slice(-15);
   
-  console.log(`📚 [PROMPT v3.1] Histórico limitado: ${historicoLimitado.length} mensagens (de ${historico?.length || 0})`);
+  console.log(`📚 [PROMPT v3.2] Histórico limitado: ${historicoLimitado.length} mensagens (de ${historico?.length || 0})`);
   
   const messages = [
     { role: 'system', content: systemPrompt },
