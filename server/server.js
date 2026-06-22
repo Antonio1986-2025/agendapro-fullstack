@@ -112,125 +112,15 @@ async function start() {
     console.log(`Porta: ${PORT}`);
     console.log(`Frontend: http://localhost:${PORT}`);
     console.log(`API health: http://localhost:${PORT}/api/health`);
-    console.log('============================================\n');
-
-    // Auto-reconecta WhatsApp pra todas as barbearias que tinham provider baileys
-    try {
-      const { rows } = await pool.query(
-        `SELECT barbearia_id, provider, enabled
-           FROM whatsapp_config WHERE provider = 'baileys' AND enabled = true`
-      );
-      if (rows.length > 0) {
-        const { conectarWhatsApp, getStatus, temAuthState } = await import('./services/baileys-provider.js');
-        const { processarMensagem, getConversa, salvarConversa } = await import('./services/ai.js');
-        const { enviarMensagemBaileys } = await import('./services/baileys-provider.js');
-
-        for (const cfg of rows) {
-          const barbId = cfg.barbearia_id;
-          if (getStatus(barbId) === 'connected') continue;
-
-          // So tenta reconectar se ja tem auth state salvo (evita loop com QR code invisivel)
-          if (!temAuthState(barbId)) {
-            console.log(`⏭️  Auto-reconnect ignorado para ${barbId} (sem auth state, precisa de QR)`);
-            try {
-              await pool.query(
-                `UPDATE whatsapp_config SET session_status = 'disconnected' WHERE barbearia_id = $1`,
-                [barbId]
-              );
-            } catch {}
-            continue;
-          }
-
-          console.log(`🔄 Auto-reconectando WhatsApp para ${barbId}...`);
-
-          conectarWhatsApp(
-            barbId,
-            () => {},
-            async (userId) => {
-              console.log(`✅ WhatsApp reconectado para ${barbId}: ${userId}`);
-              try {
-                await pool.query(
-                  `UPDATE whatsapp_config SET session_status = 'connected' WHERE barbearia_id = $1`,
-                  [barbId]
-                );
-              } catch {}
-            },
-            async (telefone, mensagem, remoteJid) => {
-              try {
-                console.log('\n🎯 ====== MENSAGEM PROCESSANDO (SERVER) ======');
-                console.log(`📱 Telefone: ${telefone}`);
-                console.log(`🆔 RemoteJid: ${remoteJid}`);
-                console.log(`💬 Mensagem: ${mensagem}`);
-                console.log(`🏪 Barbearia: ${barbId}`);
-                
-                const cfgData = await pool.query(
-                  `SELECT ai_enabled, ai_prompt, (SELECT nome FROM barbearias WHERE id = $1) AS barbearia_nome
-                     FROM whatsapp_config WHERE barbearia_id = $1`,
-                  [barbId]
-                );
-                const config = cfgData.rows[0];
-                
-                console.log(`🤖 IA habilitada: ${config?.ai_enabled ? 'SIM' : 'NÃO'}`);
-                
-                if (!config?.ai_enabled) {
-                  console.log('⏭️  IA desabilitada, não processando');
-                  return;
-                }
-
-                // Salvar mensagem recebida
-                await pool.query(
-                  `INSERT INTO whatsapp_mensagens (barbearia_id, telefone, mensagem, tipo, status)
-                   VALUES ($1, $2, $3, 'recebida', 'recebida')`,
-                  [barbId, telefone, mensagem]
-                );
-                console.log('💾 Mensagem salva no banco');
-
-                // Buscar histórico
-                const conversa = await getConversa(barbId, telefone);
-                const historico = conversa?.historico || [];
-                console.log(`📚 Histórico: ${historico.length} mensagens`);
-
-                // Processar com IA
-                console.log('🤖 Chamando processarMensagem...');
-                const { resposta } = await processarMensagem(
-                  barbId, config.barbearia_nome, mensagem, historico, config.ai_prompt
-                );
-
-                console.log(`💬 Resposta gerada: ${resposta?.substring(0, 100)}...`);
-                console.log('==========================================\n');
-
-                if (resposta) {
-                  console.log(`📤 Enviando resposta para ${telefone} (remoteJid: ${remoteJid})`);
-                  console.log(`📤 Resposta: ${resposta.substring(0,100)}...`);
-                  
-                  // IMPORTANTE: Usa remoteJid original para responder corretamente
-                  await enviarMensagemBaileys(barbId, remoteJid, resposta);
-                  
-                  await pool.query(
-                    `INSERT INTO whatsapp_mensagens (barbearia_id, telefone, mensagem, tipo, status)
-                     VALUES ($1, $2, $3, 'ia_resposta', 'enviada')`,
-                    [barbId, telefone, resposta]
-                  );
-                  
-                  console.log(`✅ Resposta enviada com sucesso para ${remoteJid}`);
-                }
-
-                const novoHistorico = [
-                  ...historico,
-                  { role: 'user', content: mensagem },
-                  { role: 'assistant', content: resposta },
-                ];
-                await salvarConversa(barbId, telefone, novoHistorico);
-              } catch (err) {
-                console.error(`Erro ao processar mensagem IA (${barbId}):`, err.message);
-              }
-            }
-          ).catch(e => console.error(`Falha ao auto-reconectar WhatsApp ${barbId}:`, e.message));
-        }
-      }
-    } catch (e) {
-      console.error('Erro na auto-reconexão WhatsApp:', e.message);
+    
+    // Verifica configuração da Evolution API
+    if (process.env.EVOLUTION_API_URL && process.env.EVOLUTION_API_KEY) {
+      console.log(`✅ Evolution API: ${process.env.EVOLUTION_API_URL}`);
+    } else {
+      console.log(`⚠️  Evolution API não configurada (EVOLUTION_API_URL e EVOLUTION_API_KEY)`);
     }
+    
+    console.log('============================================\n');
   });
 }
 

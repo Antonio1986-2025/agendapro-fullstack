@@ -1,5 +1,4 @@
 import { query } from '../config/database.js';
-import { enviarMensagemBaileys } from './baileys-provider.js';
 import { enviarMensagemEvolution } from './evolution-provider.js';
 
 async function getConfig(barbeariaId) {
@@ -12,40 +11,24 @@ async function getConfig(barbeariaId) {
 
 /**
  * Normaliza número de telefone removendo caracteres especiais
- * e tratando formatos diferentes
  */
 function normalizarTelefone(tel) {
   if (!tel) return '';
   
-  // Remove tudo que não é número
   let numero = tel.replace(/\D/g, '');
   
-  console.log(`🔧 Normalizando telefone: "${tel}" → "${numero}"`);
-  
-  // Se tem menos de 10 dígitos, retorna vazio (inválido)
   if (numero.length < 10) {
-    console.log(`⚠️  Telefone muito curto: ${numero.length} dígitos`);
     return '';
   }
   
-  // Se começa com código de país diferente de 55 (Brasil), pode ser spam/internacional
-  // Mas vamos aceitar números brasileiros
   if (numero.length >= 12 && numero.startsWith('55')) {
-    // Já tem código do país (55)
     return numero;
   }
   
-  // Se tem 11 dígitos (DDD + 9 + número), adiciona 55
-  if (numero.length === 11) {
+  if (numero.length === 11 || numero.length === 10) {
     return '55' + numero;
   }
   
-  // Se tem 10 dígitos (DDD + número), adiciona 55
-  if (numero.length === 10) {
-    return '55' + numero;
-  }
-  
-  // Retorna como está se tiver mais de 12 dígitos
   return numero;
 }
 
@@ -57,10 +40,15 @@ async function registrarMensagem(barbeariaId, { agendamentoId, telefone, mensage
   );
 }
 
+/**
+ * Envia mensagem WhatsApp
+ * Usa Evolution API por padrão
+ */
 export async function enviarMensagem(barbeariaId, { telefone, mensagem, tipo, agendamentoId }) {
   const config = await getConfig(barbeariaId);
   const tel = normalizarTelefone(telefone);
 
+  // Modo log (sem WhatsApp)
   if (!config.enabled || config.provider === 'log') {
     await registrarMensagem(barbeariaId, {
       agendamentoId, telefone: tel, mensagem, tipo, status: 'enviada',
@@ -70,35 +58,18 @@ export async function enviarMensagem(barbeariaId, { telefone, mensagem, tipo, ag
   }
 
   // Evolution API
-  if (config.provider === 'evolution') {
-    try {
-      await enviarMensagemEvolution(barbeariaId, tel, mensagem);
-      await registrarMensagem(barbeariaId, {
-        agendamentoId, telefone: tel, mensagem, tipo, status: 'enviada',
-      });
-      return { ok: true, provider: 'evolution', status: 'enviada' };
-    } catch (err) {
-      console.error('❌ Erro WhatsApp Evolution:', err.message);
-      await registrarMensagem(barbeariaId, {
-        agendamentoId, telefone: tel, mensagem, tipo, status: 'erro',
-      });
-      return { ok: false, provider: 'evolution', status: 'erro', erro: err.message };
-    }
-  }
-
-  // Baileys (legacy)
   try {
-    await enviarMensagemBaileys(barbeariaId, tel, mensagem);
+    await enviarMensagemEvolution(barbeariaId, tel, mensagem);
     await registrarMensagem(barbeariaId, {
       agendamentoId, telefone: tel, mensagem, tipo, status: 'enviada',
     });
-    return { ok: true, provider: 'baileys', status: 'enviada' };
+    return { ok: true, provider: 'evolution', status: 'enviada' };
   } catch (err) {
-    console.error('❌ Erro WhatsApp Baileys:', err.message);
+    console.error('❌ Erro WhatsApp Evolution:', err.message);
     await registrarMensagem(barbeariaId, {
       agendamentoId, telefone: tel, mensagem, tipo, status: 'erro',
     });
-    return { ok: false, provider: 'baileys', status: 'erro', erro: err.message };
+    return { ok: false, provider: 'evolution', status: 'erro', erro: err.message };
   }
 }
 

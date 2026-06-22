@@ -1,33 +1,15 @@
 import OpenAI from 'openai';
 import { query } from '../config/database.js';
-import fs from 'fs';
-import path from 'path';
-import { fileURLToPath } from 'url';
-
-const __dirname = path.dirname(fileURLToPath(import.meta.url));
-const CONFIG_PATH = path.join(__dirname, '..', 'wa_auth', '.env');
 
 let _openai = null;
 
 /**
  * Inicializa e retorna instância do cliente OpenAI
- * Busca a chave em process.env ou arquivo de configuração
  */
 function getOpenAI() {
   if (_openai) return _openai;
   
-  let key = process.env.OPENAI_API_KEY;
-  
-  // Fallback: tenta ler do arquivo de config
-  if (!key && fs.existsSync(CONFIG_PATH)) {
-    try {
-      const content = fs.readFileSync(CONFIG_PATH, 'utf-8');
-      const match = content.match(/^OPENAI_API_KEY=(.+)$/m);
-      if (match) key = match[1].trim();
-    } catch (err) {
-      console.error('⚠️  Erro ao ler CONFIG_PATH:', err.message);
-    }
-  }
+  const key = process.env.OPENAI_API_KEY;
   
   if (!key) {
     console.error('❌ OPENAI_API_KEY não encontrada! Configure no .env');
@@ -37,7 +19,7 @@ function getOpenAI() {
   try {
     _openai = new OpenAI({ 
       apiKey: key,
-      timeout: 30000, // 30 segundos timeout
+      timeout: 30000,
       maxRetries: 2,
     });
     console.log('✅ OpenAI cliente inicializado com sucesso');
