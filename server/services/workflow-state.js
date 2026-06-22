@@ -357,19 +357,19 @@ Caso contrário, comece um NOVO atendimento normalmente.`;
  */
 function textoProximoPasso(slot, slots) {
   const instrucoes = {
-    cliente: 'Cliente NÃO está cadastrado. Peça o NOME COMPLETO ao cliente e use cadastrarClientePrincipal(nome) para cadastrar.',
+    cliente: 'Cliente NÃO está cadastrado. Peça o NOME COMPLETO de forma simpática (ex: "Pra começar, qual seu nome completo?") e use cadastrarClientePrincipal(nome).',
     
-    servico: 'Pergunte qual serviço o cliente deseja. Se ele mencionar termo genérico (corte, barba), use listarServicos para mostrar opções. Use definirServico para registrar a escolha.',
+    servico: 'IMPORTANTE: Se o cliente já mencionou tipo de serviço (ex: "quero corte", "quero barba"), JÁ LISTE direto os serviços relacionados sem perguntar "qual serviço?". Use buscarServicoPorNome com o termo. Se a palavra for genérica ou cliente não disse, use listarServicos. Apresente lista numerada e pergunte qual escolhe.',
     
-    profissional: 'Liste os profissionais (listarProfissionais) e pergunte qual o cliente prefere. Use definirProfissional para registrar.',
+    profissional: 'Liste profissionais (listarProfissionais) e pergunte com qual prefere. Forma natural: "Com qual barbeiro você prefere?". Use definirProfissional após escolha.',
     
-    para_quem: 'Pergunte: "É para você ou para outra pessoa?". Use definirParaQuem para registrar. Se for terceiro, peça o nome completo dessa pessoa.',
+    para_quem: 'Pergunte naturalmente: "É pra você mesmo ou outra pessoa?". Use definirParaQuem para registrar.',
     
-    data: 'Pergunte qual data o cliente quer (ex: "hoje", "amanhã", "23/06"). Use definirData para registrar.',
+    data: 'Pergunte data de forma simpática: "Pra qual dia? Hoje, amanhã ou outro dia?". Use definirData.',
     
-    horario: 'Pergunte: "Que horário fica bom para você?". Quando cliente disser, use definirHorario - ele valida disponibilidade real. Se ocupado, sugere horários próximos.',
+    horario: 'Pergunte horário: "Tem preferência de horário?". Quando cliente disser, use definirHorario - ele valida disponibilidade. Se ocupado, sugere alternativas próximas.',
     
-    completo: 'TODOS OS DADOS COLETADOS! Mostre o resumo final ao cliente e peça confirmação. Quando cliente confirmar, use finalizarAgendamento.',
+    completo: 'TODOS OS DADOS COLETADOS! Mostre resumo curto e simpático, peça confirmação. Após "sim", use finalizarAgendamento.',
   };
   
   return instrucoes[slot] || 'Continue o fluxo normalmente.';
