@@ -438,6 +438,17 @@ router.get('/diagnostico-base', async (req, res) => {
       [barbeariaId]
     );
     
+    // Conversas IA salvas (histórico)
+    const { rows: conversas } = await query(
+      `SELECT cliente_telefone, 
+              jsonb_array_length(historico) AS msgs_count,
+              ultima_interacao
+         FROM ai_conversas WHERE barbearia_id = $1
+         ORDER BY ultima_interacao DESC
+         LIMIT 10`,
+      [barbeariaId]
+    );
+    
     // Mostra de qual banco está conectando (mascarado)
     let dbInfo = 'Não identificado';
     if (process.env.DATABASE_URL) {
@@ -489,9 +500,36 @@ router.get('/diagnostico-base', async (req, res) => {
         }))
       },
       proximos_agendamentos: proximosAgendamentos,
+      conversas_ia_salvas: conversas,
     });
   } catch (err) {
     res.status(500).json({ erro: err.message, stack: err.stack });
+  }
+});
+
+// POST /api/whatsapp/limpar-conversas -> apaga histórico de conversas IA (útil quando agente está confuso)
+router.post('/limpar-conversas', async (req, res) => {
+  try {
+    const { telefone } = req.body;
+    
+    if (telefone) {
+      const tel = telefone.replace(/\D/g, '');
+      const { rowCount } = await query(
+        `DELETE FROM ai_conversas 
+          WHERE barbearia_id = $1 AND cliente_telefone LIKE $2`,
+        [req.barbeariaId, `%${tel.slice(-11)}%`]
+      );
+      return res.json({ ok: true, conversas_apagadas: rowCount, telefone: tel });
+    }
+    
+    // Apaga TODAS as conversas da barbearia
+    const { rowCount } = await query(
+      `DELETE FROM ai_conversas WHERE barbearia_id = $1`,
+      [req.barbeariaId]
+    );
+    res.json({ ok: true, conversas_apagadas: rowCount });
+  } catch (err) {
+    res.status(500).json({ erro: err.message });
   }
 });
 

@@ -503,12 +503,20 @@ async function executarTool(barbeariaId, toolName, args) {
       }
 
       case 'criarAgendamento': {
+        console.log(`   📝 Tentando criar agendamento:`);
+        console.log(`      cliente_id: ${args.cliente_id}`);
+        console.log(`      servico_id: ${args.servico_id}`);
+        console.log(`      profissional_id: ${args.profissional_id}`);
+        console.log(`      data_hora: ${args.data_hora}`);
+        
         const dh = new Date(args.data_hora);
         if (isNaN(dh.getTime())) {
+          console.log(`   ❌ Data inválida`);
           return { erro: 'Data/hora inválida. Use YYYY-MM-DDTHH:mm' };
         }
         
         if (dh < new Date()) {
+          console.log(`   ❌ Data no passado`);
           return { erro: 'Não é possível agendar no passado.' };
         }
         
@@ -521,8 +529,10 @@ async function executarTool(barbeariaId, toolName, args) {
         );
         
         if (!servico[0]) {
-          return { erro: 'Serviço não encontrado ou inativo. Use listarServicos para obter IDs válidos.' };
+          console.log(`   ❌ SERVIÇO INVÁLIDO! ID ${args.servico_id} não existe ou não está ativo nesta barbearia`);
+          return { erro: `Serviço com ID "${args.servico_id}" não foi encontrado. Use listarServicos para obter IDs válidos da barbearia.` };
         }
+        console.log(`   ✓ Serviço válido: ${servico[0].nome} - R$ ${servico[0].preco}`);
         
         // Valida profissional
         const { rows: prof } = await query(
@@ -532,8 +542,10 @@ async function executarTool(barbeariaId, toolName, args) {
         );
         
         if (!prof[0]) {
-          return { erro: 'Profissional não encontrado. Use listarProfissionais para obter IDs válidos.' };
+          console.log(`   ❌ PROFISSIONAL INVÁLIDO! ID ${args.profissional_id} não existe nesta barbearia`);
+          return { erro: `Profissional com ID "${args.profissional_id}" não foi encontrado. Use listarProfissionais para obter IDs válidos.` };
         }
+        console.log(`   ✓ Profissional válido: ${prof[0].nome}`);
         
         // Valida cliente
         const { rows: cli } = await query(
@@ -543,8 +555,10 @@ async function executarTool(barbeariaId, toolName, args) {
         );
         
         if (!cli[0]) {
-          return { erro: 'Cliente não encontrado. Use buscarCliente ou cadastrarCliente primeiro.' };
+          console.log(`   ❌ CLIENTE INVÁLIDO! ID ${args.cliente_id} não existe nesta barbearia`);
+          return { erro: `Cliente com ID "${args.cliente_id}" não foi encontrado. Use buscarCliente ou cadastrarCliente primeiro.` };
         }
+        console.log(`   ✓ Cliente válido: ${cli[0].nome}`);
         
         // Verifica conflito
         const { rows: conflito } = await query(
@@ -558,6 +572,7 @@ async function executarTool(barbeariaId, toolName, args) {
         );
         
         if (conflito[0]) {
+          console.log(`   ❌ CONFLITO! Horário já ocupado`);
           return { erro: 'Horário já ocupado. Use verificarDisponibilidade para ver opções livres.' };
         }
         
@@ -575,7 +590,12 @@ async function executarTool(barbeariaId, toolName, args) {
           ]
         );
         
-        console.log(`   ✅ Agendamento ID: ${rows[0].id}`);
+        console.log(`   ✅ AGENDAMENTO CRIADO COM SUCESSO!`);
+        console.log(`      ID: ${rows[0].id}`);
+        console.log(`      Cliente: ${cli[0].nome}`);
+        console.log(`      Serviço: ${servico[0].nome} - R$ ${servico[0].preco}`);
+        console.log(`      Profissional: ${prof[0].nome}`);
+        console.log(`      Data/Hora: ${rows[0].data_hora}`);
         
         // Notifica barbeiro (não-bloqueante)
         try {
@@ -763,6 +783,12 @@ PASSO 7 — CRIAR
 → Use os IDs retornados pelas ferramentas (buscarServicoPorNome, listarProfissionais, buscarCliente)
 → NUNCA invente ou misture IDs
 
+🚨 CONFIRMAÇÃO DO AGENDAMENTO:
+- Você SÓ pode dizer "agendamento confirmado" se a ferramenta criarAgendamento retornar { sucesso: true }
+- Se retornar { erro: ... }, EXPLIQUE ao cliente que não foi possível e o motivo
+- NUNCA invente confirmação. NUNCA fale "confirmado" sem ter o resultado da ferramenta
+- Se o modelo não usar criarAgendamento, então NÃO HOUVE agendamento — não minta para o cliente
+
 ━━━━━━━━━━━━━━━━━━━━━━━━
 REGRAS ABSOLUTAS
 ━━━━━━━━━━━━━━━━━━━━━━━━
@@ -773,6 +799,8 @@ REGRAS ABSOLUTAS
 4. PROFISSIONAL ANTES DO HORÁRIO: Nunca verifique horário sem saber o profissional
 5. CONFIRMAÇÃO: Nunca crie o agendamento sem mostrar resumo e receber SIM
 6. IDs: Use sempre os IDs retornados pelas ferramentas, jamais invente
+7. NÃO INVENTE: Jamais diga que criou um agendamento sem ter chamado criarAgendamento e recebido sucesso=true
+8. NÃO INVENTE: Jamais cite serviços que não estão na lista retornada pelas ferramentas
 
 ━━━━━━━━━━━━━━━━━━━━━━━━
 FORA DO CONTEXTO
