@@ -1,28 +1,33 @@
+/**
+ * ============================================================
+ * AGENTE IA - SLOT FILLING PATTERN
+ * ============================================================
+ * 
+ * Sistema de agente conversacional usando padrão Slot Filling.
+ * Cada conversa tem um ESTADO (workflow state) persistido em postgres.
+ * O LLM cuida da linguagem natural; o sistema cuida da lógica determinística.
+ * 
+ * Arquitetura inspirada em: Google Dialogflow CX, LangGraph, OpenAI Cookbook.
+ */
+
 import OpenAI from 'openai';
 import { query } from '../config/database.js';
+import * as ws from './workflow-state.js';
 
 let _openai = null;
 
-/**
- * Inicializa e retorna instância do cliente OpenAI
- */
 function getOpenAI() {
   if (_openai) return _openai;
   
   const key = process.env.OPENAI_API_KEY;
-  
   if (!key) {
-    console.error('❌ OPENAI_API_KEY não encontrada! Configure no .env');
+    console.error('❌ OPENAI_API_KEY não encontrada!');
     return null;
   }
   
   try {
-    _openai = new OpenAI({ 
-      apiKey: key,
-      timeout: 30000,
-      maxRetries: 2,
-    });
-    console.log('✅ OpenAI cliente inicializado com sucesso');
+    _openai = new OpenAI({ apiKey: key, timeout: 30000, maxRetries: 2 });
+    console.log('✅ OpenAI cliente inicializado');
   } catch (err) {
     console.error('❌ Erro ao inicializar OpenAI:', err.message);
     return null;
@@ -31,1084 +36,1212 @@ function getOpenAI() {
   return _openai;
 }
 
+// ============================================================
+// HELPERS DE PARSING / VALIDAÇÃO
+// ============================================================
+
 /**
- * ============================================================
- * FERRAMENTAS (TOOLS) DO AGENTE
- * Cada ferramenta consulta a base de dados real do sistema.
- * ============================================================
+ * Parse de data natural: "hoje", "amanhã", "23/06", "2026-06-23"
  */
+function parsearData(input) {
+  if (!input) return null;
+  const str = String(input).toLowerCase().trim();
+  const hoje = new Date();
+  hoje.setHours(0, 0, 0, 0);
+  
+  // Hoje
+  if (str === 'hoje') {
+    return formatarDataYMD(hoje);
+  }
+  
+  // Amanhã
+  if (str === 'amanha' || str === 'amanhã') {
+    const d = new Date(hoje);
+    d.setDate(d.getDate() + 1);
+    return formatarDataYMD(d);
+  }
+  
+  // Depois de amanhã
+  if (str.includes('depois de amanha') || str.includes('depois de amanhã')) {
+    const d = new Date(hoje);
+    d.setDate(d.getDate() + 2);
+    return formatarDataYMD(d);
+  }
+  
+  // Dias da semana
+  const diasSemana = {
+    'domingo': 0, 'segunda': 1, 'terca': 2, 'terça': 2,
+    'quarta': 3, 'quinta': 4, 'sexta': 5, 'sabado': 6, 'sábado': 6,
+  };
+  for (const [nome, num] of Object.entries(diasSemana)) {
+    if (str.includes(nome)) {
+      const d = new Date(hoje);
+      const diff = (num - d.getDay() + 7) % 7 || 7;
+      d.setDate(d.getDate() + diff);
+      return formatarDataYMD(d);
+    }
+  }
+  
+  // YYYY-MM-DD
+  if (/^\d{4}-\d{2}-\d{2}$/.test(str)) return str;
+  
+  // DD/MM/YYYY ou DD/MM
+  const matchBr = str.match(/^(\d{1,2})[\/\-](\d{1,2})(?:[\/\-](\d{2,4}))?$/);
+  if (matchBr) {
+    const dia = parseInt(matchBr[1], 10);
+    const mes = parseInt(matchBr[2], 10);
+    let ano = matchBr[3] ? parseInt(matchBr[3], 10) : hoje.getFullYear();
+    if (ano < 100) ano += 2000;
+    
+    const d = new Date(ano, mes - 1, dia);
+    if (d.getDate() === dia && d.getMonth() === mes - 1) {
+      return formatarDataYMD(d);
+    }
+  }
+  
+  return null;
+}
+
+function formatarDataYMD(date) {
+  const y = date.getFullYear();
+  const m = String(date.getMonth() + 1).padStart(2, '0');
+  const d = String(date.getDate()).padStart(2, '0');
+  return `${y}-${m}-${d}`;
+}
+
+function formatarDataLegivel(ymd) {
+  if (!ymd) return '';
+  const d = new Date(ymd + 'T12:00:00');
+  return d.toLocaleDateString('pt-BR', { 
+    weekday: 'long', day: '2-digit', month: 'long' 
+  });
+}
+
+/**
+ * Parse de horário: "14h", "14:00", "14h30", "14:30", "9 da manhã"
+ */
+function parsearHorario(input) {
+  if (!input) return null;
+  const str = String(input).toLowerCase().trim().replace(/\s+/g, '');
+  
+  // "14:00", "9:30"
+  let m = str.match(/^(\d{1,2}):(\d{2})$/);
+  if (m) {
+    const h = parseInt(m[1], 10);
+    const min = parseInt(m[2], 10);
+    if (h >= 0 && h <= 23 && min >= 0 && min <= 59) {
+      return `${String(h).padStart(2, '0')}:${String(min).padStart(2, '0')}`;
+    }
+  }
+  
+  // "14h30", "9h00"
+  m = str.match(/^(\d{1,2})h(\d{2})$/);
+  if (m) {
+    const h = parseInt(m[1], 10);
+    const min = parseInt(m[2], 10);
+    if (h >= 0 && h <= 23 && min >= 0 && min <= 59) {
+      return `${String(h).padStart(2, '0')}:${String(min).padStart(2, '0')}`;
+    }
+  }
+  
+  // "14h", "9h"
+  m = str.match(/^(\d{1,2})h$/);
+  if (m) {
+    const h = parseInt(m[1], 10);
+    if (h >= 0 && h <= 23) {
+      return `${String(h).padStart(2, '0')}:00`;
+    }
+  }
+  
+  // "14", "9" (apenas hora)
+  m = str.match(/^(\d{1,2})$/);
+  if (m) {
+    const h = parseInt(m[1], 10);
+    if (h >= 6 && h <= 23) {
+      return `${String(h).padStart(2, '0')}:00`;
+    }
+  }
+  
+  return null;
+}
+
+/**
+ * Resolve serviço: aceita UUID, nome ou número de posição
+ */
+async function resolverServico(barbeariaId, valor) {
+  if (!valor) return null;
+  const valorStr = String(valor).trim();
+  
+  // UUID válido?
+  if (/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(valorStr)) {
+    const { rows } = await query(
+      `SELECT id, nome, duracao_minutos, preco, categoria FROM servicos
+        WHERE id = $1 AND barbearia_id = $2 AND ativo = true`,
+      [valorStr, barbeariaId]
+    );
+    return rows[0] || null;
+  }
+  
+  // Lista de serviços ativos
+  const { rows: lista } = await query(
+    `SELECT id, nome, duracao_minutos, preco, categoria FROM servicos
+      WHERE barbearia_id = $1 AND ativo = true ORDER BY categoria, nome`,
+    [barbeariaId]
+  );
+  
+  if (lista.length === 0) return null;
+  
+  // Número de posição
+  if (/^\d+$/.test(valorStr)) {
+    const idx = parseInt(valorStr, 10) - 1;
+    if (idx >= 0 && idx < lista.length) {
+      return lista[idx];
+    }
+  }
+  
+  // Nome (match exato, depois parcial)
+  const valorLower = valorStr.toLowerCase();
+  
+  // Match exato
+  const exato = lista.find(s => s.nome.toLowerCase() === valorLower);
+  if (exato) return exato;
+  
+  // Match parcial (nome contém valor)
+  const parcial = lista.find(s => s.nome.toLowerCase().includes(valorLower));
+  if (parcial) return parcial;
+  
+  // Busca por palavra-chave (qualquer palavra do nome)
+  const palavras = valorLower.split(/\s+/).filter(p => p.length > 2);
+  for (const p of palavras) {
+    const m = lista.find(s => s.nome.toLowerCase().includes(p));
+    if (m) return m;
+  }
+  
+  return null;
+}
+
+/**
+ * Resolve profissional: aceita UUID, nome ou número de posição
+ */
+async function resolverProfissional(barbeariaId, valor) {
+  if (!valor) return null;
+  const valorStr = String(valor).trim();
+  
+  if (/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(valorStr)) {
+    const { rows } = await query(
+      `SELECT id, nome, especialidade, telefone FROM profissionais
+        WHERE id = $1 AND barbearia_id = $2 AND ativo = true`,
+      [valorStr, barbeariaId]
+    );
+    return rows[0] || null;
+  }
+  
+  const { rows: lista } = await query(
+    `SELECT id, nome, especialidade, telefone FROM profissionais
+      WHERE barbearia_id = $1 AND ativo = true ORDER BY ordem, nome`,
+    [barbeariaId]
+  );
+  
+  if (lista.length === 0) return null;
+  
+  if (/^\d+$/.test(valorStr)) {
+    const idx = parseInt(valorStr, 10) - 1;
+    if (idx >= 0 && idx < lista.length) return lista[idx];
+  }
+  
+  const valorLower = valorStr.toLowerCase();
+  const exato = lista.find(p => p.nome.toLowerCase() === valorLower);
+  if (exato) return exato;
+  
+  const parcial = lista.find(p => p.nome.toLowerCase().includes(valorLower));
+  if (parcial) return parcial;
+  
+  return null;
+}
+
+// ============================================================
+// DEFINIÇÃO DAS TOOLS
+// ============================================================
+
 const tools = [
+  // ───── FLUXO DE AGENDAMENTO ─────
   {
     type: 'function',
     function: {
-      name: 'listarServicos',
-      description: 'Lista TODOS os serviços disponíveis na barbearia. Use quando o cliente perguntar sobre serviços, preços, ou para mostrar opções disponíveis para agendamento.',
-      parameters: { 
-        type: 'object', 
-        properties: {},
-        required: [],
-        additionalProperties: false
+      name: 'iniciarAgendamento',
+      description: 'Inicia um novo fluxo de agendamento. Use quando cliente expressar intenção de agendar (ex: "quero agendar", "marcar horário", "quero corte"). Reseta qualquer estado anterior e identifica o cliente automaticamente pelo telefone.',
+      parameters: { type: 'object', properties: {}, required: [], additionalProperties: false },
+    },
+  },
+  {
+    type: 'function',
+    function: {
+      name: 'definirServico',
+      description: 'Define o serviço escolhido para o agendamento em andamento. Aceita: UUID, nome do serviço (ou parte dele), ou número da posição na lista (ex: "1"). Sistema valida na base e atualiza o checklist.',
+      parameters: {
+        type: 'object',
+        properties: {
+          servico: { type: 'string', description: 'Identificador do serviço: UUID, nome ou número de posição' },
+        },
+        required: ['servico'],
+        additionalProperties: false,
       },
     },
   },
   {
     type: 'function',
     function: {
-      name: 'buscarServicoPorNome',
-      description: 'Busca serviços que correspondem a uma palavra-chave/termo. Use quando o cliente mencionar um serviço de forma genérica (ex: "corte", "barba"). Retorna lista de serviços compatíveis para o cliente escolher o exato.',
+      name: 'definirProfissional',
+      description: 'Define o profissional escolhido para o agendamento em andamento. Aceita UUID, nome ou número da posição na lista.',
       parameters: {
         type: 'object',
         properties: {
-          termo: {
+          profissional: { type: 'string', description: 'Identificador do profissional: UUID, nome ou número de posição' },
+        },
+        required: ['profissional'],
+        additionalProperties: false,
+      },
+    },
+  },
+  {
+    type: 'function',
+    function: {
+      name: 'definirParaQuem',
+      description: 'Define para quem é o agendamento. Use após perguntar "É para você ou outra pessoa?".',
+      parameters: {
+        type: 'object',
+        properties: {
+          tipo: {
             type: 'string',
-            description: 'Termo ou palavra-chave do serviço (ex: "corte", "barba", "platinado"). Pode ser parte do nome.',
+            enum: ['proprio_cliente', 'terceiro'],
+            description: '"proprio_cliente" se for para o próprio cliente que está conversando. "terceiro" se for para outra pessoa.',
+          },
+          nome_pessoa: {
+            type: 'string',
+            description: 'Nome COMPLETO da pessoa (obrigatório se tipo="terceiro"). Será cadastrado como cliente.',
           },
         },
-        required: ['termo'],
-        additionalProperties: false
+        required: ['tipo'],
+        additionalProperties: false,
       },
+    },
+  },
+  {
+    type: 'function',
+    function: {
+      name: 'definirData',
+      description: 'Define a data do agendamento. Aceita formatos: "hoje", "amanhã", "sexta", "23/06", "2026-06-23".',
+      parameters: {
+        type: 'object',
+        properties: {
+          data: { type: 'string', description: 'Data em formato natural ou ISO' },
+        },
+        required: ['data'],
+        additionalProperties: false,
+      },
+    },
+  },
+  {
+    type: 'function',
+    function: {
+      name: 'definirHorario',
+      description: 'Define o horário do agendamento. Sistema VERIFICA disponibilidade real automaticamente. Se ocupado, retorna horários alternativos próximos. Aceita: "14h", "14:00", "14h30".',
+      parameters: {
+        type: 'object',
+        properties: {
+          horario: { type: 'string', description: 'Horário em formato natural ou HH:MM' },
+        },
+        required: ['horario'],
+        additionalProperties: false,
+      },
+    },
+  },
+  {
+    type: 'function',
+    function: {
+      name: 'finalizarAgendamento',
+      description: 'Finaliza e CRIA o agendamento na base de dados. SÓ FUNCIONA se o checklist estiver 100% completo. Use APENAS após cliente confirmar todos os dados com "sim".',
+      parameters: { type: 'object', properties: {}, required: [], additionalProperties: false },
+    },
+  },
+  {
+    type: 'function',
+    function: {
+      name: 'cancelarFluxoAtual',
+      description: 'Cancela o fluxo de agendamento em andamento. Use se cliente desistir explicitamente ou quiser começar do zero.',
+      parameters: { type: 'object', properties: {}, required: [], additionalProperties: false },
+    },
+  },
+  
+  // ───── QUERIES (não modificam estado) ─────
+  {
+    type: 'function',
+    function: {
+      name: 'listarServicos',
+      description: 'Lista todos os serviços disponíveis. Use para mostrar opções ao cliente.',
+      parameters: { type: 'object', properties: {}, required: [], additionalProperties: false },
     },
   },
   {
     type: 'function',
     function: {
       name: 'listarProfissionais',
-      description: 'Lista TODOS os profissionais (barbeiros) ativos. Use quando o cliente perguntar quem são os barbeiros ou para escolher um profissional.',
-      parameters: { 
-        type: 'object', 
-        properties: {},
-        required: [],
-        additionalProperties: false
-      },
+      description: 'Lista todos os profissionais ativos.',
+      parameters: { type: 'object', properties: {}, required: [], additionalProperties: false },
     },
   },
   {
     type: 'function',
     function: {
-      name: 'verificarDisponibilidade',
-      description: 'Verifica horários OCUPADOS e DISPONÍVEIS para uma data específica. SEMPRE use antes de sugerir horários. NUNCA invente horários disponíveis sem consultar.',
+      name: 'consultarHorariosLivres',
+      description: 'Consulta horários disponíveis em uma data específica (sem precisar definir nada). Útil quando cliente pergunta "tem horário disponível?".',
       parameters: {
         type: 'object',
         properties: {
-          data: { 
-            type: 'string', 
-            description: 'Data no formato YYYY-MM-DD (ex: 2026-06-25). Calcule baseado na data atual se cliente disser "amanhã", "hoje", "sexta", etc.',
-          },
-          profissional_id: { 
-            type: 'string', 
-            description: 'ID do profissional (UUID), ou o NOME do profissional (ex: "Joao"), ou o número da posição na lista (1, 2, 3). Sistema converte automaticamente.',
-          },
+          data: { type: 'string', description: 'Data em formato natural ou ISO' },
+          profissional: { type: 'string', description: 'Profissional opcional (UUID, nome ou posição)' },
         },
         required: ['data'],
-        additionalProperties: false
+        additionalProperties: false,
       },
     },
   },
   {
     type: 'function',
     function: {
-      name: 'buscarCliente',
-      description: 'Busca um cliente pelo telefone. SEMPRE use no início do atendimento para verificar se quem está mandando mensagem já é cliente cadastrado.',
-      parameters: {
-        type: 'object',
-        properties: {
-          telefone: { 
-            type: 'string', 
-            description: 'Telefone (apenas números). Use o telefone do cliente que está conversando (informado no contexto).',
-          },
-        },
-        required: ['telefone'],
-        additionalProperties: false
-      },
+      name: 'consultarInfoBarbearia',
+      description: 'Retorna informações da barbearia (endereço, horário de funcionamento, contato). Use para perguntas tipo "onde fica?", "que horas abrem?".',
+      parameters: { type: 'object', properties: {}, required: [], additionalProperties: false },
+    },
+  },
+  
+  // ───── OUTROS FLUXOS ─────
+  {
+    type: 'function',
+    function: {
+      name: 'listarMeusAgendamentos',
+      description: 'Lista os agendamentos futuros do cliente que está conversando. Útil para cancelamento/reagendamento.',
+      parameters: { type: 'object', properties: {}, required: [], additionalProperties: false },
     },
   },
   {
     type: 'function',
     function: {
-      name: 'cadastrarCliente',
-      description: 'Cadastra um novo cliente. Use quando: (1) buscarCliente retornar null, OU (2) o agendamento é para outra pessoa (ex: filho, amigo) que não está cadastrada.',
+      name: 'cancelarAgendamentoExistente',
+      description: 'Cancela um agendamento existente. Use após cliente confirmar qual cancelar (mostre lista primeiro).',
       parameters: {
         type: 'object',
         properties: {
-          nome: { 
-            type: 'string', 
-            description: 'Nome COMPLETO do cliente (mínimo nome + sobrenome).',
-          },
-          telefone: { 
-            type: 'string', 
-            description: 'Telefone com DDD (apenas números). Para terceiros, pode ser o mesmo de quem está agendando.',
-          },
-        },
-        required: ['nome', 'telefone'],
-        additionalProperties: false
-      },
-    },
-  },
-  {
-    type: 'function',
-    function: {
-      name: 'criarAgendamento',
-      description: `Cria um agendamento CONFIRMADO. SÓ USE APÓS coletar e validar TODOS os dados:
-1. cliente_id (de buscarCliente ou cadastrarCliente)
-2. servico_id (de listarServicos ou buscarServicoPorNome - SERVIÇO VÁLIDO)
-3. profissional_id (de listarProfissionais)
-4. data_hora (após verificarDisponibilidade confirmar livre)
-5. Cliente confirmou TODOS os detalhes no chat
-NUNCA invente IDs. SEMPRE use IDs reais retornados pelas outras ferramentas.`,
-      parameters: {
-        type: 'object',
-        properties: {
-          cliente_id: { 
-            type: 'string', 
-            description: 'ID do cliente que vai RECEBER o serviço (não necessariamente quem está conversando).',
-          },
-          servico_id: { 
-            type: 'string', 
-            description: 'ID do serviço escolhido.',
-          },
-          profissional_id: { 
-            type: 'string', 
-            description: 'ID do profissional escolhido.',
-          },
-          data_hora: { 
-            type: 'string', 
-            description: 'Data e hora ISO: YYYY-MM-DDTHH:mm (ex: 2026-06-25T14:30).',
-          },
-          observacoes: {
-            type: 'string',
-            description: 'Observações opcionais (ex: "Agendamento feito por João para o filho Pedro").',
-          },
-        },
-        required: ['cliente_id', 'servico_id', 'profissional_id', 'data_hora'],
-        additionalProperties: false
-      },
-    },
-  },
-  {
-    type: 'function',
-    function: {
-      name: 'listarAgendamentosCliente',
-      description: 'Lista agendamentos futuros de um cliente. Use quando o cliente perguntar sobre seus horários, ou para identificar qual agendamento cancelar/reagendar.',
-      parameters: {
-        type: 'object',
-        properties: {
-          telefone: { 
-            type: 'string', 
-            description: 'Telefone do cliente (apenas números).',
-          },
-        },
-        required: ['telefone'],
-        additionalProperties: false
-      },
-    },
-  },
-  {
-    type: 'function',
-    function: {
-      name: 'cancelarAgendamento',
-      description: 'Cancela um agendamento. SEMPRE confirme com o cliente qual agendamento cancelar antes (mostre detalhes via listarAgendamentosCliente).',
-      parameters: {
-        type: 'object',
-        properties: {
-          agendamento_id: { 
-            type: 'string', 
-            description: 'ID do agendamento (de listarAgendamentosCliente).',
-          },
+          agendamento_id: { type: 'string', description: 'UUID do agendamento a cancelar' },
         },
         required: ['agendamento_id'],
-        additionalProperties: false
-      },
-    },
-  },
-  {
-    type: 'function',
-    function: {
-      name: 'reagendarAgendamento',
-      description: 'Altera data/hora de agendamento. SEMPRE verificarDisponibilidade da nova data antes. Confirme com cliente.',
-      parameters: {
-        type: 'object',
-        properties: {
-          agendamento_id: { 
-            type: 'string', 
-            description: 'ID do agendamento.',
-          },
-          nova_data_hora: { 
-            type: 'string', 
-            description: 'Nova data ISO: YYYY-MM-DDTHH:mm.',
-          },
-        },
-        required: ['agendamento_id', 'nova_data_hora'],
-        additionalProperties: false
-      },
-    },
-  },
-  {
-    type: 'function',
-    function: {
-      name: 'consultarInformacoesBarbearia',
-      description: 'Retorna informações da barbearia (nome, endereço, telefone, horário de funcionamento). Use quando cliente perguntar sobre localização, horário de abertura, contato, etc.',
-      parameters: {
-        type: 'object',
-        properties: {},
-        required: [],
-        additionalProperties: false
+        additionalProperties: false,
       },
     },
   },
 ];
 
-/**
- * ============================================================
- * EXECUÇÃO DAS FERRAMENTAS
- * ============================================================
- */
+// ============================================================
+// EXECUÇÃO DAS TOOLS
+// ============================================================
 
 /**
- * Resolve ID do profissional: aceita UUID, nome ou número de posição
+ * Executa uma tool. Recebe o estado atual (que pode ser modificado).
+ * Retorna { resultado, novoEstado }.
  */
-async function resolverProfissionalId(barbeariaId, valor) {
-  if (!valor) return null;
-  
-  const valorStr = String(valor).trim();
-  
-  // 1. Já é UUID válido?
-  if (/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(valorStr)) {
-    return valorStr;
-  }
-  
-  // 2. Busca todos os profissionais ativos
-  const { rows } = await query(
-    `SELECT id, nome FROM profissionais 
-      WHERE barbearia_id = $1 AND ativo = true 
-      ORDER BY ordem, nome`,
-    [barbeariaId]
-  );
-  
-  if (rows.length === 0) return null;
-  
-  // 3. É um número (posição na lista)? "1", "2", "3"
-  if (/^\d+$/.test(valorStr)) {
-    const idx = parseInt(valorStr, 10) - 1;
-    if (idx >= 0 && idx < rows.length) {
-      console.log(`   🔄 Convertido posição "${valorStr}" → ${rows[idx].nome} (${rows[idx].id})`);
-      return rows[idx].id;
-    }
-  }
-  
-  // 4. É o nome (ou parte dele)?
-  const valorLower = valorStr.toLowerCase();
-  const match = rows.find(p => 
-    p.nome.toLowerCase() === valorLower ||
-    p.nome.toLowerCase().includes(valorLower) ||
-    valorLower.includes(p.nome.toLowerCase())
-  );
-  
-  if (match) {
-    console.log(`   🔄 Convertido nome "${valorStr}" → ${match.nome} (${match.id})`);
-    return match.id;
-  }
-  
-  return null;
-}
-
-/**
- * Resolve ID do serviço: aceita UUID, nome ou número de posição
- */
-async function resolverServicoId(barbeariaId, valor) {
-  if (!valor) return null;
-  
-  const valorStr = String(valor).trim();
-  
-  if (/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(valorStr)) {
-    return valorStr;
-  }
-  
-  const { rows } = await query(
-    `SELECT id, nome FROM servicos 
-      WHERE barbearia_id = $1 AND ativo = true 
-      ORDER BY categoria, nome`,
-    [barbeariaId]
-  );
-  
-  if (rows.length === 0) return null;
-  
-  if (/^\d+$/.test(valorStr)) {
-    const idx = parseInt(valorStr, 10) - 1;
-    if (idx >= 0 && idx < rows.length) {
-      console.log(`   🔄 Convertido posição "${valorStr}" → ${rows[idx].nome}`);
-      return rows[idx].id;
-    }
-  }
-  
-  const valorLower = valorStr.toLowerCase();
-  const match = rows.find(s => 
-    s.nome.toLowerCase() === valorLower ||
-    s.nome.toLowerCase().includes(valorLower) ||
-    valorLower.includes(s.nome.toLowerCase())
-  );
-  
-  if (match) {
-    console.log(`   🔄 Convertido nome "${valorStr}" → ${match.nome}`);
-    return match.id;
-  }
-  
-  return null;
-}
-
-async function executarTool(barbeariaId, toolName, args) {
-  console.log(`🔧 Executando: ${toolName}`, JSON.stringify(args));
+async function executarTool(ctx, toolName, args) {
+  const { barbeariaId, telefone, estado } = ctx;
+  console.log(`🔧 ${toolName}`, JSON.stringify(args));
   
   try {
     switch (toolName) {
-      case 'listarServicos': {
-        const { rows } = await query(
-          `SELECT id, nome, duracao_minutos, preco, categoria
-             FROM servicos 
-            WHERE barbearia_id = $1 AND ativo = true 
-            ORDER BY categoria, nome`,
-          [barbeariaId]
-        );
-        console.log(`   ✅ ${rows.length} serviços`);
-        return { servicos: rows };
-      }
-
-      case 'buscarServicoPorNome': {
-        const termo = (args.termo || '').toLowerCase().trim();
-        if (!termo) return { erro: 'Termo de busca vazio' };
-        
-        const { rows } = await query(
-          `SELECT id, nome, duracao_minutos, preco, categoria
-             FROM servicos 
-            WHERE barbearia_id = $1 AND ativo = true 
-              AND (LOWER(nome) LIKE $2 OR LOWER(categoria) LIKE $2)
-            ORDER BY 
-              CASE WHEN LOWER(nome) = $3 THEN 0
-                   WHEN LOWER(nome) LIKE $4 THEN 1
-                   ELSE 2 END,
-              nome`,
-          [barbeariaId, `%${termo}%`, termo, `${termo}%`]
-        );
-        
-        console.log(`   ✅ ${rows.length} serviços encontrados para "${termo}"`);
-        
-        return { 
-          termo_buscado: termo,
-          encontrados: rows.length,
-          servicos: rows,
-          unico_match: rows.length === 1,
-        };
-      }
-
-      case 'listarProfissionais': {
-        const { rows } = await query(
-          `SELECT id, nome, especialidade
-             FROM profissionais 
-            WHERE barbearia_id = $1 AND ativo = true 
-            ORDER BY ordem, nome`,
-          [barbeariaId]
-        );
-        console.log(`   ✅ ${rows.length} profissionais`);
-        return { profissionais: rows };
-      }
-
-      case 'verificarDisponibilidade': {
-        const { data } = args;
-        let { profissional_id } = args;
-        
-        if (!/^\d{4}-\d{2}-\d{2}$/.test(data)) {
-          return { erro: 'Formato de data inválido. Use YYYY-MM-DD' };
-        }
-        
-        // Resolve profissional_id (aceita UUID, nome ou número)
-        if (profissional_id) {
-          const resolvido = await resolverProfissionalId(barbeariaId, profissional_id);
-          if (!resolvido) {
-            return { 
-              erro: `Profissional "${profissional_id}" não encontrado. Use listarProfissionais primeiro.`,
-            };
-          }
-          profissional_id = resolvido;
-        }
-        
-        const dataObj = new Date(data + 'T12:00:00');
-        const agora = new Date();
-        const ehHoje = dataObj.toDateString() === agora.toDateString();
-        
-        // Busca config de horários da barbearia
-        const { rows: barbRows } = await query(
-          `SELECT horario_config FROM barbearias WHERE id = $1`,
-          [barbeariaId]
-        );
-        const horarioConfig = barbRows[0]?.horario_config || {
-          manha: { inicio: '08:00', fim: '12:00' },
-          tarde: { inicio: '13:00', fim: '19:00' },
-          intervalo_minutos: 30,
-        };
-        
-        const params = [barbeariaId, data];
-        let profFilter = '';
-        if (profissional_id) {
-          params.push(profissional_id);
-          profFilter = ` AND a.profissional_id = $${params.length}`;
-        }
-        
-        // Busca horários ocupados
-        const { rows: ocupados } = await query(
-          `SELECT a.data_hora, a.profissional_id, a.duracao_minutos,
-                  p.nome AS profissional_nome, s.nome AS servico_nome
-             FROM agendamentos a
-             JOIN profissionais p ON p.id = a.profissional_id
-             LEFT JOIN servicos s ON s.id = a.servico_id
-            WHERE a.barbearia_id = $1
-              AND a.data_hora::date = $2::date
-              AND a.status NOT IN ('cancelado')${profFilter}
-            ORDER BY a.data_hora`,
-          params
-        );
-        
-        // Busca profissionais ativos
-        const { rows: profissionais } = await query(
-          `SELECT id, nome, especialidade 
-             FROM profissionais 
-            WHERE barbearia_id = $1 AND ativo = true
-              ${profissional_id ? 'AND id = $2' : ''}
-            ORDER BY ordem, nome`,
-          profissional_id ? [barbeariaId, profissional_id] : [barbeariaId]
-        );
-        
-        // Gera slots de horários
-        const intervaloMin = horarioConfig.intervalo_minutos || 30;
-        const slots = [];
-        
-        const adicionarSlots = (inicio, fim) => {
-          if (!inicio || !fim) return;
-          const [hi, mi] = inicio.split(':').map(Number);
-          const [hf, mf] = fim.split(':').map(Number);
-          let totalMin = hi * 60 + mi;
-          const fimMin = hf * 60 + mf;
-          while (totalMin < fimMin) {
-            const h = Math.floor(totalMin / 60);
-            const m = totalMin % 60;
-            slots.push(`${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}`);
-            totalMin += intervaloMin;
-          }
-        };
-        
-        if (horarioConfig.manha) adicionarSlots(horarioConfig.manha.inicio, horarioConfig.manha.fim);
-        if (horarioConfig.tarde) adicionarSlots(horarioConfig.tarde.inicio, horarioConfig.tarde.fim);
-        
-        // Marca slots ocupados (por profissional)
-        const ocupadosPorProf = {};
-        ocupados.forEach(o => {
-          const hora = new Date(o.data_hora).toTimeString().substring(0, 5);
-          if (!ocupadosPorProf[o.profissional_id]) ocupadosPorProf[o.profissional_id] = new Set();
-          ocupadosPorProf[o.profissional_id].add(hora);
-        });
-        
-        // Calcula disponibilidade por profissional
-        const disponibilidadePorProf = profissionais.map(p => {
-          const ocupadosDeles = ocupadosPorProf[p.id] || new Set();
-          let livres = slots.filter(s => !ocupadosDeles.has(s));
-          
-          // Se for hoje, remove horários já passados
-          if (ehHoje) {
-            const horaAtual = `${String(agora.getHours()).padStart(2, '0')}:${String(agora.getMinutes()).padStart(2, '0')}`;
-            livres = livres.filter(s => s > horaAtual);
-          }
-          
-          return {
-            profissional_id: p.id,
-            profissional_nome: p.nome,
-            especialidade: p.especialidade,
-            horarios_livres: livres,
-            horarios_ocupados: Array.from(ocupadosDeles),
-            total_livres: livres.length,
-          };
-        });
-        
-        const dataFmt = dataObj.toLocaleDateString('pt-BR', { 
-          weekday: 'long', day: 'numeric', month: 'long' 
-        });
-        
-        console.log(`   ✅ Disponibilidade ${data}: ${disponibilidadePorProf.length} profissionais`);
-        
-        return {
-          data,
-          data_formatada: dataFmt,
-          eh_hoje: ehHoje,
-          disponibilidade: disponibilidadePorProf,
-        };
-      }
-
-      case 'buscarCliente': {
-        const tel = String(args.telefone || '').replace(/\D/g, '');
-        if (tel.length < 10) {
-          return { erro: 'Telefone inválido', encontrado: false };
-        }
-        
-        const { rows } = await query(
-          `SELECT id, nome, telefone, email, total_visitas, created_at
-             FROM clientes 
-            WHERE barbearia_id = $1 
-              AND telefone LIKE $2
-            ORDER BY total_visitas DESC
-            LIMIT 1`,
+      // ───── INICIAR ─────
+      case 'iniciarAgendamento': {
+        // Busca ou identifica o cliente automaticamente
+        const tel = String(telefone || '').replace(/\D/g, '');
+        const { rows: clienteRows } = await query(
+          `SELECT id, nome, telefone FROM clientes
+            WHERE barbearia_id = $1 AND telefone LIKE $2 LIMIT 1`,
           [barbeariaId, `%${tel.slice(-11)}%`]
         );
         
-        if (rows[0]) {
-          console.log(`   ✅ Cliente: ${rows[0].nome}`);
-          return { encontrado: true, cliente: rows[0] };
-        }
+        const clienteData = clienteRows[0] || null;
+        const novoEstado = ws.iniciarFluxo(estado, 'agendamento', clienteData);
         
-        console.log(`   ℹ️  Cliente não encontrado (tel: ${tel})`);
-        return { encontrado: false, cliente: null };
+        console.log(`   ✅ Fluxo iniciado. Cliente: ${clienteData ? clienteData.nome : 'não cadastrado ainda'}`);
+        
+        return {
+          resultado: {
+            sucesso: true,
+            cliente_identificado: !!clienteData,
+            cliente: clienteData,
+            mensagem: clienteData 
+              ? `Fluxo de agendamento iniciado. Cliente identificado: ${clienteData.nome}` 
+              : 'Fluxo iniciado. Cliente NOVO - você precisa pedir o nome completo antes de continuar.',
+          },
+          novoEstado,
+        };
       }
-
-      case 'cadastrarCliente': {
-        const tel = String(args.telefone || '').replace(/\D/g, '');
-        const nome = String(args.nome || '').trim();
-        
-        if (nome.length < 2) {
-          return { erro: 'Nome inválido. Forneça nome completo.' };
-        }
-        if (tel.length < 10) {
-          return { erro: 'Telefone inválido.' };
+      
+      // ───── SLOT: SERVIÇO ─────
+      case 'definirServico': {
+        if (estado.fluxo_ativo !== 'agendamento') {
+          return { resultado: { erro: 'Nenhum fluxo de agendamento ativo. Use iniciarAgendamento primeiro.' } };
         }
         
-        try {
-          // Verifica se já existe
-          const { rows: existentes } = await query(
-            `SELECT id, nome FROM clientes 
-              WHERE barbearia_id = $1 AND telefone = $2 LIMIT 1`,
-            [barbeariaId, tel]
-          );
-          
-          if (existentes[0]) {
-            console.log(`   ℹ️  Cliente já existe: ${existentes[0].nome}`);
-            return { 
-              ja_existia: true,
-              cliente: existentes[0],
+        const servico = await resolverServico(barbeariaId, args.servico);
+        if (!servico) {
+          return {
+            resultado: {
+              erro: `Serviço "${args.servico}" não encontrado.`,
+              dica: 'Use listarServicos para ver opções disponíveis.',
+            },
+          };
+        }
+        
+        const novoEstado = ws.definirSlot(estado, 'servico', {
+          id: servico.id,
+          nome: servico.nome,
+          preco: parseFloat(servico.preco),
+          duracao: servico.duracao_minutos,
+        });
+        
+        console.log(`   ✅ Serviço definido: ${servico.nome}`);
+        
+        return {
+          resultado: {
+            sucesso: true,
+            servico: { nome: servico.nome, preco: parseFloat(servico.preco) },
+            mensagem: `Serviço "${servico.nome}" registrado no checklist.`,
+          },
+          novoEstado,
+        };
+      }
+      
+      // ───── SLOT: PROFISSIONAL ─────
+      case 'definirProfissional': {
+        if (estado.fluxo_ativo !== 'agendamento') {
+          return { resultado: { erro: 'Nenhum fluxo ativo. Use iniciarAgendamento primeiro.' } };
+        }
+        
+        const prof = await resolverProfissional(barbeariaId, args.profissional);
+        if (!prof) {
+          return {
+            resultado: {
+              erro: `Profissional "${args.profissional}" não encontrado.`,
+              dica: 'Use listarProfissionais para ver opções.',
+            },
+          };
+        }
+        
+        const novoEstado = ws.definirSlot(estado, 'profissional', {
+          id: prof.id,
+          nome: prof.nome,
+          especialidade: prof.especialidade,
+        });
+        
+        console.log(`   ✅ Profissional definido: ${prof.nome}`);
+        
+        return {
+          resultado: {
+            sucesso: true,
+            profissional: { nome: prof.nome, especialidade: prof.especialidade },
+            mensagem: `Profissional ${prof.nome} registrado no checklist.`,
+          },
+          novoEstado,
+        };
+      }
+      
+      // ───── SLOT: PARA QUEM ─────
+      case 'definirParaQuem': {
+        if (estado.fluxo_ativo !== 'agendamento') {
+          return { resultado: { erro: 'Nenhum fluxo ativo.' } };
+        }
+        
+        const tipo = args.tipo;
+        if (!['proprio_cliente', 'terceiro'].includes(tipo)) {
+          return { resultado: { erro: 'tipo deve ser "proprio_cliente" ou "terceiro"' } };
+        }
+        
+        let valor;
+        
+        if (tipo === 'proprio_cliente') {
+          // Verifica se o cliente está identificado
+          if (!estado.slots.cliente.preenchido) {
+            // Tenta identificar agora
+            const tel = String(telefone || '').replace(/\D/g, '');
+            const { rows } = await query(
+              `SELECT id, nome FROM clientes WHERE barbearia_id = $1 AND telefone LIKE $2 LIMIT 1`,
+              [barbeariaId, `%${tel.slice(-11)}%`]
+            );
+            if (!rows[0]) {
+              return {
+                resultado: {
+                  erro: 'Cliente principal ainda não foi identificado/cadastrado. Cadastre o cliente primeiro com cadastrarClientePrincipal.',
+                },
+              };
+            }
+            // Atualiza slot cliente também
+            const estadoComCliente = ws.definirSlot(estado, 'cliente', { id: rows[0].id, nome: rows[0].nome });
+            valor = { tipo: 'proprio_cliente', cliente_alvo_id: rows[0].id };
+            const novoEstado = ws.definirSlot(estadoComCliente, 'para_quem', valor);
+            return {
+              resultado: { sucesso: true, mensagem: 'Agendamento será para o próprio cliente.' },
+              novoEstado,
+            };
+          }
+          valor = { tipo: 'proprio_cliente', cliente_alvo_id: estado.slots.cliente.valor.id };
+        } else {
+          // Terceiro - precisa do nome
+          if (!args.nome_pessoa || args.nome_pessoa.trim().length < 2) {
+            return {
+              resultado: { erro: 'Para agendamento de terceiro, forneça nome_pessoa (nome completo da pessoa).' },
             };
           }
           
-          const { rows } = await query(
-            `INSERT INTO clientes (barbearia_id, nome, telefone, total_visitas) 
-             VALUES ($1, $2, $3, 0) 
-             RETURNING id, nome, telefone`,
-            [barbeariaId, nome, tel]
+          // Cadastra o terceiro como cliente
+          const tel = String(telefone || '').replace(/\D/g, '');
+          const nomeTerceiro = args.nome_pessoa.trim();
+          
+          // Verifica se já existe cliente com nome similar e mesmo telefone
+          const { rows: existentes } = await query(
+            `SELECT id, nome FROM clientes 
+              WHERE barbearia_id = $1 AND telefone = $2 AND LOWER(nome) = LOWER($3) LIMIT 1`,
+            [barbeariaId, tel, nomeTerceiro]
           );
           
-          console.log(`   ✅ Cliente cadastrado: ${rows[0].nome}`);
-          return { ja_existia: false, cliente: rows[0] };
-        } catch (err) {
-          console.error('   ❌ Erro:', err.message);
-          return { erro: 'Erro ao cadastrar: ' + err.message };
+          let clienteAlvoId;
+          if (existentes[0]) {
+            clienteAlvoId = existentes[0].id;
+          } else {
+            // Cadastra novo cliente (mesmo telefone, mas pode dar conflito de unique)
+            // Como a tabela tem UNIQUE (barbearia_id, telefone), vamos usar telefone vazio para terceiros
+            const telTerceiro = `${tel}-${Date.now().toString().slice(-4)}`;
+            const { rows: novo } = await query(
+              `INSERT INTO clientes (barbearia_id, nome, telefone, total_visitas)
+               VALUES ($1, $2, $3, 0) RETURNING id`,
+              [barbeariaId, nomeTerceiro, telTerceiro]
+            );
+            clienteAlvoId = novo[0].id;
+          }
+          
+          valor = {
+            tipo: 'terceiro',
+            cliente_alvo_id: clienteAlvoId,
+            nome_pessoa: nomeTerceiro,
+          };
         }
+        
+        const novoEstado = ws.definirSlot(estado, 'para_quem', valor);
+        console.log(`   ✅ Para quem: ${tipo}${args.nome_pessoa ? ' (' + args.nome_pessoa + ')' : ''}`);
+        
+        return {
+          resultado: { sucesso: true, valor, mensagem: 'Para quem é o agendamento foi registrado.' },
+          novoEstado,
+        };
       }
-
-      case 'criarAgendamento': {
-        console.log(`   📝 Tentando criar agendamento:`);
-        console.log(`      cliente_id: ${args.cliente_id}`);
-        console.log(`      servico_id: ${args.servico_id}`);
-        console.log(`      profissional_id: ${args.profissional_id}`);
-        console.log(`      data_hora: ${args.data_hora}`);
-        
-        // Resolve IDs (aceita UUID, nome ou número)
-        const servicoIdReal = await resolverServicoId(barbeariaId, args.servico_id);
-        const profissionalIdReal = await resolverProfissionalId(barbeariaId, args.profissional_id);
-        
-        if (!servicoIdReal) {
-          console.log(`   ❌ SERVIÇO INVÁLIDO! "${args.servico_id}"`);
-          return { erro: `Serviço "${args.servico_id}" não foi encontrado. Use listarServicos para ver opções.` };
-        }
-        if (!profissionalIdReal) {
-          console.log(`   ❌ PROFISSIONAL INVÁLIDO! "${args.profissional_id}"`);
-          return { erro: `Profissional "${args.profissional_id}" não foi encontrado. Use listarProfissionais para ver opções.` };
+      
+      // ───── SLOT: DATA ─────
+      case 'definirData': {
+        if (estado.fluxo_ativo !== 'agendamento') {
+          return { resultado: { erro: 'Nenhum fluxo ativo.' } };
         }
         
-        const dh = new Date(args.data_hora);
+        const dataYMD = parsearData(args.data);
+        if (!dataYMD) {
+          return {
+            resultado: { erro: `Não consegui entender a data "${args.data}". Use formatos como "hoje", "amanhã", "sexta", "23/06".` },
+          };
+        }
+        
+        // Não pode ser no passado
+        const hoje = new Date();
+        hoje.setHours(0, 0, 0, 0);
+        const dataObj = new Date(dataYMD + 'T12:00:00');
+        if (dataObj < hoje) {
+          return { resultado: { erro: 'Não é possível agendar em data passada.' } };
+        }
+        
+        const novoEstado = ws.definirSlot(estado, 'data', {
+          data: dataYMD,
+          data_formatada: formatarDataLegivel(dataYMD),
+        });
+        
+        // Quando data muda, limpa horário (precisa revalidar)
+        const estadoFinal = ws.limparSlot(novoEstado, 'horario');
+        
+        console.log(`   ✅ Data: ${dataYMD}`);
+        
+        return {
+          resultado: {
+            sucesso: true,
+            data: dataYMD,
+            data_formatada: formatarDataLegivel(dataYMD),
+            mensagem: `Data ${formatarDataLegivel(dataYMD)} registrada.`,
+          },
+          novoEstado: estadoFinal,
+        };
+      }
+      
+      // ───── SLOT: HORÁRIO ─────
+      case 'definirHorario': {
+        if (estado.fluxo_ativo !== 'agendamento') {
+          return { resultado: { erro: 'Nenhum fluxo ativo.' } };
+        }
+        
+        if (!estado.slots.profissional.preenchido) {
+          return { resultado: { erro: 'Defina o profissional antes do horário.' } };
+        }
+        if (!estado.slots.data.preenchido) {
+          return { resultado: { erro: 'Defina a data antes do horário.' } };
+        }
+        
+        const hora = parsearHorario(args.horario);
+        if (!hora) {
+          return {
+            resultado: { erro: `Não consegui entender o horário "${args.horario}". Use formatos como "14h", "14:00", "14h30".` },
+          };
+        }
+        
+        // Verifica disponibilidade real
+        const data = estado.slots.data.valor.data;
+        const profId = estado.slots.profissional.valor.id;
+        
+        const disponiveis = await calcularHorariosDisponiveis(barbeariaId, data, profId);
+        
+        if (!disponiveis.includes(hora)) {
+          // Sugere horários próximos
+          const proximos = sugerirHorariosProximos(disponiveis, hora);
+          return {
+            resultado: {
+              erro: `Horário ${hora} não está disponível para ${estado.slots.profissional.valor.nome} em ${formatarDataLegivel(data)}.`,
+              horarios_alternativos: proximos,
+              dica: `Sugira ao cliente um destes horários próximos: ${proximos.join(', ')}`,
+            },
+          };
+        }
+        
+        const novoEstado = ws.definirSlot(estado, 'horario', { hora });
+        console.log(`   ✅ Horário: ${hora} (disponível)`);
+        
+        return {
+          resultado: {
+            sucesso: true,
+            hora,
+            mensagem: `Horário ${hora} confirmado como disponível.`,
+          },
+          novoEstado,
+        };
+      }
+      
+      // ───── FINALIZAR (CRIAR AGENDAMENTO) ─────
+      case 'finalizarAgendamento': {
+        // Idempotência: já foi criado recentemente?
+        if (ws.temAgendamentoRecente(estado, 5)) {
+          const { rows } = await query(
+            `SELECT a.id, a.data_hora, c.nome AS cliente_nome,
+                    s.nome AS servico_nome, p.nome AS profissional_nome, a.preco
+               FROM agendamentos a
+               LEFT JOIN clientes c ON c.id = a.cliente_id
+               LEFT JOIN servicos s ON s.id = a.servico_id
+               LEFT JOIN profissionais p ON p.id = a.profissional_id
+              WHERE a.id = $1`,
+            [estado.agendamento_criado_id]
+          );
+          if (rows[0]) {
+            return {
+              resultado: {
+                ja_criado: true,
+                agendamento: rows[0],
+                mensagem: 'Este agendamento JÁ FOI CRIADO há poucos minutos. Não criar duplicado. Avise o cliente que o agendamento está confirmado.',
+              },
+            };
+          }
+        }
+        
+        // Verifica checklist 100%
+        if (!ws.checklistCompleto(estado)) {
+          const faltam = [];
+          for (const slot of ws.ORDEM_SLOTS_AGENDAMENTO) {
+            if (!estado.slots[slot]?.preenchido) faltam.push(slot);
+          }
+          return {
+            resultado: {
+              erro: 'Checklist incompleto. Faltam dados.',
+              slots_faltantes: faltam,
+              dica: 'Colete os dados faltantes antes de finalizar.',
+            },
+          };
+        }
+        
+        const slots = estado.slots;
+        const dataHora = `${slots.data.valor.data}T${slots.horario.valor.hora}:00`;
+        const dh = new Date(dataHora);
+        
         if (isNaN(dh.getTime())) {
-          console.log(`   ❌ Data inválida`);
-          return { erro: 'Data/hora inválida. Use YYYY-MM-DDTHH:mm' };
+          return { resultado: { erro: 'Data/hora inválida.' } };
         }
-        
         if (dh < new Date()) {
-          console.log(`   ❌ Data no passado`);
-          return { erro: 'Não é possível agendar no passado.' };
+          return { resultado: { erro: 'Não é possível agendar no passado.' } };
         }
-        
-        // Valida serviço
-        const { rows: servico } = await query(
-          `SELECT id, duracao_minutos, preco, nome 
-             FROM servicos 
-            WHERE id = $1 AND barbearia_id = $2 AND ativo = true`,
-          [servicoIdReal, barbeariaId]
-        );
-        
-        if (!servico[0]) {
-          return { erro: `Serviço não encontrado.` };
-        }
-        console.log(`   ✓ Serviço válido: ${servico[0].nome} - R$ ${servico[0].preco}`);
-        
-        // Valida profissional
-        const { rows: prof } = await query(
-          `SELECT id, nome FROM profissionais 
-            WHERE id = $1 AND barbearia_id = $2 AND ativo = true`,
-          [profissionalIdReal, barbeariaId]
-        );
-        
-        if (!prof[0]) {
-          return { erro: `Profissional não encontrado.` };
-        }
-        console.log(`   ✓ Profissional válido: ${prof[0].nome}`);
-        
-        // Valida cliente
-        const { rows: cli } = await query(
-          `SELECT id, nome, telefone FROM clientes 
-            WHERE id = $1 AND barbearia_id = $2`,
-          [args.cliente_id, barbeariaId]
-        );
-        
-        if (!cli[0]) {
-          console.log(`   ❌ CLIENTE INVÁLIDO! ID ${args.cliente_id}`);
-          return { erro: `Cliente não encontrado. Use buscarCliente primeiro.` };
-        }
-        console.log(`   ✓ Cliente válido: ${cli[0].nome}`);
         
         // Verifica conflito
         const { rows: conflito } = await query(
-          `SELECT id FROM agendamentos 
-            WHERE barbearia_id = $1 
-              AND profissional_id = $2
-              AND data_hora = $3
-              AND status NOT IN ('cancelado')
-            LIMIT 1`,
-          [barbeariaId, profissionalIdReal, dh]
+          `SELECT id FROM agendamentos
+            WHERE barbearia_id = $1 AND profissional_id = $2 AND data_hora = $3
+              AND status NOT IN ('cancelado') LIMIT 1`,
+          [barbeariaId, slots.profissional.valor.id, dh]
         );
-        
         if (conflito[0]) {
-          console.log(`   ❌ CONFLITO! Horário já ocupado`);
-          return { erro: 'Horário já ocupado. Use verificarDisponibilidade para ver opções livres.' };
+          return {
+            resultado: {
+              erro: 'Horário ficou ocupado nesse meio tempo. Peça desculpas e ofereça outro horário.',
+            },
+          };
         }
         
-        // Cria agendamento
+        // Determina cliente_id (próprio ou terceiro)
+        const clienteAlvoId = slots.para_quem.valor.cliente_alvo_id || slots.cliente.valor.id;
+        
+        // Observações para terceiro
+        let observacoes = null;
+        if (slots.para_quem.valor.tipo === 'terceiro') {
+          observacoes = `Agendado por ${slots.cliente.valor.nome} para ${slots.para_quem.valor.nome_pessoa}`;
+        }
+        
+        // CRIA O AGENDAMENTO
         const { rows } = await query(
-          `INSERT INTO agendamentos (
-             barbearia_id, cliente_id, servico_id, profissional_id, 
-             data_hora, duracao_minutos, preco, status, observacoes
-           ) VALUES ($1, $2, $3, $4, $5, $6, $7, 'agendado', $8) 
+          `INSERT INTO agendamentos
+            (barbearia_id, cliente_id, servico_id, profissional_id, data_hora,
+             duracao_minutos, preco, status, observacoes)
+           VALUES ($1, $2, $3, $4, $5, $6, $7, 'agendado', $8)
            RETURNING id, data_hora`,
           [
-            barbeariaId, args.cliente_id, servicoIdReal, profissionalIdReal, 
-            dh, servico[0].duracao_minutos, servico[0].preco,
-            args.observacoes || null,
+            barbeariaId, clienteAlvoId, slots.servico.valor.id, slots.profissional.valor.id,
+            dh, slots.servico.valor.duracao, slots.servico.valor.preco, observacoes,
           ]
         );
         
-        console.log(`   ✅ AGENDAMENTO CRIADO COM SUCESSO!`);
-        console.log(`      ID: ${rows[0].id}`);
-        console.log(`      Cliente: ${cli[0].nome}`);
-        console.log(`      Serviço: ${servico[0].nome} - R$ ${servico[0].preco}`);
-        console.log(`      Profissional: ${prof[0].nome}`);
-        console.log(`      Data/Hora: ${rows[0].data_hora}`);
+        const agendamentoId = rows[0].id;
+        console.log(`   ✅ AGENDAMENTO CRIADO: ${agendamentoId}`);
         
-        // Cria comanda automaticamente (igual à API tradicional)
+        // Cria comanda automaticamente
         try {
-          const proxNum = await query(
+          const { rows: prox } = await query(
             `SELECT COALESCE(MAX(numero),0) + 1 AS prox FROM comandas WHERE barbearia_id = $1`,
             [barbeariaId]
           );
-          
-          const cmd = await query(
+          const { rows: cmd } = await query(
             `INSERT INTO comandas (barbearia_id, agendamento_id, numero, cliente_id, cliente_nome, valor)
              VALUES ($1, $2, $3, $4, $5, $6) RETURNING id`,
-            [
-              barbeariaId, 
-              rows[0].id, 
-              proxNum.rows[0].prox, 
-              cli[0].id, 
-              cli[0].nome, 
-              servico[0].preco
-            ]
+            [barbeariaId, agendamentoId, prox[0].prox, clienteAlvoId,
+             slots.para_quem.valor.tipo === 'terceiro' ? slots.para_quem.valor.nome_pessoa : slots.cliente.valor.nome,
+             slots.servico.valor.preco]
           );
-          
-          if (cmd.rows[0]) {
+          if (cmd[0]) {
             await query(
               `INSERT INTO comanda_itens (comanda_id, descricao, valor, tipo, profissional_id)
                VALUES ($1, $2, $3, 'servico', $4)`,
-              [cmd.rows[0].id, servico[0].nome, servico[0].preco, profissionalIdReal]
+              [cmd[0].id, slots.servico.valor.nome, slots.servico.valor.preco, slots.profissional.valor.id]
             );
-            console.log(`   ✅ Comanda criada: #${proxNum.rows[0].prox}`);
+            console.log(`   ✅ Comanda criada: #${prox[0].prox}`);
           }
         } catch (err) {
-          console.error('   ⚠️  Erro ao criar comanda (agendamento foi criado):', err.message);
+          console.error('   ⚠️  Falha ao criar comanda:', err.message);
         }
         
         // Notifica barbeiro (não-bloqueante)
         try {
           const { notificarBarbeiroNovoAgendamento } = await import('./whatsapp.js');
-          await notificarBarbeiroNovoAgendamento(barbeariaId, rows[0].id);
-        } catch (err) {
-          console.warn('   ⚠️  Notificação falhou:', err.message);
-        }
+          notificarBarbeiroNovoAgendamento(barbeariaId, agendamentoId)
+            .catch(e => console.warn('Notificação:', e.message));
+        } catch {}
         
-        return { 
-          sucesso: true,
-          agendamento: {
-            id: rows[0].id,
+        // RESETA o fluxo (mantém apenas o ID criado para idempotência)
+        const novoEstado = ws.resetarFluxo(estado, agendamentoId);
+        
+        return {
+          resultado: {
+            sucesso: true,
+            agendamento_id: agendamentoId,
             data_hora: rows[0].data_hora,
-            cliente_nome: cli[0].nome,
-            servico_nome: servico[0].nome, 
-            profissional_nome: prof[0].nome,
-            preco: servico[0].preco,
-            duracao_minutos: servico[0].duracao_minutos,
-            observacoes: args.observacoes,
-          }
+            cliente_nome: slots.para_quem.valor.tipo === 'terceiro' 
+              ? slots.para_quem.valor.nome_pessoa 
+              : slots.cliente.valor.nome,
+            servico_nome: slots.servico.valor.nome,
+            profissional_nome: slots.profissional.valor.nome,
+            preco: slots.servico.valor.preco,
+            mensagem: 'Agendamento criado com sucesso! Confirme ao cliente com os detalhes.',
+          },
+          novoEstado,
         };
       }
-
-      case 'listarAgendamentosCliente': {
-        const tel = String(args.telefone || '').replace(/\D/g, '');
-        
+      
+      // ───── CANCELAR FLUXO ATUAL ─────
+      case 'cancelarFluxoAtual': {
+        const novoEstado = ws.resetarFluxo(estado);
+        console.log(`   ✅ Fluxo cancelado`);
+        return {
+          resultado: { sucesso: true, mensagem: 'Fluxo cancelado. Posso ajudar com mais algo?' },
+          novoEstado,
+        };
+      }
+      
+      // ───── QUERIES ─────
+      case 'listarServicos': {
         const { rows } = await query(
-          `SELECT a.id, a.data_hora, a.status, a.preco, a.observacoes,
-                  s.nome AS servico_nome, s.duracao_minutos,
-                  p.nome AS profissional_nome,
-                  c.nome AS cliente_nome
+          `SELECT id, nome, duracao_minutos, preco, categoria FROM servicos
+            WHERE barbearia_id = $1 AND ativo = true ORDER BY categoria, nome`,
+          [barbeariaId]
+        );
+        return {
+          resultado: {
+            total: rows.length,
+            servicos: rows.map((s, i) => ({
+              posicao: i + 1,
+              id: s.id,
+              nome: s.nome,
+              preco: parseFloat(s.preco),
+              duracao_minutos: s.duracao_minutos,
+            })),
+          },
+        };
+      }
+      
+      case 'listarProfissionais': {
+        const { rows } = await query(
+          `SELECT id, nome, especialidade FROM profissionais
+            WHERE barbearia_id = $1 AND ativo = true ORDER BY ordem, nome`,
+          [barbeariaId]
+        );
+        return {
+          resultado: {
+            total: rows.length,
+            profissionais: rows.map((p, i) => ({
+              posicao: i + 1,
+              id: p.id,
+              nome: p.nome,
+              especialidade: p.especialidade,
+            })),
+          },
+        };
+      }
+      
+      case 'consultarHorariosLivres': {
+        const dataYMD = parsearData(args.data);
+        if (!dataYMD) {
+          return { resultado: { erro: `Data "${args.data}" não reconhecida.` } };
+        }
+        
+        let profId = null;
+        if (args.profissional) {
+          const p = await resolverProfissional(barbeariaId, args.profissional);
+          if (!p) return { resultado: { erro: `Profissional "${args.profissional}" não encontrado.` } };
+          profId = p.id;
+        }
+        
+        const livres = await calcularHorariosDisponiveis(barbeariaId, dataYMD, profId);
+        
+        return {
+          resultado: {
+            data: dataYMD,
+            data_formatada: formatarDataLegivel(dataYMD),
+            horarios_livres: livres,
+            total: livres.length,
+          },
+        };
+      }
+      
+      case 'consultarInfoBarbearia': {
+        const { rows } = await query(
+          `SELECT nome, telefone, email, endereco, horario_config FROM barbearias WHERE id = $1`,
+          [barbeariaId]
+        );
+        if (!rows[0]) return { resultado: { erro: 'Barbearia não encontrada' } };
+        return {
+          resultado: {
+            nome: rows[0].nome,
+            telefone: rows[0].telefone,
+            email: rows[0].email,
+            endereco: rows[0].endereco,
+            horarios: rows[0].horario_config,
+          },
+        };
+      }
+      
+      case 'listarMeusAgendamentos': {
+        const tel = String(telefone || '').replace(/\D/g, '');
+        const { rows } = await query(
+          `SELECT a.id, a.data_hora, a.status, a.preco,
+                  s.nome AS servico_nome, p.nome AS profissional_nome
              FROM agendamentos a
              JOIN clientes c ON c.id = a.cliente_id
              LEFT JOIN servicos s ON s.id = a.servico_id
              LEFT JOIN profissionais p ON p.id = a.profissional_id
-            WHERE a.barbearia_id = $1 
-              AND c.telefone LIKE $2 
+            WHERE a.barbearia_id = $1 AND c.telefone LIKE $2
               AND a.status NOT IN ('cancelado', 'concluido')
               AND a.data_hora >= NOW()
             ORDER BY a.data_hora`,
           [barbeariaId, `%${tel.slice(-11)}%`]
         );
-        
-        console.log(`   ✅ ${rows.length} agendamentos`);
-        return { total: rows.length, agendamentos: rows };
+        return { resultado: { total: rows.length, agendamentos: rows } };
       }
-
-      case 'cancelarAgendamento': {
+      
+      case 'cancelarAgendamentoExistente': {
         const { rowCount, rows } = await query(
-          `UPDATE agendamentos 
-              SET status = 'cancelado' 
-            WHERE id = $1 AND barbearia_id = $2
-              AND status NOT IN ('cancelado', 'concluido')
+          `UPDATE agendamentos SET status = 'cancelado'
+            WHERE id = $1 AND barbearia_id = $2 AND status NOT IN ('cancelado', 'concluido')
             RETURNING id`,
           [args.agendamento_id, barbeariaId]
         );
-        
         if (rowCount > 0) {
           console.log(`   ✅ Cancelado: ${args.agendamento_id}`);
-          return { sucesso: true, agendamento_id: rows[0].id };
+          return { resultado: { sucesso: true, agendamento_id: rows[0].id } };
         }
-        return { erro: 'Agendamento não encontrado ou já finalizado.' };
+        return { resultado: { erro: 'Agendamento não encontrado ou já finalizado.' } };
       }
-
-      case 'reagendarAgendamento': {
-        const dh = new Date(args.nova_data_hora);
-        if (isNaN(dh.getTime())) return { erro: 'Data/hora inválida.' };
-        if (dh < new Date()) return { erro: 'Não pode reagendar para o passado.' };
-        
-        const { rowCount, rows } = await query(
-          `UPDATE agendamentos 
-              SET data_hora = $1 
-            WHERE id = $2 AND barbearia_id = $3
-              AND status NOT IN ('cancelado', 'concluido')
-            RETURNING id, data_hora`,
-          [dh, args.agendamento_id, barbeariaId]
-        );
-        
-        if (rowCount > 0) {
-          console.log(`   ✅ Reagendado: ${args.agendamento_id}`);
-          return { 
-            sucesso: true, 
-            nova_data_hora: rows[0].data_hora,
-          };
-        }
-        return { erro: 'Agendamento não encontrado.' };
-      }
-
-      case 'consultarInformacoesBarbearia': {
-        const { rows } = await query(
-          `SELECT nome, telefone, email, endereco, horario_config
-             FROM barbearias WHERE id = $1`,
-          [barbeariaId]
-        );
-        
-        if (!rows[0]) return { erro: 'Barbearia não encontrada' };
-        
-        return {
-          nome: rows[0].nome,
-          telefone: rows[0].telefone,
-          email: rows[0].email,
-          endereco: rows[0].endereco,
-          horarios: rows[0].horario_config,
-        };
-      }
-
+      
       default:
-        console.error(`   ❌ Tool desconhecida: ${toolName}`);
-        return { erro: `Ferramenta desconhecida: ${toolName}` };
+        return { resultado: { erro: `Tool desconhecida: ${toolName}` } };
     }
   } catch (err) {
     console.error(`   ❌ Erro em ${toolName}:`, err.message);
-    return { erro: `Erro: ${err.message}` };
+    return { resultado: { erro: `Erro interno: ${err.message}` } };
   }
 }
 
-/**
- * ============================================================
- * SYSTEM PROMPT - Orientado a OBJETIVO
- * ============================================================
- */
-function montarSystemPrompt(barbeariaNome, telefoneCliente, promptPersonalizado) {
+// ============================================================
+// HORÁRIOS DISPONÍVEIS
+// ============================================================
+
+async function calcularHorariosDisponiveis(barbeariaId, dataYMD, profissionalId) {
+  // Config de horários da barbearia
+  const { rows: barbRows } = await query(
+    `SELECT horario_config FROM barbearias WHERE id = $1`,
+    [barbeariaId]
+  );
+  const cfg = barbRows[0]?.horario_config || {
+    manha: { inicio: '08:00', fim: '12:00' },
+    tarde: { inicio: '13:00', fim: '19:00' },
+    intervalo_minutos: 30,
+  };
+  
+  const intervaloMin = cfg.intervalo_minutos || 30;
+  const slots = [];
+  
+  const adicionarSlots = (inicio, fim) => {
+    if (!inicio || !fim) return;
+    const [hi, mi] = inicio.split(':').map(Number);
+    const [hf, mf] = fim.split(':').map(Number);
+    let total = hi * 60 + mi;
+    const fimMin = hf * 60 + mf;
+    while (total < fimMin) {
+      const h = Math.floor(total / 60);
+      const m = total % 60;
+      slots.push(`${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}`);
+      total += intervaloMin;
+    }
+  };
+  if (cfg.manha) adicionarSlots(cfg.manha.inicio, cfg.manha.fim);
+  if (cfg.tarde) adicionarSlots(cfg.tarde.inicio, cfg.tarde.fim);
+  
+  // Ocupados
+  const params = [barbeariaId, dataYMD];
+  let profFilter = '';
+  if (profissionalId) {
+    params.push(profissionalId);
+    profFilter = ` AND profissional_id = $${params.length}`;
+  }
+  
+  const { rows: ocupados } = await query(
+    `SELECT data_hora FROM agendamentos
+      WHERE barbearia_id = $1 AND data_hora::date = $2::date
+        AND status NOT IN ('cancelado')${profFilter}`,
+    params
+  );
+  
+  const setOcupados = new Set(ocupados.map(o => {
+    const d = new Date(o.data_hora);
+    return `${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}`;
+  }));
+  
+  let livres = slots.filter(s => !setOcupados.has(s));
+  
+  // Se for hoje, remove horários passados
+  const hoje = new Date();
+  if (dataYMD === formatarDataYMD(hoje)) {
+    const horaAtual = `${String(hoje.getHours()).padStart(2, '0')}:${String(hoje.getMinutes()).padStart(2, '0')}`;
+    livres = livres.filter(s => s > horaAtual);
+  }
+  
+  return livres;
+}
+
+function sugerirHorariosProximos(disponiveis, alvo) {
+  if (!alvo || disponiveis.length === 0) return disponiveis.slice(0, 3);
+  
+  const [h, m] = alvo.split(':').map(Number);
+  const alvoMin = h * 60 + m;
+  
+  // Ordena por proximidade
+  const ordenado = [...disponiveis].sort((a, b) => {
+    const [ha, ma] = a.split(':').map(Number);
+    const [hb, mb] = b.split(':').map(Number);
+    return Math.abs((ha * 60 + ma) - alvoMin) - Math.abs((hb * 60 + mb) - alvoMin);
+  });
+  
+  return ordenado.slice(0, 3).sort();
+}
+
+// ============================================================
+// SYSTEM PROMPT DINÂMICO
+// ============================================================
+
+function montarSystemPrompt(barbeariaNome, telefoneCliente, estado, promptPersonalizado) {
   const dataAgora = new Date();
   const amanha = new Date(Date.now() + 86400000);
   const dataFmt = dataAgora.toLocaleDateString('pt-BR', { 
     weekday: 'long', day: '2-digit', month: 'long', year: 'numeric' 
   });
   const horaFmt = dataAgora.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
-  const amanhaFmt = amanha.toLocaleDateString('pt-BR', { weekday: 'long', day: '2-digit', month: '2-digit', year: 'numeric' });
-
-  const promptBase = `[PROMPT v3.2] Você é o atendente virtual da barbearia "${barbeariaNome}".
-
-━━━━━━━━━━━━━━━━━━━━━━━━
-🧠 LEIA O HISTÓRICO ANTES DE RESPONDER!
-━━━━━━━━━━━━━━━━━━━━━━━━
-
-ANTES de fazer qualquer coisa, RELEIA o histórico da conversa atual e identifique:
-- Qual SERVIÇO o cliente já escolheu? (não pergunte de novo)
-- Qual PROFISSIONAL o cliente já escolheu? (não pergunte de novo)
-- Para QUEM é o agendamento? (próprio cliente ou outra pessoa)
-- Qual DATA já foi escolhida?
-- Qual HORÁRIO o cliente quer?
-
-Se TODOS os dados já estão na conversa, vá direto para verificar disponibilidade e/ou criar agendamento.
-
-EXEMPLO:
-Histórico mostra:
-- Cliente disse: "Quero corte e barba"
-- Você listou serviços, cliente disse "1" (Corte e Barba)
-- Cliente escolheu Joao
-- Cliente disse "Para mim"
-- Cliente disse "Amanhã"
-- Cliente disse "14:00"
-
-→ Você JÁ tem tudo! Chame verificarDisponibilidade(amanhã, Joao) e veja se 14:00 está livre.
-→ NÃO liste serviços de novo. NÃO liste profissionais de novo. NÃO pergunte pra quem é.
+  const amanhaFmt = amanha.toLocaleDateString('pt-BR', { 
+    weekday: 'long', day: '2-digit', month: '2-digit' 
+  });
+  
+  const estadoTexto = ws.formatarEstadoParaPrompt(estado);
+  
+  const prompt = `[SLOT-FILLING v4.0] Você é o atendente virtual da barbearia "${barbeariaNome}".
 
 ━━━━━━━━━━━━━━━━━━━━━━━━
-📞 TELEFONE DO CLIENTE (USE SEMPRE ESTE)
+📞 CLIENTE ATUAL
 ━━━━━━━━━━━━━━━━━━━━━━━━
-${telefoneCliente || 'desconhecido'}
-
-⚠️ Esse é o telefone do cliente que está conversando AGORA, vindo direto do WhatsApp.
-⚠️ NUNCA peça outro telefone. Use SEMPRE este em buscarCliente, cadastrarCliente e listarAgendamentosCliente.
-⚠️ Se cliente digitar outro número, IGNORE — use sempre o ${telefoneCliente || 'desconhecido'}.
+Telefone: ${telefoneCliente || 'desconhecido'}
+(use SEMPRE este telefone, nunca pergunte ou aceite outro)
 
 ━━━━━━━━━━━━━━━━━━━━━━━━
-🚨 PROIBIÇÕES ABSOLUTAS
+${estadoTexto}
 ━━━━━━━━━━━━━━━━━━━━━━━━
 
-❌ NUNCA peça telefone (já temos: ${telefoneCliente || 'desconhecido'})
-❌ NUNCA invente serviços — use apenas o que listarServicos retornar AGORA
-❌ NUNCA invente horários — use apenas o que verificarDisponibilidade retornar AGORA
-❌ NUNCA peça email ou endereço
-❌ NUNCA confirme "agendamento criado" sem ter recebido sucesso=true de criarAgendamento
-❌ NUNCA passe um número de menu (1, 2, 3) como ID de profissional/serviço
+🛠️ COMO TRABALHAR:
 
-━━━━━━━━━━━━━━━━━━━━━━━━
-📋 NÚMEROS DE MENU vs IDs
-━━━━━━━━━━━━━━━━━━━━━━━━
+O sistema possui um CHECKLIST INTERNO que controla o fluxo. Você usa TOOLS para preenchê-lo.
 
-Quando você mostra ao cliente:
-  1. Diogo
-  2. Felipe
+REGRAS DE OURO:
+1. Cliente quer agendar? → Chame iniciarAgendamento (ele identifica o cliente automaticamente).
+2. Use as tools "definir*" para registrar cada decisão do cliente. O sistema mantém o estado.
+3. NÃO pergunte sobre slots já preenchidos (✅) — eles estão no checklist acima.
+4. Para FINALIZAR, todos os slots devem estar ✅ — então use finalizarAgendamento.
+5. Se cliente quiser MUDAR algo já preenchido, use a tool "definir*" novamente (sobrescreve).
+6. Se cliente desistir, use cancelarFluxoAtual.
 
-E o cliente responde "1", isso significa que ele quer o profissional "Diogo".
-Mas para chamar verificarDisponibilidade ou criarAgendamento, você precisa do UUID real do Diogo,
-NÃO do número "1".
+ESTILO DE RESPOSTA:
+- Português brasileiro, natural e amigável
+- Mensagens curtas (WhatsApp, não email)
+- 1-2 emojis por mensagem, no máximo
+- Sem markdown ** **, apenas texto plano
 
-CORRETO:
-  → Cliente diz "1"
-  → Você pega o UUID do item 1 da lista (que tem id "abc-123-...")
-  → Chama verificarDisponibilidade(data, "abc-123-...")
+QUANDO O CHECKLIST ESTÁ COMPLETO (todos ✅):
+- Mostre o resumo final ao cliente
+- Pergunte: "Posso confirmar o agendamento?"
+- Após cliente dizer "sim", chame finalizarAgendamento
+- Depois confirme o agendamento criado para o cliente
 
-ERRADO:
-  → Cliente diz "1"
-  → Chama verificarDisponibilidade(data, "1")  ❌ ISSO QUEBRA O SISTEMA
+PERGUNTAS FORA DO CONTEXTO:
+- Cliente pode perguntar sobre preço, endereço, horário de funcionamento a qualquer momento
+- Use as tools de query (consultarInfoBarbearia, listarServicos) para responder
+- Depois retome o fluxo no slot pendente
 
-━━━━━━━━━━━━━━━━━━━━━━━━
-✅ FLUXO OBRIGATÓRIO
-━━━━━━━━━━━━━━━━━━━━━━━━
-
-PASSO 0 — IDENTIFICAR (sempre no início)
-→ CHAME buscarCliente("${telefoneCliente || ''}")
-→ Se encontrou: cumprimente pelo nome, salve o ID dele
-→ Se não encontrou: depois peça apenas o NOME COMPLETO
-
-PASSO 1 — SERVIÇO
-→ CHAME listarServicos() ou buscarServicoPorNome(termo)
-→ Mostre EXATAMENTE os serviços retornados
-→ Salve o ID (UUID) do serviço escolhido pelo cliente
-
-PASSO 2 — PROFISSIONAL
-→ CHAME listarProfissionais()
-→ Mostre os profissionais retornados
-→ Salve o ID (UUID) do profissional escolhido
-
-PASSO 3 — PRA QUEM É
-→ "É para você ou outra pessoa?"
-→ Se outra: peça nome completo dela e cadastre
-
-PASSO 4 — DATA + DISPONIBILIDADE
-→ Pergunte qual dia
-→ Pergunte qual horário o cliente prefere (ex: "Que horário fica bom para você?")
-→ NÃO liste todos os horários disponíveis — isso confunde o cliente
-→ Quando cliente disser horário, CHAME verificarDisponibilidade(data, profissional_uuid)
-→ Verifique se o horário desejado está em horarios_livres:
-  ✅ SE ESTIVER LIVRE: confirme ("Perfeito, [hora] está disponível!")
-  ❌ SE OCUPADO: sugira 2-3 horários mais próximos do solicitado
-    Exemplo: cliente pediu 15h, está ocupado → "15h está ocupado. Tenho livre às 14h, 14:30 ou 16h. Qual prefere?"
-→ Cliente escolhe → salve
-
-PASSO 5 — RESUMO E CONFIRMAÇÃO
-📝 *Confirme:*
-👤 [nome COMPLETO da base de dados — NUNCA use [Seu Nome] ou placeholder]
-✂️ [serviço] — R$ [preço]
-💈 [profissional]
-📅 [data]
-🕐 [hora]
-
-PASSO 6 — CRIAR
-→ Cliente disse SIM → CHAME criarAgendamento com os UUIDs corretos
-→ Se sucesso: confirme ao cliente
-→ Se erro: explique e ofereça alternativa
-
-━━━━━━━━━━━━━━━━━━━━━━━━
-🔒 REGRAS DE OURO
-━━━━━━━━━━━━━━━━━━━━━━━━
-
-1. Telefone do cliente = ${telefoneCliente || 'desconhecido'}. Sempre use ESSE.
-2. Use SEMPRE as ferramentas. NÃO confie na sua memória.
-3. Use UUIDs reais (não os números 1, 2, 3 do menu).
-4. Mostre AO CLIENTE apenas o que veio das ferramentas.
-5. Se a ferramenta retornar erro, diga ao cliente — não invente sucesso.
-6. NÃO repita perguntas que o cliente já respondeu (releia o histórico)
-7. Quando cliente diz "hoje", calcule data atual e CHAME verificarDisponibilidade
-8. NUNCA diga "final do expediente" sem ter verificado horários disponíveis na base
-9. Use o nome COMPLETO do cliente (vindo de buscarCliente) — nunca [Seu Nome]
-10. Se cliente já escolheu serviço/profissional, mantenha — não pergunte de novo
-
-━━━━━━━━━━━━━━━━━━━━━━━━
-ESTILO
-━━━━━━━━━━━━━━━━━━━━━━━━
-
-- Português direto
-- Mensagens curtas (WhatsApp)
-- 1-2 emojis
-- Sem markdown ** **
-
-━━━━━━━━━━━━━━━━━━━━━━━━
-HOJE
-━━━━━━━━━━━━━━━━━━━━━━━━
-${dataFmt} — ${horaFmt}
+DATA E HORA ATUAIS:
+Hoje: ${dataFmt} — ${horaFmt}
 Amanhã: ${amanhaFmt}`;
 
   if (promptPersonalizado && promptPersonalizado.trim()) {
-    return promptBase + `\n\n━━━━━━━━━━━━━━━━━━━━━━━━\nINSTRUÇÕES DA BARBEARIA\n━━━━━━━━━━━━━━━━━━━━━━━━\n${promptPersonalizado}`;
+    return prompt + `\n\n━━━━━━━━━━━━━━━━━━━━━━━━\nINSTRUÇÕES DA BARBEARIA\n━━━━━━━━━━━━━━━━━━━━━━━━\n${promptPersonalizado}`;
   }
-
-  return promptBase;
+  
+  return prompt;
 }
 
-/**
- * ============================================================
- * PROCESSA MENSAGEM DO CLIENTE
- * ============================================================
- */
+// ============================================================
+// PROCESSAR MENSAGEM (entry point principal)
+// ============================================================
+
 export async function processarMensagem(barbeariaId, barbeariaNome, mensagemCliente, historico, promptPersonalizado, telefoneCliente) {
-  console.log(`\n🤖 ====== PROCESSANDO MENSAGEM ======`);
-  console.log(`📍 Barbearia: ${barbeariaNome} (${barbeariaId})`);
-  console.log(`📞 Cliente: ${telefoneCliente || 'sem telefone'}`);
-  console.log(`💬 Mensagem: ${mensagemCliente}`);
-  console.log(`📚 Histórico: ${historico?.length || 0} mensagens`);
+  console.log(`\n🤖 ====== PROCESSAR MENSAGEM ======`);
+  console.log(`📍 ${barbeariaNome} (${barbeariaId})`);
+  console.log(`📞 ${telefoneCliente}`);
+  console.log(`💬 ${mensagemCliente}`);
   
   const ai = getOpenAI();
   if (!ai) {
-    return { 
-      resposta: 'Desculpe, o sistema está temporariamente indisponível. Tente novamente em instantes.',
-      toolsExecutados: []
-    };
+    return { resposta: 'Desculpe, sistema temporariamente indisponível.', toolsExecutados: [] };
   }
-
-  const systemPrompt = montarSystemPrompt(barbeariaNome, telefoneCliente, promptPersonalizado);
-
-  // Limita histórico para evitar contaminação por contexto antigo
-  // 15 = boa cobertura sem poluir muito
-  const historicoLimitado = (historico || []).slice(-15);
   
-  console.log(`📚 [PROMPT v3.2] Histórico limitado: ${historicoLimitado.length} mensagens (de ${historico?.length || 0})`);
+  // Carrega estado
+  let estado = await ws.carregarEstado(barbeariaId, telefoneCliente);
+  console.log(`📋 Fluxo: ${estado.fluxo_ativo || 'nenhum'}`);
+  if (estado.fluxo_ativo === 'agendamento') {
+    const prox = ws.proximoSlot(estado);
+    console.log(`📋 Próximo slot: ${prox}`);
+  }
   
-  const messages = [
+  const systemPrompt = montarSystemPrompt(barbeariaNome, telefoneCliente, estado, promptPersonalizado);
+  
+  // Histórico curto (estado já tem o contexto, não precisamos de muito histórico)
+  const historicoLimitado = (historico || []).slice(-8);
+  
+  let messages = [
     { role: 'system', content: systemPrompt },
     ...historicoLimitado,
     { role: 'user', content: mensagemCliente },
   ];
-
+  
+  const ctx = { barbeariaId, telefone: telefoneCliente, estado };
+  const toolsExecutados = [];
+  
   try {
-    console.log('📤 Enviando para OpenAI...');
+    let iteracao = 0;
+    const MAX_ITERACOES = 8;
     
-    let iteracoes = 0;
-    const MAX_ITERACOES = 5; // Permite múltiplas chamadas de tools em sequência
-    let messagesAtual = messages;
-    let toolsExecutadosAcumulado = [];
-    
-    while (iteracoes < MAX_ITERACOES) {
-      iteracoes++;
-      console.log(`🔄 Iteração ${iteracoes}/${MAX_ITERACOES}`);
+    while (iteracao < MAX_ITERACOES) {
+      iteracao++;
       
-      const response = await ai.chat.completions.create({
-        model: 'gpt-4o',  // Modelo mais inteligente, segue melhor instruções
-        messages: messagesAtual,
+      const resp = await ai.chat.completions.create({
+        model: 'gpt-4o-mini',
+        messages,
         tools,
         tool_choice: 'auto',
-        temperature: 0.1,  // Quase determinístico para evitar alucinação
+        temperature: 0.3,
         max_tokens: 1500,
       });
-
-      const choice = response.choices[0];
+      
+      const choice = resp.choices[0];
       const msg = choice.message;
       
-      console.log(`   finish_reason: ${choice.finish_reason}`);
-
-      // Se não chamou ferramentas, retorna resposta final
+      // Sem tools = resposta final
       if (!msg.tool_calls || msg.tool_calls.length === 0) {
-        const resposta = msg.content || 'Desculpe, não entendi. Pode reformular?';
-        console.log(`✅ Resposta final: ${resposta.substring(0, 80)}...`);
-        console.log(`====================================\n`);
-        return { 
-          resposta, 
-          toolsExecutados: toolsExecutadosAcumulado,
-        };
+        // Salva estado final
+        await ws.salvarEstado(barbeariaId, telefoneCliente, ctx.estado);
+        
+        const resposta = msg.content || 'Desculpe, não consegui processar. Pode reformular?';
+        console.log(`✅ Resposta: ${resposta.substring(0, 80)}...`);
+        return { resposta, toolsExecutados };
       }
-
-      // Executa todas as ferramentas chamadas
-      console.log(`   🔧 ${msg.tool_calls.length} tool(s)`);
-      const toolResults = [];
       
+      // Executa tools
+      const toolResults = [];
       for (const tc of msg.tool_calls) {
         let args = {};
         try {
           args = JSON.parse(tc.function.arguments || '{}');
         } catch {}
         
-        const resultado = await executarTool(barbeariaId, tc.function.name, args);
+        const { resultado, novoEstado } = await executarTool(ctx, tc.function.name, args);
+        
+        // Atualiza estado se a tool modificou
+        if (novoEstado) {
+          ctx.estado = novoEstado;
+        }
         
         toolResults.push({
           tool_call_id: tc.id,
@@ -1117,16 +1250,17 @@ export async function processarMensagem(barbeariaId, barbeariaNome, mensagemClie
           resultado,
         });
         
-        toolsExecutadosAcumulado.push({
-          name: tc.function.name,
-          args,
-          resultado,
-        });
+        toolsExecutados.push({ name: tc.function.name, args, resultado });
       }
-
-      // Adiciona ao contexto para próxima iteração
-      messagesAtual = [
-        ...messagesAtual,
+      
+      // Reconstrói prompt com novo estado (importante!)
+      const novoSystemPrompt = montarSystemPrompt(barbeariaNome, telefoneCliente, ctx.estado, promptPersonalizado);
+      
+      // Adiciona ao contexto
+      messages = [
+        { role: 'system', content: novoSystemPrompt },
+        ...historicoLimitado,
+        { role: 'user', content: mensagemCliente },
         msg,
         ...toolResults.map(tr => ({
           role: 'tool',
@@ -1136,77 +1270,47 @@ export async function processarMensagem(barbeariaId, barbeariaNome, mensagemClie
       ];
     }
     
-    // Atingiu limite de iterações - força resposta final
-    console.warn('⚠️  Limite de iterações atingido');
-    const respostaFinal = await ai.chat.completions.create({
-      model: 'gpt-4o',
-      messages: [
-        ...messagesAtual,
-        { role: 'system', content: 'Por favor, finalize sua resposta para o cliente agora, sem chamar mais ferramentas.' },
-      ],
-      temperature: 0.1,
-      max_tokens: 1000,
-    });
-    
+    // Limite de iterações - força resposta
+    console.warn('⚠️  Limite de iterações');
+    await ws.salvarEstado(barbeariaId, telefoneCliente, ctx.estado);
     return {
-      resposta: respostaFinal.choices[0].message.content || 'Desculpe, houve um erro. Pode reformular?',
-      toolsExecutados: toolsExecutadosAcumulado,
+      resposta: 'Desculpe, tive dificuldade em processar. Pode tentar novamente?',
+      toolsExecutados,
     };
     
   } catch (err) {
-    console.error('❌ ERRO:', err.message);
-    console.log(`====================================\n`);
-    
-    if (err.status === 401) {
-      return {
-        resposta: 'Desculpe, configuração da IA com problema. Avise o atendente.',
-        toolsExecutados: [],
-      };
-    }
+    console.error('❌ ERRO processarMensagem:', err.message);
     if (err.status === 429) {
-      return {
-        resposta: 'Estou com muitas mensagens agora. Tente em alguns segundos. 😊',
-        toolsExecutados: [],
-      };
+      return { resposta: 'Muitas mensagens agora. Tente em alguns segundos. 😊', toolsExecutados: [] };
     }
-    
-    return {
-      resposta: 'Desculpe, tive um problema técnico. Pode tentar novamente?',
-      toolsExecutados: [],
-    };
+    return { resposta: 'Desculpe, problema técnico. Pode tentar de novo?', toolsExecutados: [] };
   }
 }
 
-/**
- * ============================================================
- * PERSISTÊNCIA DE CONVERSAS
- * ============================================================
- */
+// ============================================================
+// PERSISTÊNCIA DE HISTÓRICO (compat)
+// ============================================================
+
 export async function getConversa(barbeariaId, telefone) {
   const tel = String(telefone || '').replace(/\D/g, '');
   const { rows } = await query(
-    `SELECT historico, contexto FROM ai_conversas 
+    `SELECT historico FROM ai_conversas 
       WHERE barbearia_id = $1 AND cliente_telefone = $2`,
     [barbeariaId, tel]
   );
   return rows[0] || null;
 }
 
-export async function salvarConversa(barbeariaId, telefone, historico, contexto = {}) {
+export async function salvarConversa(barbeariaId, telefone, historico) {
   const tel = String(telefone || '').replace(/\D/g, '');
-  
-  // Mantém apenas últimas 40 mensagens (20 trocas)
-  const historicoLimitado = historico.slice(-40);
+  const limitado = historico.slice(-30);
   
   await query(
-    `INSERT INTO ai_conversas (barbearia_id, cliente_telefone, historico, contexto, ultima_interacao)
-     VALUES ($1, $2, $3, $4, now())
+    `INSERT INTO ai_conversas (barbearia_id, cliente_telefone, historico, ultima_interacao)
+     VALUES ($1, $2, $3, now())
      ON CONFLICT (barbearia_id, cliente_telefone) DO UPDATE SET
         historico = $3,
-        contexto = $4,
         ultima_interacao = now()`,
-    [barbeariaId, tel, JSON.stringify(historicoLimitado), JSON.stringify(contexto)]
+    [barbeariaId, tel, JSON.stringify(limitado)]
   );
-  
-  console.log(`💾 Conversa salva: ${historicoLimitado.length} mensagens`);
 }
