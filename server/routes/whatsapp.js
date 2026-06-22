@@ -382,6 +382,119 @@ router.post('/scheduler/executar', async (req, res) => {
   }
 });
 
+// GET /api/whatsapp/diagnostico-base -> mostra TUDO que o agente vê na base
+router.get('/diagnostico-base', async (req, res) => {
+  try {
+    const barbeariaId = req.barbeariaId;
+    
+    // Identificação da barbearia
+    const { rows: barbearia } = await query(
+      `SELECT id, nome, slug, telefone, email, endereco, plano, horario_config, ativo
+         FROM barbearias WHERE id = $1`,
+      [barbeariaId]
+    );
+    
+    // Serviços (exatamente o que o agente vê)
+    const { rows: servicos } = await query(
+      `SELECT id, nome, categoria, duracao_minutos, preco, ativo
+         FROM servicos WHERE barbearia_id = $1 
+         ORDER BY ativo DESC, categoria, nome`,
+      [barbeariaId]
+    );
+    
+    // Profissionais (exatamente o que o agente vê)
+    const { rows: profissionais } = await query(
+      `SELECT id, nome, especialidade, telefone, ativo, ordem, notificar_whatsapp
+         FROM profissionais WHERE barbearia_id = $1
+         ORDER BY ativo DESC, ordem, nome`,
+      [barbeariaId]
+    );
+    
+    // Resumo geral
+    const { rows: resumo } = await query(
+      `SELECT 
+        (SELECT COUNT(*) FROM clientes WHERE barbearia_id = $1) AS total_clientes,
+        (SELECT COUNT(*) FROM agendamentos WHERE barbearia_id = $1) AS total_agendamentos,
+        (SELECT COUNT(*) FROM agendamentos WHERE barbearia_id = $1 AND status = 'agendado' AND data_hora >= NOW()) AS agendamentos_futuros,
+        (SELECT COUNT(*) FROM servicos WHERE barbearia_id = $1 AND ativo = true) AS servicos_ativos,
+        (SELECT COUNT(*) FROM profissionais WHERE barbearia_id = $1 AND ativo = true) AS profissionais_ativos`,
+      [barbeariaId]
+    );
+    
+    // Próximos agendamentos
+    const { rows: proximosAgendamentos } = await query(
+      `SELECT a.id, a.data_hora, a.status, a.preco, a.observacoes,
+              c.nome AS cliente_nome, c.telefone AS cliente_telefone,
+              s.nome AS servico_nome,
+              p.nome AS profissional_nome
+         FROM agendamentos a
+         LEFT JOIN clientes c ON c.id = a.cliente_id
+         LEFT JOIN servicos s ON s.id = a.servico_id
+         LEFT JOIN profissionais p ON p.id = a.profissional_id
+        WHERE a.barbearia_id = $1
+          AND a.data_hora >= NOW()
+        ORDER BY a.data_hora
+        LIMIT 10`,
+      [barbeariaId]
+    );
+    
+    // Mostra de qual banco está conectando (mascarado)
+    let dbInfo = 'Não identificado';
+    if (process.env.DATABASE_URL) {
+      const url = process.env.DATABASE_URL;
+      const match = url.match(/postgresql:\/\/([^:]+):[^@]+@([^:\/]+)/);
+      if (match) {
+        dbInfo = `PostgreSQL ${match[2]} (user: ${match[1]})`;
+      }
+    } else if (process.env.SUPABASE_DB_HOST) {
+      dbInfo = `Supabase ${process.env.SUPABASE_DB_HOST}`;
+    }
+    
+    res.json({
+      conexao: {
+        banco: dbInfo,
+        ssl: process.env.DB_SSL === 'true',
+      },
+      barbearia: barbearia[0] || { erro: 'Barbearia não encontrada!' },
+      resumo: resumo[0],
+      servicos: {
+        total: servicos.length,
+        ativos: servicos.filter(s => s.ativo).length,
+        inativos: servicos.filter(s => !s.ativo).length,
+        lista: servicos.map(s => ({
+          id: s.id,
+          nome: s.nome,
+          categoria: s.categoria,
+          duracao: s.duracao_minutos,
+          preco: parseFloat(s.preco),
+          ativo: s.ativo,
+          aviso: !s.ativo ? '⚠️  INATIVO - Agente NÃO usa' 
+                : parseFloat(s.preco) === 0 ? '⚠️  PREÇO R$0,00 - Verifique!'
+                : null
+        }))
+      },
+      profissionais: {
+        total: profissionais.length,
+        ativos: profissionais.filter(p => p.ativo).length,
+        lista: profissionais.map(p => ({
+          id: p.id,
+          nome: p.nome,
+          especialidade: p.especialidade,
+          telefone: p.telefone,
+          ativo: p.ativo,
+          notificar_whatsapp: p.notificar_whatsapp,
+          aviso: !p.ativo ? '⚠️  INATIVO - Agente NÃO usa' 
+                : !p.telefone ? '⚠️  Sem telefone - não vai receber notificação'
+                : null
+        }))
+      },
+      proximos_agendamentos: proximosAgendamentos,
+    });
+  } catch (err) {
+    res.status(500).json({ erro: err.message, stack: err.stack });
+  }
+});
+
 // POST /api/whatsapp/enviar -> envio manual
 router.post('/enviar', async (req, res) => {
   const { telefone, mensagem } = req.body;
