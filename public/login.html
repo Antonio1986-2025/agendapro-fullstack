@@ -7,106 +7,367 @@
   <link rel="stylesheet" href="design-system.css">
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
   <style>
-    body { min-height: 100vh; display: flex; align-items: center; justify-content: center; background: linear-gradient(135deg, var(--primary), var(--primary-dark)); padding: var(--space-md); }
-    .auth-card { background: var(--bg-card); border-radius: var(--radius-xl); box-shadow: var(--shadow-xl); width: 100%; max-width: 420px; padding: var(--space-xl); }
-    .auth-logo { text-align: center; margin-bottom: var(--space-lg); }
-    .auth-logo i { font-size: 2.5rem; color: var(--primary); }
-    .auth-logo h1 { font-size: var(--text-2xl); font-weight: var(--font-bold); color: var(--text-primary); margin-top: var(--space-sm); }
-    .auth-logo p { color: var(--text-secondary); font-size: var(--text-sm); }
-    .tabs { display: flex; background: var(--bg-secondary); border-radius: var(--radius-md); padding: 3px; margin-bottom: var(--space-lg); }
-    .tab { flex: 1; text-align: center; padding: var(--space-sm); border-radius: var(--radius-sm); cursor: pointer; font-size: var(--text-sm); font-weight: var(--font-medium); color: var(--text-secondary); border: none; background: none; transition: all var(--transition-fast); }
-    .tab.active { background: var(--primary); color: #fff; }
-    .field { margin-bottom: var(--space-md); }
-    .field label { display: block; font-size: var(--text-sm); font-weight: var(--font-medium); margin-bottom: var(--space-xs); color: var(--text-secondary); }
-    .alert { padding: var(--space-sm) var(--space-md); border-radius: var(--radius-md); font-size: var(--text-sm); margin-bottom: var(--space-md); display: none; }
-    .alert.error { background: var(--error-light); color: var(--error); display: block; }
-    .alert.success { background: var(--success-light); color: var(--success); display: block; }
-    .hidden { display: none; }
-    .muted { text-align: center; font-size: var(--text-xs); color: var(--text-muted); margin-top: var(--space-md); }
-    .btn:disabled { opacity: 0.6; cursor: not-allowed; }
-    .senha-wrapper { position: relative; }
-    .senha-wrapper .input { padding-right: 40px; }
-    .senha-toggle { position: absolute; right: 10px; top: 50%; transform: translateY(-50%); background: none; border: none; color: var(--text-muted); cursor: pointer; padding: 4px; }
-    .forca { height: 4px; border-radius: 2px; margin-top: 4px; transition: all var(--transition-fast); }
-    .forca.fraca { background: var(--error); width: 33%; }
-    .forca.media { background: var(--warning); width: 66%; }
-    .forca.forte { background: var(--success); width: 100%; }
-    .forca-label { font-size: var(--text-xs); margin-top: 2px; display: block; }
+    body {
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: var(--space-md);
+      background: var(--bg-secondary);
+      position: relative;
+      overflow: hidden;
+    }
+
+    /* Background sutil com gradient mesh */
+    body::before {
+      content: '';
+      position: absolute;
+      inset: 0;
+      background: 
+        radial-gradient(circle at 20% 20%, rgba(59, 130, 246, 0.08) 0%, transparent 50%),
+        radial-gradient(circle at 80% 80%, rgba(59, 130, 246, 0.05) 0%, transparent 50%);
+      pointer-events: none;
+    }
+
+    .auth-container {
+      width: 100%;
+      max-width: 440px;
+      animation: slideUp 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+      position: relative;
+      z-index: 1;
+    }
+
+    .auth-card {
+      background: var(--bg-card);
+      border: 1px solid var(--border-color);
+      border-radius: var(--radius-xl);
+      box-shadow: var(--shadow-xl);
+      padding: var(--space-2xl);
+    }
+
+    .auth-logo {
+      text-align: center;
+      margin-bottom: var(--space-xl);
+    }
+
+    .auth-logo-icon {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      width: 56px;
+      height: 56px;
+      background: linear-gradient(135deg, var(--primary-600), var(--primary-700));
+      border-radius: var(--radius-lg);
+      box-shadow: var(--shadow-md);
+      margin-bottom: var(--space-md);
+    }
+
+    .auth-logo-icon i {
+      font-size: 1.5rem;
+      color: white;
+    }
+
+    .auth-logo h1 {
+      font-size: var(--text-2xl);
+      font-weight: var(--font-bold);
+      letter-spacing: -0.025em;
+      color: var(--text-primary);
+      margin-bottom: 0.25rem;
+    }
+
+    .auth-logo p {
+      color: var(--text-secondary);
+      font-size: var(--text-sm);
+    }
+
+    /* Tabs modernas */
+    .tabs {
+      display: flex;
+      gap: 4px;
+      background: var(--bg-secondary);
+      border-radius: var(--radius-md);
+      padding: 4px;
+      margin-bottom: var(--space-xl);
+    }
+
+    .tab {
+      flex: 1;
+      text-align: center;
+      padding: 0.625rem;
+      border-radius: 6px;
+      cursor: pointer;
+      font-size: var(--text-sm);
+      font-weight: var(--font-medium);
+      color: var(--text-secondary);
+      border: none;
+      background: none;
+      transition: all var(--transition-fast);
+      letter-spacing: -0.01em;
+    }
+
+    .tab:hover {
+      color: var(--text-primary);
+    }
+
+    .tab.active {
+      background: var(--bg-card);
+      color: var(--text-primary);
+      box-shadow: var(--shadow-sm);
+    }
+
+    /* Campos */
+    .field {
+      margin-bottom: var(--space-md);
+    }
+
+    .field label {
+      display: block;
+      font-size: var(--text-sm);
+      font-weight: var(--font-medium);
+      letter-spacing: -0.01em;
+      margin-bottom: 0.375rem;
+      color: var(--text-primary);
+    }
+
+    .field-help {
+      font-size: var(--text-xs);
+      color: var(--text-tertiary);
+      margin-top: 0.375rem;
+    }
+
+    /* Senha com toggle */
+    .senha-wrapper {
+      position: relative;
+    }
+
+    .senha-wrapper input {
+      padding-right: 2.5rem;
+    }
+
+    .senha-toggle {
+      position: absolute;
+      right: 0.5rem;
+      top: 50%;
+      transform: translateY(-50%);
+      background: none;
+      border: none;
+      color: var(--text-muted);
+      cursor: pointer;
+      padding: 0.5rem;
+      border-radius: var(--radius-sm);
+      transition: all var(--transition-fast);
+    }
+
+    .senha-toggle:hover {
+      color: var(--text-primary);
+      background: var(--bg-hover);
+    }
+
+    /* Indicador de força de senha */
+    .forca-container {
+      margin-top: 0.5rem;
+    }
+
+    .forca-bars {
+      display: flex;
+      gap: 4px;
+      height: 4px;
+    }
+
+    .forca-bar {
+      flex: 1;
+      background: var(--gray-200);
+      border-radius: 2px;
+      transition: background var(--transition-fast);
+    }
+
+    [data-theme="dark"] .forca-bar {
+      background: var(--gray-700);
+    }
+
+    .forca-bar.fraca-1 { background: var(--error); }
+    .forca-bar.media-1, .forca-bar.media-2 { background: var(--warning); }
+    .forca-bar.forte-1, .forca-bar.forte-2, .forca-bar.forte-3 { background: var(--success); }
+
+    .forca-label {
+      font-size: var(--text-xs);
+      margin-top: 0.375rem;
+      font-weight: var(--font-medium);
+    }
+
     .forca-label.fraca { color: var(--error); }
     .forca-label.media { color: var(--warning); }
     .forca-label.forte { color: var(--success); }
-    .spinner-btn { display: none; }
-    .btn-loading .spinner-btn { display: inline; }
-    .btn-loading .text-btn { display: none; }
+
+    /* Alertas modernos */
+    .alert {
+      padding: 0.75rem 1rem;
+      border-radius: var(--radius-md);
+      font-size: var(--text-sm);
+      margin-bottom: var(--space-md);
+      display: none;
+      gap: 0.625rem;
+      align-items: flex-start;
+      border: 1px solid transparent;
+      animation: slideDown var(--transition-fast);
+    }
+
+    .alert.error {
+      background: var(--error-light);
+      color: var(--error-dark);
+      border-color: rgba(220, 38, 38, 0.2);
+      display: flex;
+    }
+
+    .alert.success {
+      background: var(--success-light);
+      color: var(--success-dark);
+      border-color: rgba(22, 163, 74, 0.2);
+      display: flex;
+    }
+
+    .alert i {
+      flex-shrink: 0;
+      margin-top: 2px;
+    }
+
+    .hidden {
+      display: none;
+    }
+
+    .demo-info {
+      text-align: center;
+      font-size: var(--text-xs);
+      color: var(--text-tertiary);
+      margin-top: var(--space-md);
+      padding: 0.625rem;
+      background: var(--bg-secondary);
+      border-radius: var(--radius-md);
+      border: 1px dashed var(--border-color);
+    }
+
+    .demo-info strong {
+      color: var(--text-secondary);
+      font-weight: var(--font-semibold);
+    }
+
+    /* Loading state */
+    .btn-loading .text-btn,
+    .btn-loading .icon-btn { display: none; }
+    .btn-loading .spinner-btn { display: inline-flex; }
+    .spinner-btn { display: none; align-items: center; gap: 0.5rem; }
+
+    /* Footer link */
+    .auth-footer {
+      text-align: center;
+      margin-top: var(--space-lg);
+      font-size: var(--text-sm);
+      color: var(--text-tertiary);
+    }
+
+    .auth-footer a {
+      color: var(--primary-600);
+      font-weight: var(--font-medium);
+    }
+
+    /* Responsivo */
+    @media (max-width: 480px) {
+      .auth-card {
+        padding: var(--space-xl);
+      }
+    }
   </style>
 </head>
 <body>
-  <div class="auth-card">
-    <div class="auth-logo">
-      <i class="fas fa-calendar-check"></i>
-      <h1>AgendaPro</h1>
-      <p>Sistema de agendamentos para barbearias</p>
+  <div class="auth-container">
+    <div class="auth-card">
+      <div class="auth-logo">
+        <div class="auth-logo-icon">
+          <i class="fas fa-calendar-check"></i>
+        </div>
+        <h1>AgendaPro</h1>
+        <p>Sistema profissional para barbearias</p>
+      </div>
+
+      <div class="tabs">
+        <button class="tab active" id="tab-login" onclick="mostrar('login')">Entrar</button>
+        <button class="tab" id="tab-registro" onclick="mostrar('registro')">Criar conta</button>
+      </div>
+
+      <div id="alerta" class="alert">
+        <i class="fas fa-exclamation-circle"></i>
+        <span id="alerta-msg"></span>
+      </div>
+
+      <!-- LOGIN -->
+      <form id="form-login" onsubmit="return fazerLogin(event)">
+        <div class="field">
+          <label for="login-email">Email</label>
+          <input type="email" id="login-email" required placeholder="seu@email.com" autocomplete="email">
+        </div>
+        <div class="field">
+          <label for="login-senha">Senha</label>
+          <div class="senha-wrapper">
+            <input type="password" id="login-senha" required placeholder="••••••••" autocomplete="current-password">
+            <button type="button" class="senha-toggle" onclick="toggleSenha('login-senha', this)" tabindex="-1" aria-label="Mostrar senha">
+              <i class="fas fa-eye"></i>
+            </button>
+          </div>
+        </div>
+        <button class="btn btn-primary btn-full btn-lg" type="submit" id="btn-login">
+          <span class="text-btn"><i class="fas fa-arrow-right-to-bracket icon-btn"></i> Entrar</span>
+          <span class="spinner-btn"><span class="spinner"></span> Entrando...</span>
+        </button>
+        <div class="demo-info">
+          <strong>Demo:</strong> demo@agendapro.com / 123456
+        </div>
+      </form>
+
+      <!-- REGISTRO -->
+      <form id="form-registro" class="hidden" onsubmit="return fazerRegistro(event)">
+        <div class="field">
+          <label for="reg-barbearia">Nome da barbearia</label>
+          <input type="text" id="reg-barbearia" required placeholder="Ex: Barbearia do Zé">
+        </div>
+        <div class="field">
+          <label for="reg-nome">Seu nome</label>
+          <input type="text" id="reg-nome" required placeholder="Ex: José Silva">
+        </div>
+        <div class="field">
+          <label for="reg-email">Email</label>
+          <input type="email" id="reg-email" required placeholder="seu@email.com" autocomplete="email">
+        </div>
+        <div class="field">
+          <label for="reg-telefone">Telefone <span class="text-muted">(opcional)</span></label>
+          <input type="tel" id="reg-telefone" placeholder="(67) 99999-0000" oninput="mascararTel(this)">
+        </div>
+        <div class="field">
+          <label for="reg-senha">Senha</label>
+          <div class="senha-wrapper">
+            <input type="password" id="reg-senha" required minlength="6" placeholder="Min. 6 caracteres" oninput="avaliarForca(this.value)" autocomplete="new-password">
+            <button type="button" class="senha-toggle" onclick="toggleSenha('reg-senha', this)" tabindex="-1" aria-label="Mostrar senha">
+              <i class="fas fa-eye"></i>
+            </button>
+          </div>
+          <div class="forca-container">
+            <div class="forca-bars">
+              <div class="forca-bar" id="bar-1"></div>
+              <div class="forca-bar" id="bar-2"></div>
+              <div class="forca-bar" id="bar-3"></div>
+            </div>
+            <div class="forca-label" id="forca-label"></div>
+          </div>
+        </div>
+        <button class="btn btn-primary btn-full btn-lg" type="submit" id="btn-registro">
+          <span class="text-btn"><i class="fas fa-rocket icon-btn"></i> Criar minha barbearia</span>
+          <span class="spinner-btn"><span class="spinner"></span> Criando conta...</span>
+        </button>
+      </form>
     </div>
 
-    <div class="tabs">
-      <button class="tab active" id="tab-login" onclick="mostrar('login')">Entrar</button>
-      <button class="tab" id="tab-registro" onclick="mostrar('registro')">Criar conta</button>
+    <div class="auth-footer">
+      Ao continuar, você concorda com nossos <a href="#">Termos</a> e <a href="#">Privacidade</a>
     </div>
-
-    <div id="alerta" class="alert"></div>
-
-    <!-- LOGIN -->
-    <form id="form-login" onsubmit="return fazerLogin(event)">
-      <div class="field">
-        <label>Email</label>
-        <input class="input" type="email" id="login-email" required placeholder="seu@email.com">
-      </div>
-      <div class="field">
-        <label>Senha</label>
-        <div class="senha-wrapper">
-          <input class="input" type="password" id="login-senha" required placeholder="Min. 6 caracteres">
-          <button type="button" class="senha-toggle" onclick="toggleSenha('login-senha', this)" tabindex="-1"><i class="fas fa-eye"></i></button>
-        </div>
-      </div>
-      <button class="btn btn-primary btn-full btn-lg" type="submit" id="btn-login">
-        <i class="fas fa-sign-in-alt text-btn"></i> <span class="text-btn">Entrar</span>
-        <i class="fas fa-spinner fa-spin spinner-btn"></i> Entrando...
-      </button>
-      <p class="muted">Demo: demo@agendapro.com / 123456</p>
-    </form>
-
-    <!-- REGISTRO -->
-    <form id="form-registro" class="hidden" onsubmit="return fazerRegistro(event)">
-      <div class="field">
-        <label>Nome da barbearia</label>
-        <input class="input" type="text" id="reg-barbearia" required placeholder="Ex: Barbearia do Zé">
-      </div>
-      <div class="field">
-        <label>Seu nome</label>
-        <input class="input" type="text" id="reg-nome" required placeholder="Ex: José Silva">
-      </div>
-      <div class="field">
-        <label>Email</label>
-        <input class="input" type="email" id="reg-email" required placeholder="seu@email.com">
-      </div>
-      <div class="field">
-        <label>Telefone</label>
-        <input class="input" type="tel" id="reg-telefone" placeholder="(67) 99999-0000" oninput="mascararTel(this)">
-      </div>
-      <div class="field">
-        <label>Senha</label>
-        <div class="senha-wrapper">
-          <input class="input" type="password" id="reg-senha" required minlength="6" placeholder="Min. 6 caracteres" oninput="avaliarForca(this.value)">
-          <button type="button" class="senha-toggle" onclick="toggleSenha('reg-senha', this)" tabindex="-1"><i class="fas fa-eye"></i></button>
-        </div>
-        <div class="forca" id="forca-barra"></div>
-        <span class="forca-label" id="forca-label"></span>
-      </div>
-      <button class="btn btn-primary btn-full btn-lg" type="submit" id="btn-registro">
-        <i class="fas fa-rocket text-btn"></i> <span class="text-btn">Criar minha barbearia</span>
-        <i class="fas fa-spinner fa-spin spinner-btn"></i> Criando conta...
-      </button>
-    </form>
   </div>
 
   <script src="api.js"></script>
@@ -123,9 +384,13 @@
 
     function mostrarAlerta(msg, tipo) {
       const el = document.getElementById('alerta');
-      el.textContent = msg;
+      const msgEl = document.getElementById('alerta-msg');
+      const icon = el.querySelector('i');
+      msgEl.textContent = msg;
       el.className = 'alert ' + (tipo || 'error');
+      icon.className = 'fas ' + (tipo === 'success' ? 'fa-check-circle' : 'fa-exclamation-circle');
     }
+
     function esconderAlerta() {
       document.getElementById('alerta').className = 'alert';
     }
@@ -146,18 +411,42 @@
     }
 
     function avaliarForca(senha) {
-      const barra = document.getElementById('forca-barra');
+      const bars = [
+        document.getElementById('bar-1'),
+        document.getElementById('bar-2'),
+        document.getElementById('bar-3'),
+      ];
       const label = document.getElementById('forca-label');
-      if (!senha) { barra.className = 'forca'; label.textContent = ''; return; }
+      
+      bars.forEach(b => b.className = 'forca-bar');
+      label.className = 'forca-label';
+      label.textContent = '';
+      
+      if (!senha) return;
+
       let forca = 0;
       if (senha.length >= 6) forca++;
       if (senha.length >= 8) forca++;
       if (/[A-Z]/.test(senha)) forca++;
       if (/[0-9]/.test(senha)) forca++;
       if (/[^a-zA-Z0-9]/.test(senha)) forca++;
-      if (forca <= 2) { barra.className = 'forca fraca'; label.className = 'forca-label fraca'; label.textContent = 'Fraca'; }
-      else if (forca <= 3) { barra.className = 'forca media'; label.className = 'forca-label media'; label.textContent = 'Média'; }
-      else { barra.className = 'forca forte'; label.className = 'forca-label forte'; label.textContent = 'Forte'; }
+
+      if (forca <= 2) {
+        bars[0].className = 'forca-bar fraca-1';
+        label.className = 'forca-label fraca';
+        label.textContent = 'Senha fraca';
+      } else if (forca <= 3) {
+        bars[0].className = 'forca-bar media-1';
+        bars[1].className = 'forca-bar media-2';
+        label.className = 'forca-label media';
+        label.textContent = 'Senha média';
+      } else {
+        bars[0].className = 'forca-bar forte-1';
+        bars[1].className = 'forca-bar forte-2';
+        bars[2].className = 'forca-bar forte-3';
+        label.className = 'forca-label forte';
+        label.textContent = 'Senha forte';
+      }
     }
 
     function setLoading(btnId, loading) {
@@ -177,7 +466,6 @@
         );
         API.setSession(r.token, r.usuario);
 
-        // Redireciona conforme o perfil
         if (r.usuario.role === 'staff') {
           window.location.href = 'barbeiro.html';
         } else {
@@ -213,6 +501,13 @@
       }
       return false;
     }
+
+    // Aplicar tema salvo
+    const savedTheme = localStorage.getItem('theme');
+    if (savedTheme === 'dark') {
+      document.documentElement.setAttribute('data-theme', 'dark');
+    }
   </script>
 </body>
 </html>
+</parameter>
