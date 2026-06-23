@@ -973,6 +973,54 @@
       }
       carregarConfig();
     });
+
+    // Funções de navegação
+    function openBusinessInfo() {
+      alert('🚧 Tela de Informações da Empresa em desenvolvimento.\n\nPor enquanto, você pode editar diretamente no banco de dados ou aguardar a próxima versão.');
+    }
+
+    function openBusinessHours() {
+      window.location.href = 'horarios-especiais.html';
+    }
+
+    function openServices() {
+      window.location.href = 'servicos-mobile.html';
+    }
+
+    function openProfessionals() {
+      window.location.href = 'profissionais-mobile.html';
+    }
+
+    function editBusinessProfile() {
+      openBusinessInfo();
+    }
+
+    function openBackup() {
+      alert('🚧 Funcionalidade de Backup & Restauração em desenvolvimento.\n\nOs backups automáticos estão ativos no servidor.');
+    }
+
+    function openReports() {
+      window.location.href = 'relatorios-mobile.html';
+    }
+
+    function openIntegrations() {
+      alert('🚧 Tela de Integrações em desenvolvimento.\n\nAtualmente, a integração com WhatsApp está ativa.');
+    }
+
+    function openSubscription() {
+      alert('🚧 Gerenciamento de Planos em desenvolvimento.\n\nSeu plano atual: Pro - R$ 197/mês\n\nPara alterar, entre em contato com o suporte.');
+    }
+
+    function openSupport() {
+      alert('📞 Suporte AgendaPro\n\nDocumentação: Confira os arquivos .md no repositório\nEmail: suporte@agendapro.com\nTelefone: (11) 99999-9999\n\nHorário: Seg-Sex 9h-18h');
+    }
+
+    function toggleNotifications(type) {
+      const toggle = document.getElementById(type + '-toggle');
+      toggle.classList.toggle('active');
+      // TODO: Salvar preferência no servidor
+      console.log('Notificação', type, 'alterada:', toggle.classList.contains('active'));
+    }
   </script>
 </body>
 </html>
