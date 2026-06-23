@@ -446,13 +446,34 @@ const tools = [
     type: 'function',
     function: {
       name: 'cancelarAgendamentoExistente',
-      description: 'Cancela um agendamento existente. Use após cliente confirmar qual cancelar (mostre lista primeiro).',
+      description: 'CANCELA DEFINITIVAMENTE um agendamento existente. ATENÇÃO: SÓ use APÓS o cliente recusar explicitamente a opção de remarcar. SEMPRE ofereça remarcar primeiro chamando reagendarAgendamento. Se o cliente apenas disse "quero cancelar", NÃO chame esta tool ainda — primeiro pergunte se ele prefere remarcar.',
       parameters: {
         type: 'object',
         properties: {
           agendamento_id: { type: 'string', description: 'UUID do agendamento a cancelar' },
+          confirmacao_explicita: {
+            type: 'boolean',
+            description: 'Cliente confirmou EXPLICITAMENTE que quer cancelar e NÃO quer remarcar? (deve ser true)',
+          },
         },
-        required: ['agendamento_id'],
+        required: ['agendamento_id', 'confirmacao_explicita'],
+        additionalProperties: false,
+      },
+    },
+  },
+  {
+    type: 'function',
+    function: {
+      name: 'reagendarAgendamento',
+      description: 'Altera a data e/ou horário de um agendamento existente (mantém serviço, profissional e cliente). Use quando cliente quer remarcar (mudar data/hora) ao invés de cancelar.',
+      parameters: {
+        type: 'object',
+        properties: {
+          agendamento_id: { type: 'string', description: 'UUID do agendamento a reagendar' },
+          nova_data: { type: 'string', description: 'Nova data (YYYY-MM-DD ou "hoje", "amanhã", "sexta")' },
+          novo_horario: { type: 'string', description: 'Novo horário (HH:MM, "14h", "14:00")' },
+        },
+        required: ['agendamento_id', 'nova_data', 'novo_horario'],
         additionalProperties: false,
       },
     },
@@ -1058,17 +1079,168 @@ async function executarTool(ctx, toolName, args) {
       }
       
       case 'cancelarAgendamentoExistente': {
-        const { rowCount, rows } = await query(
-          `UPDATE agendamentos SET status = 'cancelado'
-            WHERE id = $1 AND barbearia_id = $2 AND status NOT IN ('cancelado', 'concluido')
-            RETURNING id`,
+        console.log(`   🚫 CANCELAMENTO solicitado: ${args.agendamento_id} (confirmacao_explicita=${args.confirmacao_explicita})`);
+        
+        // Trava de segurança: só cancela com confirmação explícita
+        if (args.confirmacao_explicita !== true) {
+          console.log(`   ⚠️  Cancelamento BLOQUEADO: cliente não confirmou explicitamente`);
+          return {
+            resultado: {
+              erro: 'PRECISA_CONFIRMACAO_EXPLICITA',
+              mensagem: 'Antes de cancelar, ofereça remarcar (mudar data/horário). Só cancele se o cliente recusar remarcar e confirmar que quer cancelar.',
+            },
+          };
+        }
+        
+        // Busca o agendamento antes de cancelar (pra confirmar e logar)
+        const { rows: existe } = await query(
+          `SELECT a.id, a.data_hora, a.status, c.nome AS cliente_nome, 
+                  s.nome AS servico_nome, p.nome AS profissional_nome
+             FROM agendamentos a
+             JOIN clientes c ON c.id = a.cliente_id
+             LEFT JOIN servicos s ON s.id = a.servico_id
+             LEFT JOIN profissionais p ON p.id = a.profissional_id
+            WHERE a.id = $1 AND a.barbearia_id = $2`,
           [args.agendamento_id, barbeariaId]
         );
-        if (rowCount > 0) {
-          console.log(`   ✅ Cancelado: ${args.agendamento_id}`);
-          return { resultado: { sucesso: true, agendamento_id: rows[0].id } };
+        
+        if (existe.length === 0) {
+          console.log(`   ❌ Agendamento NÃO encontrado: ${args.agendamento_id}`);
+          return { resultado: { erro: 'Agendamento não encontrado.' } };
         }
-        return { resultado: { erro: 'Agendamento não encontrado ou já finalizado.' } };
+        
+        const ag = existe[0];
+        if (ag.status === 'cancelado') {
+          console.log(`   ⚠️  Agendamento JÁ estava cancelado`);
+          return { 
+            resultado: { 
+              sucesso: true, 
+              ja_cancelado: true,
+              agendamento_id: ag.id,
+              info: `${ag.servico_nome || 'Atendimento'} de ${ag.cliente_nome} já estava cancelado.`,
+            } 
+          };
+        }
+        if (ag.status === 'concluido') {
+          console.log(`   ❌ Agendamento já CONCLUÍDO, não pode cancelar`);
+          return { resultado: { erro: 'Esse agendamento já foi concluído, não pode cancelar.' } };
+        }
+        
+        // Cancela
+        const { rowCount } = await query(
+          `UPDATE agendamentos SET status = 'cancelado', updated_at = NOW()
+            WHERE id = $1 AND barbearia_id = $2 AND status NOT IN ('cancelado', 'concluido')`,
+          [args.agendamento_id, barbeariaId]
+        );
+        
+        if (rowCount === 0) {
+          console.log(`   ❌ UPDATE não afetou nenhuma linha`);
+          return { resultado: { erro: 'Não foi possível cancelar (agendamento pode ter mudado de status).' } };
+        }
+        
+        console.log(`   ✅ CANCELADO com sucesso: ${ag.servico_nome} - ${ag.cliente_nome} (${ag.data_hora})`);
+        return { 
+          resultado: { 
+            sucesso: true, 
+            agendamento_id: ag.id,
+            info: `${ag.servico_nome || 'Atendimento'} com ${ag.profissional_nome || ''} cancelado.`,
+          } 
+        };
+      }
+      
+      case 'reagendarAgendamento': {
+        console.log(`   🔄 REAGENDAR: ${args.agendamento_id} → ${args.nova_data} ${args.novo_horario}`);
+        
+        // Busca agendamento existente
+        const { rows: existe } = await query(
+          `SELECT a.id, a.profissional_id, a.cliente_id, a.duracao_minutos, a.status,
+                  c.nome AS cliente_nome, s.nome AS servico_nome, p.nome AS profissional_nome
+             FROM agendamentos a
+             JOIN clientes c ON c.id = a.cliente_id
+             LEFT JOIN servicos s ON s.id = a.servico_id
+             LEFT JOIN profissionais p ON p.id = a.profissional_id
+            WHERE a.id = $1 AND a.barbearia_id = $2`,
+          [args.agendamento_id, barbeariaId]
+        );
+        
+        if (existe.length === 0) {
+          return { resultado: { erro: 'Agendamento não encontrado.' } };
+        }
+        
+        const ag = existe[0];
+        if (ag.status === 'cancelado') {
+          return { resultado: { erro: 'Esse agendamento já foi cancelado. Faça um agendamento novo.' } };
+        }
+        if (ag.status === 'concluido') {
+          return { resultado: { erro: 'Esse agendamento já foi concluído.' } };
+        }
+        
+        // Normaliza data e hora
+        const novaDataYMD = parsearData(args.nova_data);
+        if (!novaDataYMD) {
+          return { resultado: { erro: 'Data inválida. Use formato YYYY-MM-DD ou "hoje/amanhã".' } };
+        }
+        
+        const novaHora = parsearHorario(args.novo_horario);
+        if (!novaHora) {
+          return { resultado: { erro: 'Horário inválido. Use formato HH:MM ou "14h".' } };
+        }
+        
+        // Monta string wall-clock
+        const novaDataHoraStr = `${novaDataYMD} ${novaHora}:00`;
+        const dh = new Date(novaDataHoraStr.replace(' ', 'T'));
+        
+        if (isNaN(dh.getTime())) {
+          return { resultado: { erro: 'Data/hora inválida.' } };
+        }
+        if (dh < new Date()) {
+          return { resultado: { erro: 'Não é possível reagendar para o passado.' } };
+        }
+        
+        // Verifica conflito (excluindo o próprio agendamento)
+        const { rows: conflito } = await query(
+          `SELECT id FROM agendamentos
+            WHERE barbearia_id = $1 AND profissional_id = $2 
+              AND data_hora = $3::timestamp
+              AND status NOT IN ('cancelado')
+              AND id <> $4
+            LIMIT 1`,
+          [barbeariaId, ag.profissional_id, novaDataHoraStr, args.agendamento_id]
+        );
+        if (conflito[0]) {
+          return {
+            resultado: {
+              erro: 'Esse novo horário já está ocupado. Sugira outro.',
+            },
+          };
+        }
+        
+        // Atualiza
+        const { rowCount } = await query(
+          `UPDATE agendamentos 
+              SET data_hora = $1::timestamp,
+                  status = 'agendado',
+                  lembrete_enviado_em = NULL,
+                  updated_at = NOW()
+            WHERE id = $2 AND barbearia_id = $3`,
+          [novaDataHoraStr, args.agendamento_id, barbeariaId]
+        );
+        
+        if (rowCount === 0) {
+          return { resultado: { erro: 'Não foi possível reagendar.' } };
+        }
+        
+        console.log(`   ✅ REAGENDADO: ${ag.servico_nome} - ${ag.cliente_nome} → ${novaDataHoraStr}`);
+        return {
+          resultado: {
+            sucesso: true,
+            agendamento_id: ag.id,
+            servico_nome: ag.servico_nome,
+            profissional_nome: ag.profissional_nome,
+            nova_data: novaDataYMD,
+            novo_horario: novaHora,
+          },
+        };
       }
       
       default:
@@ -1317,7 +1489,54 @@ PERGUNTAS FORA DO CONTEXTO:
 
 DATA E HORA ATUAIS:
 Hoje: ${dataFmt} — ${horaFmt}
-Amanhã: ${amanhaFmt}`;
+Amanhã: ${amanhaFmt}
+
+━━━━━━━━━━━━━━━━━━━━━━━━
+🔄 CANCELAMENTO E REAGENDAMENTO (LEIA COM ATENÇÃO)
+━━━━━━━━━━━━━━━━━━━━━━━━
+
+REGRA DE OURO: Quando cliente pedir para CANCELAR, NUNCA cancele de cara.
+Sempre TENTE REMARCAR primeiro — talvez ele só queira mudar o horário.
+
+FLUXO CORRETO:
+
+1. Cliente diz "quero cancelar" ou similar:
+   → Use listarMeusAgendamentos pra ver o agendamento
+   → Se tem mais de 1, pergunte qual ele quer cancelar
+   → Se tem só 1, identifique e pergunte:
+     "Vi seu agendamento de [serviço] [data] às [hora] com [profissional].
+      Antes de cancelar, prefere remarcar pra outro dia/horário?"
+
+2. Se cliente disser "quero remarcar" / "pode mudar pra outro dia":
+   → Pergunte nova data e novo horário
+   → Use reagendarAgendamento com novos dados
+   → Confirme: "Pronto! Reagendei pra [nova data] às [nova hora]."
+
+3. Se cliente insistir em cancelar (disser "não, quero cancelar mesmo" / "pode cancelar"):
+   → Aí sim use cancelarAgendamentoExistente com confirmacao_explicita=true
+   → Confirme: "Cancelado. Quando quiser remarcar, é só me chamar."
+
+EXEMPLOS:
+
+Cliente: "quero cancelar"
+✅ Bom: "Vi seu agendamento de Corte Masculino, amanhã às 15h com o LUIZ.
+        Antes de cancelar, prefere remarcar pra outro horário?"
+❌ Errado: "Cancelado!" (cancelou sem oferecer remarcar)
+
+Cliente: "pode remarcar?"
+✅ Bom: "Claro! Pra qual dia e horário?"
+
+Cliente: "amanhã 18h"
+✅ Use reagendarAgendamento com nova_data=amanhã e novo_horario=18:00
+
+Cliente: "não, prefiro cancelar mesmo"
+✅ Use cancelarAgendamentoExistente com confirmacao_explicita=true
+   Resposta: "Cancelado. Quando quiser remarcar, me chama."
+
+ATENÇÃO:
+- NUNCA chame cancelarAgendamentoExistente sem confirmacao_explicita=true
+- A trava do sistema vai bloquear e devolver erro
+- Sempre ofereça remarcar primeiro — é uma chance de manter o cliente`;
 
   if (promptPersonalizado && promptPersonalizado.trim()) {
     return prompt + `\n\n━━━━━━━━━━━━━━━━━━━━━━━━\nINSTRUÇÕES DA BARBEARIA\n━━━━━━━━━━━━━━━━━━━━━━━━\n${promptPersonalizado}`;
