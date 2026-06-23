@@ -309,8 +309,8 @@
             <div class="ag-menu">
               <button class="menu-btn" onclick="toggleMenu('${a.id}', event)"><i class="fas fa-ellipsis-v"></i></button>
               <div class="menu-pop" id="menu-${a.id}">
-                ${a.status !== 'confirmado' ? `<button onclick="setStatus('${a.id}','confirmado')"><i class="fas fa-check" style="color:var(--success)"></i> Confirmar</button>` : ''}
-                ${a.status !== 'concluido' ? `<button onclick="setStatus('${a.id}','concluido')"><i class="fas fa-flag-checkered" style="color:var(--primary)"></i> Concluir</button>` : ''}
+                ${a.status === 'agendado' ? `<button onclick="setStatus('${a.id}','confirmado')"><i class="fas fa-check" style="color:var(--success)"></i> Confirmar</button>` : ''}
+                ${a.status === 'confirmado' ? `<button onclick="setStatus('${a.id}','concluido')"><i class="fas fa-flag-checkered" style="color:var(--primary)"></i> Concluir</button>` : ''}
                 ${a.status !== 'cancelado' ? `<button onclick="setStatus('${a.id}','cancelado')"><i class="fas fa-ban" style="color:var(--warning)"></i> Cancelar</button>` : ''}
                 <button onclick="excluir('${a.id}')"><i class="fas fa-trash" style="color:var(--error)"></i> Excluir</button>
               </div>
@@ -352,7 +352,7 @@
       });
 
       const mapa = {};
-      ags.forEach(a => {
+      ags.filter(a => a.status !== 'cancelado').forEach(a => {
         const h = formatarHora(a.data_hora);
         const pn = a.profissional_nome || 'Sem profissional';
         if (!mapa[pn]) mapa[pn] = {};
