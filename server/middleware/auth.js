@@ -16,7 +16,7 @@ export function gerarToken(usuario) {
   );
 }
 
-// Middleware: exige token valido e injeta req.user + req.barbeariaId
+// Middleware: exige token valido e injeta req.user + req.barbeariaId + req.userId + req.role
 export function autenticar(req, res, next) {
   const header = req.headers.authorization || '';
   const token = header.startsWith('Bearer ') ? header.slice(7) : null;
@@ -28,7 +28,9 @@ export function autenticar(req, res, next) {
   try {
     const payload = jwt.verify(token, JWT_SECRET);
     req.user = payload;
+    req.userId = payload.sub;
     req.barbeariaId = payload.barbearia_id;
+    req.role = payload.role || 'owner';  // fallback para compatibilidade
     next();
   } catch (err) {
     return res.status(401).json({ erro: 'Token invalido ou expirado' });

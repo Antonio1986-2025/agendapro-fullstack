@@ -1,9 +1,13 @@
 import { Router } from 'express';
 import { query } from '../config/database.js';
 import { autenticar } from '../middleware/auth.js';
+import { requerRole } from '../middleware/permissoes.js';
 
 const router = Router();
 router.use(autenticar);
+
+// 🛡️ PROTEÇÃO: Apenas owner/admin podem acessar transações financeiras
+router.use(requerRole(['owner', 'admin']));
 
 // GET /api/transacoes
 router.get('/', async (req, res) => {

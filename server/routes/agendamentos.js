@@ -1,10 +1,18 @@
 import { Router } from 'express';
 import { query } from '../config/database.js';
 import { autenticar } from '../middleware/auth.js';
+import { 
+  injetarContextoPermissoes, 
+  filtroAgendaPorRole,
+  validarCriacaoAgendamento,
+  validarModificacaoAgendamento,
+  validarConclusaoManual,
+} from '../middleware/permissoes.js';
 import { enviarMensagem, textoConfirmacao, notificarBarbeiroNovoAgendamento } from '../services/whatsapp.js';
 
 const router = Router();
 router.use(autenticar);
+router.use(injetarContextoPermissoes);  // Injeta contexto de permissões em todas as rotas
 
 // GET /api/agendamentos?data=YYYY-MM-DD
 router.get('/', async (req, res) => {
@@ -20,6 +28,14 @@ router.get('/', async (req, res) => {
       LEFT JOIN servicos s ON s.id = a.servico_id
      WHERE a.barbearia_id = $1`;
   const params = [req.barbeariaId];
+
+  // Aplicar filtro de permissões (staff vê apenas sua agenda)
+  const filtro = filtroAgendaPorRole(req.contexto);
+  if (filtro.sql) {
+    const placeholderIndex = params.length + 1;
+    sql += filtro.sql.replace('$PLACEHOLDER', `$${placeholderIndex}`);
+    params.push(...filtro.params);
+  }
 
   if (data) {
     params.push(data);
@@ -44,6 +60,12 @@ router.post('/', async (req, res) => {
 
   if (!profissional_id || !data_hora) {
     return res.status(400).json({ erro: 'profissional_id e data_hora sao obrigatorios' });
+  }
+
+  // 🛡️ VALIDAÇÃO: Staff só pode criar agendamentos para si mesmo
+  const validacao = validarCriacaoAgendamento(req.contexto, profissional_id);
+  if (!validacao.ok) {
+    return res.status(403).json({ erro: validacao.erro });
   }
 
   // Busca dados do servico para preco/duracao
@@ -120,12 +142,31 @@ router.patch('/:id/status', async (req, res) => {
     return res.status(400).json({ erro: 'Status invalido' });
   }
 
+  // 🛡️ PROTEÇÃO: Staff NÃO pode concluir agendamentos manualmente
+  if (status === 'concluido') {
+    const validacao = validarConclusaoManual(req.contexto);
+    if (!validacao.ok) {
+      return res.status(403).json({ erro: validacao.erro });
+    }
+  }
+
   // LOG: Captura o status ANTERIOR antes de atualizar
   const { rows: anterior } = await query(
-    `SELECT status, confirmacao_enviada_em FROM agendamentos WHERE id = $1 AND barbearia_id = $2`,
+    `SELECT status, confirmacao_enviada_em, profissional_id FROM agendamentos WHERE id = $1 AND barbearia_id = $2`,
     [req.params.id, req.barbeariaId]
   );
-  console.log(`📝 [PATCH /status] ID: ${req.params.id} | Status ANTERIOR: ${anterior[0]?.status} → NOVO: ${status}`);
+  
+  if (anterior.length === 0) {
+    return res.status(404).json({ erro: 'Agendamento nao encontrado' });
+  }
+  
+  // 🛡️ VALIDAÇÃO: Staff só pode modificar seus próprios agendamentos
+  const validacao = validarModificacaoAgendamento(req.contexto, anterior[0].profissional_id);
+  if (!validacao.ok) {
+    return res.status(403).json({ erro: validacao.erro });
+  }
+  
+  console.log(`📝 [PATCH /status] ID: ${req.params.id} | User: ${req.contexto.role} | Status ANTERIOR: ${anterior[0]?.status} → NOVO: ${status}`);
 
   const { rows } = await query(
     `UPDATE agendamentos SET status = $1
@@ -188,6 +229,22 @@ router.patch('/:id/status', async (req, res) => {
 
 // DELETE /api/agendamentos/:id
 router.delete('/:id', async (req, res) => {
+  // Verifica se agendamento existe e pega profissional_id
+  const { rows: agendamento } = await query(
+    `SELECT profissional_id FROM agendamentos WHERE id = $1 AND barbearia_id = $2`,
+    [req.params.id, req.barbeariaId]
+  );
+  
+  if (agendamento.length === 0) {
+    return res.status(404).json({ erro: 'Agendamento nao encontrado' });
+  }
+  
+  // 🛡️ VALIDAÇÃO: Staff só pode deletar seus próprios agendamentos
+  const validacao = validarModificacaoAgendamento(req.contexto, agendamento[0].profissional_id);
+  if (!validacao.ok) {
+    return res.status(403).json({ erro: validacao.erro });
+  }
+  
   const r = await query(
     `DELETE FROM agendamentos WHERE id = $1 AND barbearia_id = $2`,
     [req.params.id, req.barbeariaId]

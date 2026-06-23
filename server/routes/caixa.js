@@ -1,9 +1,13 @@
 import { Router } from 'express';
 import { query } from '../config/database.js';
 import { autenticar } from '../middleware/auth.js';
+import { requerRole } from '../middleware/permissoes.js';
 
 const router = Router();
 router.use(autenticar);
+
+// 🛡️ PROTEÇÃO: Apenas owner/admin podem gerenciar caixa
+router.use(requerRole(['owner', 'admin']));
 
 // GET /api/caixa - Retorna caixa do dia ou lista
 router.get('/', async (req, res) => {
