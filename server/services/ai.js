@@ -438,7 +438,7 @@ const tools = [
     type: 'function',
     function: {
       name: 'listarMeusAgendamentos',
-      description: 'Lista os agendamentos futuros do cliente que está conversando. Útil para cancelamento/reagendamento.',
+      description: 'Lista os agendamentos futuros do cliente que está conversando. Retorna array com id (UUID), data_hora, servico_nome, profissional_nome. IMPORTANTE: Extraia o campo "id" de cada agendamento para usar em cancelarAgendamentoExistente ou reagendarAgendamento.',
       parameters: { type: 'object', properties: {}, required: [], additionalProperties: false },
     },
   },
@@ -1075,11 +1075,43 @@ async function executarTool(ctx, toolName, args) {
             ORDER BY a.data_hora`,
           [barbeariaId, `%${tel.slice(-11)}%`]
         );
-        return { resultado: { total: rows.length, agendamentos: rows } };
+        
+        if (rows.length === 0) {
+          return { resultado: { total: 0, mensagem: 'Você não tem agendamentos futuros.' } };
+        }
+        
+        // Formata para facilitar extração pela IA
+        const lista = rows.map(r => ({
+          id: r.id,  // UUID — use este ID em cancelarAgendamentoExistente ou reagendarAgendamento
+          data_hora: r.data_hora,
+          servico: r.servico_nome || 'Atendimento',
+          profissional: r.profissional_nome || 'Profissional',
+          preco: parseFloat(r.preco || 0).toFixed(2),
+          status: r.status,
+        }));
+        
+        return { 
+          resultado: { 
+            total: rows.length, 
+            agendamentos: lista,
+            instrucao: 'Para cancelar ou reagendar, use o campo "id" de cada agendamento.',
+          } 
+        };
       }
       
       case 'cancelarAgendamentoExistente': {
         console.log(`   🚫 CANCELAMENTO solicitado: ${args.agendamento_id} (confirmacao_explicita=${args.confirmacao_explicita})`);
+        
+        // Validação: ID válido
+        if (!args.agendamento_id || args.agendamento_id === 'undefined' || args.agendamento_id === 'null') {
+          console.log(`   ❌ ID inválido: ${args.agendamento_id}`);
+          return {
+            resultado: {
+              erro: 'ID_INVALIDO',
+              mensagem: 'Use listarMeusAgendamentos para pegar o ID (campo "id") do agendamento que o cliente quer cancelar. Não invente IDs.',
+            },
+          };
+        }
         
         // Trava de segurança: só cancela com confirmação explícita
         if (args.confirmacao_explicita !== true) {
@@ -1128,7 +1160,7 @@ async function executarTool(ctx, toolName, args) {
         
         // Cancela
         const { rowCount } = await query(
-          `UPDATE agendamentos SET status = 'cancelado', updated_at = NOW()
+          `UPDATE agendamentos SET status = 'cancelado'
             WHERE id = $1 AND barbearia_id = $2 AND status NOT IN ('cancelado', 'concluido')`,
           [args.agendamento_id, barbeariaId]
         );
@@ -1150,6 +1182,17 @@ async function executarTool(ctx, toolName, args) {
       
       case 'reagendarAgendamento': {
         console.log(`   🔄 REAGENDAR: ${args.agendamento_id} → ${args.nova_data} ${args.novo_horario}`);
+        
+        // Validação: ID válido
+        if (!args.agendamento_id || args.agendamento_id === 'undefined' || args.agendamento_id === 'null') {
+          console.log(`   ❌ ID inválido: ${args.agendamento_id}`);
+          return {
+            resultado: {
+              erro: 'ID_INVALIDO',
+              mensagem: 'Use listarMeusAgendamentos para pegar o ID (campo "id") do agendamento. Não invente IDs.',
+            },
+          };
+        }
         
         // Busca agendamento existente
         const { rows: existe } = await query(
@@ -1220,8 +1263,7 @@ async function executarTool(ctx, toolName, args) {
           `UPDATE agendamentos 
               SET data_hora = $1::timestamp,
                   status = 'agendado',
-                  lembrete_enviado_em = NULL,
-                  updated_at = NOW()
+                  lembrete_enviado_em = NULL
             WHERE id = $2 AND barbearia_id = $3`,
           [novaDataHoraStr, args.agendamento_id, barbeariaId]
         );
