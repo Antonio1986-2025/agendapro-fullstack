@@ -291,13 +291,14 @@
       } else {
         cont.innerHTML = ags.map(a => {
           const hora = formatarHora(a.data_hora);
+          const statusTexto = a.status === 'cancelado' ? '<span style="color:var(--error);font-weight:var(--font-bold);font-size:var(--text-xs);text-transform:uppercase;">CANCELADO</span> • ' : '';
           return `
           <div class="ag-card st-${a.status}">
             <div class="ag-hora">${hora}</div>
             <div class="ag-info">
               <div class="ag-cliente">${a.cliente_nome || 'Cliente'} ${a.is_especial ? '<span class="ag-especial">+50%</span>' : ''}</div>
               <div class="ag-serv">${a.servico_nome || 'Atendimento'} • R$ ${Number(a.preco).toFixed(2)}</div>
-              <div class="ag-prof"><i class="fas fa-user-tie"></i> ${a.profissional_nome || ''} • ${statusLabel(a.status)}</div>
+              <div class="ag-prof"><i class="fas fa-user-tie"></i> ${a.profissional_nome || ''} • ${statusTexto}${statusLabel(a.status)}</div>
             </div>
             <div class="ag-menu">
               <button class="menu-btn" onclick="toggleMenu('${a.id}', event)"><i class="fas fa-ellipsis-v"></i></button>

@@ -152,6 +152,10 @@
         <label style="margin:0">Receber avisos no WhatsApp</label>
         <input type="checkbox" id="f-notificar" checked style="width:20px;height:20px;">
       </div>
+      <div class="switch-row">
+        <label style="margin:0;font-weight:var(--font-semibold);">Responsável (recebe solicitações especiais)</label>
+        <input type="checkbox" id="f-responsavel" style="width:20px;height:20px;">
+      </div>
 
       <hr style="border-color:var(--border-color);margin:var(--space-md) 0;">
 
@@ -318,6 +322,7 @@
       document.getElementById('f-especialidade').value = '';
       document.getElementById('f-telefone').value = '';
       document.getElementById('f-notificar').checked = true;
+      document.getElementById('f-responsavel').checked = false;
       document.getElementById('f-comissao-serv').value = '0';
       document.getElementById('f-comissao-prod').value = '0';
       document.getElementById('f-data-contrato').value = '';
@@ -339,6 +344,7 @@
       document.getElementById('f-especialidade').value = p.especialidade || '';
       document.getElementById('f-telefone').value = p.telefone || '';
       document.getElementById('f-notificar').checked = p.notificar_whatsapp !== false;
+      document.getElementById('f-responsavel').checked = p.eh_responsavel === true;
       document.getElementById('f-comissao-serv').value = p.comissao_servico_percentual || 0;
       document.getElementById('f-comissao-prod').value = p.comissao_produto_percentual || 0;
       document.getElementById('f-data-contrato').value = p.data_contratacao || '';
@@ -363,6 +369,7 @@
         especialidade: document.getElementById('f-especialidade').value.trim(),
         telefone: document.getElementById('f-telefone').value.trim(),
         notificar_whatsapp: document.getElementById('f-notificar').checked,
+        eh_responsavel: document.getElementById('f-responsavel').checked,
         comissao_servico_percentual: parseFloat(document.getElementById('f-comissao-serv').value) || 0,
         comissao_produto_percentual: parseFloat(document.getElementById('f-comissao-prod').value) || 0,
         data_contratacao: document.getElementById('f-data-contrato').value || null,

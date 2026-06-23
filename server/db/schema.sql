@@ -25,6 +25,9 @@ CREATE TABLE IF NOT EXISTS barbearias (
     created_at TIMESTAMPTZ DEFAULT now()
 );
 
+-- Garante colunas novas em bancos já existentes (idempotente)
+ALTER TABLE barbearias ADD COLUMN IF NOT EXISTS horario_especial_ativo BOOLEAN DEFAULT false;
+
 -- ---------- usuarios (contas de login: dono / staff) ----------
 CREATE TABLE IF NOT EXISTS usuarios (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
@@ -53,6 +56,7 @@ CREATE TABLE IF NOT EXISTS profissionais (
 
 -- Garante colunas novas em bancos ja existentes (idempotente)
 ALTER TABLE profissionais ADD COLUMN IF NOT EXISTS telefone VARCHAR(30);
+ALTER TABLE profissionais ADD COLUMN IF NOT EXISTS eh_responsavel BOOLEAN DEFAULT false;
 ALTER TABLE profissionais ADD COLUMN IF NOT EXISTS notificar_whatsapp BOOLEAN DEFAULT true;
 ALTER TABLE profissionais ADD COLUMN IF NOT EXISTS comissao_servico_percentual DECIMAL(5,2) DEFAULT 0;
 ALTER TABLE profissionais ADD COLUMN IF NOT EXISTS comissao_produto_percentual DECIMAL(5,2) DEFAULT 0;
@@ -339,3 +343,20 @@ ALTER TABLE agendamentos ADD COLUMN IF NOT EXISTS notificacao_barbeiro_enviada_e
 -- Controle de mensagem de retorno (20 dias depois) - por cliente
 ALTER TABLE clientes ADD COLUMN IF NOT EXISTS ultimo_servico_em TIMESTAMPTZ;
 ALTER TABLE clientes ADD COLUMN IF NOT EXISTS retorno_enviado_em TIMESTAMPTZ;
+
+-- ---------- solicitacoes_especiais (serviços não catalogados) ----------
+CREATE TABLE IF NOT EXISTS solicitacoes_especiais (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    barbearia_id UUID NOT NULL REFERENCES barbearias(id) ON DELETE CASCADE,
+    cliente_nome TEXT NOT NULL,
+    cliente_telefone TEXT NOT NULL,
+    servico_solicitado TEXT NOT NULL,
+    observacoes TEXT,
+    status VARCHAR(30) DEFAULT 'pendente',      -- pendente | contatado | resolvido | cancelado
+    responsavel_contatou_em TIMESTAMPTZ,
+    created_at TIMESTAMPTZ DEFAULT now()
+);
+
+CREATE INDEX IF NOT EXISTS idx_solicitacoes_barbearia ON solicitacoes_especiais(barbearia_id);
+CREATE INDEX IF NOT EXISTS idx_solicitacoes_status ON solicitacoes_especiais(status);
+

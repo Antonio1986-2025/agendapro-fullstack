@@ -478,6 +478,22 @@ const tools = [
       },
     },
   },
+  {
+    type: 'function',
+    function: {
+      name: 'registrarSolicitacaoEspecial',
+      description: 'Registra uma solicitação de serviço NÃO CATALOGADO (ex: hidratação, luzes, progressiva) e notifica o RESPONSÁVEL para entrar em contato. Use quando buscarServicoPorNome não encontrar o serviço mesmo após tentar sinônimos.',
+      parameters: {
+        type: 'object',
+        properties: {
+          servico_solicitado: { type: 'string', description: 'Nome do serviço que o cliente pediu' },
+          observacoes: { type: 'string', description: 'Detalhes adicionais sobre o que o cliente quer' },
+        },
+        required: ['servico_solicitado'],
+        additionalProperties: false,
+      },
+    },
+  },
 ];
 
 // ============================================================
@@ -796,8 +812,9 @@ async function executarTool(ctx, toolName, args) {
         // Verifica disponibilidade real
         const data = estado.slots.data.valor.data;
         const profId = estado.slots.profissional.valor.id;
+        const duracao = estado.slots.servico.valor.duracao || 30;
         
-        const disponiveis = await calcularHorariosDisponiveis(barbeariaId, data, profId);
+        const disponiveis = await calcularHorariosDisponiveis(barbeariaId, data, profId, duracao);
         
         if (!disponiveis.includes(hora)) {
           // Sugere horários próximos
@@ -874,6 +891,26 @@ async function executarTool(ctx, toolName, args) {
         }
         if (dh < new Date()) {
           return { resultado: { erro: 'Não é possível agendar no passado.' } };
+        }
+        
+        // REVALIDAÇÃO DE SLOTS CONSECUTIVOS (serviços longos)
+        const duracao = slots.servico.valor.duracao || 30;
+        if (duracao > 30) {
+          const disponiveis = await calcularHorariosDisponiveis(
+            barbeariaId, 
+            slots.data.valor.data, 
+            slots.profissional.valor.id, 
+            duracao
+          );
+          
+          if (!disponiveis.includes(slots.horario.valor.hora)) {
+            return {
+              resultado: {
+                erro: `Esse serviço precisa de ${duracao} minutos consecutivos. O horário ${slots.horario.valor.hora} não tem todos os slots livres. Sugira outro horário.`,
+                horarios_alternativos: disponiveis.slice(0, 3),
+              },
+            };
+          }
         }
         
         // Verifica conflito (passa STRING, não Date — evita conversão de TZ)
@@ -1170,6 +1207,24 @@ async function executarTool(ctx, toolName, args) {
           return { resultado: { erro: 'Não foi possível cancelar (agendamento pode ter mudado de status).' } };
         }
         
+        // Exclui comanda associada (para não ficar bagunçado)
+        const { rowCount: comandasDeletadas } = await query(
+          `DELETE FROM comandas WHERE agendamento_id = $1`,
+          [args.agendamento_id]
+        );
+        if (comandasDeletadas > 0) {
+          console.log(`   🗑️  Comanda excluída (${comandasDeletadas})`);
+        }
+        
+        // Notifica barbeiro sobre cancelamento
+        try {
+          const { notificarBarberCancelamento } = await import('./scheduler.js');
+          await notificarBarberCancelamento(barbeariaId, args.agendamento_id);
+        } catch (errNotif) {
+          console.error(`   ⚠️  Falha ao notificar barbeiro:`, errNotif.message);
+          // Não bloqueia o cancelamento se notificação falhar
+        }
+        
         console.log(`   ✅ CANCELADO com sucesso: ${ag.servico_nome} - ${ag.cliente_nome} (${ag.data_hora})`);
         return { 
           resultado: { 
@@ -1285,6 +1340,91 @@ async function executarTool(ctx, toolName, args) {
         };
       }
       
+      case 'registrarSolicitacaoEspecial': {
+        console.log(`   📝 SOLICITAÇÃO ESPECIAL: ${args.servico_solicitado}`);
+        
+        if (!args.servico_solicitado || args.servico_solicitado.trim().length < 2) {
+          return { resultado: { erro: 'Nome do serviço obrigatório.' } };
+        }
+        
+        // Identifica cliente
+        const tel = String(telefone || '').replace(/\D/g, '');
+        const { rows: clienteRows } = await query(
+          `SELECT id, nome, telefone FROM clientes
+            WHERE barbearia_id = $1 AND telefone LIKE $2 LIMIT 1`,
+          [barbeariaId, `%${tel.slice(-11)}%`]
+        );
+        
+        const clienteNome = clienteRows[0]?.nome || 'Cliente';
+        const clienteTelefone = clienteRows[0]?.telefone || tel;
+        
+        // Registra solicitação
+        const { rows: solicitacao } = await query(
+          `INSERT INTO solicitacoes_especiais 
+            (barbearia_id, cliente_nome, cliente_telefone, servico_solicitado, observacoes)
+           VALUES ($1, $2, $3, $4, $5) RETURNING id`,
+          [barbeariaId, clienteNome, clienteTelefone, args.servico_solicitado, args.observacoes || null]
+        );
+        
+        console.log(`   ✅ Solicitação registrada: ${solicitacao[0].id}`);
+        
+        // Busca profissionais responsáveis
+        const { rows: responsaveis } = await query(
+          `SELECT id, nome, telefone FROM profissionais
+            WHERE barbearia_id = $1 AND eh_responsavel = true AND ativo = true AND telefone IS NOT NULL`,
+          [barbeariaId]
+        );
+        
+        if (responsaveis.length === 0) {
+          console.log(`   ⚠️  Nenhum profissional responsável com telefone configurado`);
+          return {
+            resultado: {
+              sucesso: true,
+              mensagem_cliente: 'Vou avisar o responsável para entrar em contato com você e organizar esse atendimento especial.',
+              alerta: 'Nenhum profissional responsável configurado para receber notificações.',
+            },
+          };
+        }
+        
+        // Notifica cada responsável
+        const { enviarMensagemEvolution } = await import('./evolution-provider.js');
+        let notificacoesEnviadas = 0;
+        
+        for (const resp of responsaveis) {
+          try {
+            const mensagem = 
+              `🔔 *Nova Solicitação Especial*\n\n` +
+              `Olá ${resp.nome}! Um cliente solicitou um serviço que não está no catálogo:\n\n` +
+              `👤 Cliente: ${clienteNome}\n` +
+              `📱 Contato: ${clienteTelefone}\n` +
+              `✨ Serviço solicitado: *${args.servico_solicitado}*\n` +
+              (args.observacoes ? `📝 Obs: ${args.observacoes}\n` : '') +
+              `\n💡 Entre em contato com o cliente para organizar o agendamento.`;
+            
+            await enviarMensagemEvolution(barbeariaId, resp.telefone, mensagem);
+            
+            await query(
+              `INSERT INTO whatsapp_mensagens (barbearia_id, telefone, mensagem, tipo, status)
+               VALUES ($1, $2, $3, 'solicitacao_especial', 'enviada')`,
+              [barbeariaId, resp.telefone, mensagem]
+            );
+            
+            notificacoesEnviadas++;
+            console.log(`   ✅ Responsável ${resp.nome} notificado`);
+          } catch (err) {
+            console.error(`   ❌ Falha ao notificar ${resp.nome}:`, err.message);
+          }
+        }
+        
+        return {
+          resultado: {
+            sucesso: true,
+            mensagem_cliente: 'Vou avisar o responsável para entrar em contato com você e organizar esse atendimento especial.',
+            responsaveis_notificados: notificacoesEnviadas,
+          },
+        };
+      }
+      
       default:
         return { resultado: { erro: `Tool desconhecida: ${toolName}` } };
     }
@@ -1295,13 +1435,39 @@ async function executarTool(ctx, toolName, args) {
 }
 
 // ============================================================
-// HORÁRIOS DISPONÍVEIS
+// HORÁRIOS DISPONÍVEIS (com validação de slots consecutivos)
 // ============================================================
 
-async function calcularHorariosDisponiveis(barbeariaId, dataYMD, profissionalId) {
+/**
+ * Verifica se N slots consecutivos estão todos livres
+ * Ex: servico de 60min precisa de 2 slots (9:00 E 9:30)
+ */
+function verificarSlotsConsecutivos(horaInicio, duracaoMinutos, slotsLivres, intervaloMinutos = 30) {
+  const slotsNecessarios = Math.ceil(duracaoMinutos / intervaloMinutos);
+  if (slotsNecessarios === 1) return true; // 30min = 1 slot apenas
+  
+  const [h, m] = horaInicio.split(':').map(Number);
+  let totalMin = h * 60 + m;
+  
+  for (let i = 0; i < slotsNecessarios; i++) {
+    const hh = Math.floor(totalMin / 60);
+    const mm = totalMin % 60;
+    const slotAtual = `${String(hh).padStart(2, '0')}:${String(mm).padStart(2, '0')}`;
+    
+    if (!slotsLivres.includes(slotAtual)) {
+      return false; // Um dos slots está ocupado
+    }
+    
+    totalMin += intervaloMinutos;
+  }
+  
+  return true; // Todos os slots consecutivos estão livres
+}
+
+async function calcularHorariosDisponiveis(barbeariaId, dataYMD, profissionalId, duracaoMinutos = 30) {
   // Config de horários da barbearia
   const { rows: barbRows } = await query(
-    `SELECT horario_config FROM barbearias WHERE id = $1`,
+    `SELECT horario_config, horario_especial_ativo FROM barbearias WHERE id = $1`,
     [barbeariaId]
   );
   const cfg = barbRows[0]?.horario_config || {
@@ -1309,6 +1475,7 @@ async function calcularHorariosDisponiveis(barbeariaId, dataYMD, profissionalId)
     tarde: { inicio: '13:00', fim: '19:00' },
     intervalo_minutos: 30,
   };
+  const mostrarEspecial = barbRows[0]?.horario_especial_ativo || false;
   
   const intervaloMin = cfg.intervalo_minutos || 30;
   const slots = [];
@@ -1326,10 +1493,16 @@ async function calcularHorariosDisponiveis(barbeariaId, dataYMD, profissionalId)
       total += intervaloMin;
     }
   };
+  
   if (cfg.manha) adicionarSlots(cfg.manha.inicio, cfg.manha.fim);
   if (cfg.tarde) adicionarSlots(cfg.tarde.inicio, cfg.tarde.fim);
   
-  // Ocupados
+  // Horário especial só aparece se ativado na configuração
+  if (mostrarEspecial && cfg.especial) {
+    adicionarSlots(cfg.especial.inicio, cfg.especial.fim);
+  }
+  
+  // Ocupados (incluindo slots bloqueados por serviços longos)
   const params = [barbeariaId, dataYMD];
   let profFilter = '';
   if (profissionalId) {
@@ -1338,22 +1511,34 @@ async function calcularHorariosDisponiveis(barbeariaId, dataYMD, profissionalId)
   }
   
   const { rows: ocupados } = await query(
-    `SELECT data_hora FROM agendamentos
+    `SELECT data_hora, duracao_minutos FROM agendamentos
       WHERE barbearia_id = $1 AND data_hora::date = $2::date
         AND status NOT IN ('cancelado')${profFilter}`,
     params
   );
   
-  const setOcupados = new Set(ocupados.map(o => {
-    // data_hora vem como string "2026-06-23 15:00:00" (TIMESTAMP sem TZ)
-    // Extrai HH:MM direto da string para evitar conversão de fuso
+  // Marca todos os slots ocupados (incluindo os bloqueados por serviços longos)
+  const setOcupados = new Set();
+  ocupados.forEach(o => {
     const s = String(o.data_hora);
     const m = s.match(/(\d{2}):(\d{2})/);
-    if (m) return `${m[1]}:${m[2]}`;
-    // Fallback se vier como Date
-    const d = new Date(o.data_hora);
-    return `${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}`;
-  }));
+    if (!m) return;
+    
+    const horaInicio = `${m[1]}:${m[2]}`;
+    const duracao = o.duracao_minutos || 30;
+    const slotsOcupados = Math.ceil(duracao / intervaloMin);
+    
+    // Marca todos os slots que esse agendamento ocupa
+    const [h, min] = horaInicio.split(':').map(Number);
+    let totalMin = h * 60 + min;
+    
+    for (let i = 0; i < slotsOcupados; i++) {
+      const hh = Math.floor(totalMin / 60);
+      const mm = totalMin % 60;
+      setOcupados.add(`${String(hh).padStart(2, '0')}:${String(mm).padStart(2, '0')}`);
+      totalMin += intervaloMin;
+    }
+  });
   
   let livres = slots.filter(s => !setOcupados.has(s));
   
@@ -1362,6 +1547,12 @@ async function calcularHorariosDisponiveis(barbeariaId, dataYMD, profissionalId)
   if (dataYMD === formatarDataYMD(hoje)) {
     const horaAtual = `${String(hoje.getHours()).padStart(2, '0')}:${String(hoje.getMinutes()).padStart(2, '0')}`;
     livres = livres.filter(s => s > horaAtual);
+  }
+  
+  // VALIDAÇÃO DE SLOTS CONSECUTIVOS
+  // Se serviço precisa de múltiplos slots, só retorna horários que tenham todos consecutivos livres
+  if (duracaoMinutos > intervaloMin) {
+    livres = livres.filter(hora => verificarSlotsConsecutivos(hora, duracaoMinutos, livres, intervaloMin));
   }
   
   return livres;
@@ -1578,7 +1769,44 @@ Cliente: "não, prefiro cancelar mesmo"
 ATENÇÃO:
 - NUNCA chame cancelarAgendamentoExistente sem confirmacao_explicita=true
 - A trava do sistema vai bloquear e devolver erro
-- Sempre ofereça remarcar primeiro — é uma chance de manter o cliente`;
+- Sempre ofereça remarcar primeiro — é uma chance de manter o cliente
+
+━━━━━━━━━━━━━━━━━━━━━━━━
+✨ SERVIÇOS NÃO CATALOGADOS
+━━━━━━━━━━━━━━━━━━━━━━━━
+
+Quando cliente pedir um serviço que NÃO ESTÁ NO CATÁLOGO:
+
+EXEMPLOS: hidratação, luzes, progressiva, alisamento, pintar cabelo, etc.
+
+FLUXO CORRETO:
+
+1. Primeiro use buscarServicoPorNome ou listarServicos para confirmar que realmente não existe
+2. Se confirmar que não existe, responda com naturalidade:
+   "Entendi, você quer [serviço]. A gente não tem esse serviço no nosso catálogo ainda,
+    mas vou avisar o responsável pra ele entrar em contato e organizar com você. Pode ser?"
+3. Se cliente confirmar ("pode", "ok", "sim"):
+   → Use registrarSolicitacaoEspecial com:
+     * servico_solicitado: nome do serviço
+     * observacoes: qualquer detalhe adicional que o cliente mencionou
+4. Confirme: "Anotado! O responsável vai te chamar em breve pra organizar. 😊"
+
+IMPORTANTE:
+- Não invente que o serviço existe se não encontrar
+- Não tente fazer agendamento normal se o serviço não está catalogado
+- Seja honesto: "não temos no catálogo, mas vou encaminhar pro responsável"
+- Use tom acolhedor — cliente não deve sentir que foi rejeitado
+
+EXEMPLO COMPLETO:
+
+Cliente: "quero fazer hidratação"
+Você: [usa buscarServicoPorNome, não encontra]
+✅ "Entendi, você quer hidratação. A gente não tem esse serviço no nosso catálogo ainda,
+    mas vou avisar o responsável pra ele entrar em contato e organizar com você. Pode ser?"
+
+Cliente: "pode"
+✅ [usa registrarSolicitacaoEspecial com servico_solicitado="hidratação"]
+✅ "Anotado! O responsável vai te chamar em breve pra organizar. 😊"`;
 
   if (promptPersonalizado && promptPersonalizado.trim()) {
     return prompt + `\n\n━━━━━━━━━━━━━━━━━━━━━━━━\nINSTRUÇÕES DA BARBEARIA\n━━━━━━━━━━━━━━━━━━━━━━━━\n${promptPersonalizado}`;

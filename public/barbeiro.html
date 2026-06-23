@@ -256,12 +256,13 @@
         const statusLabel = { agendado: 'Agendado', confirmado: 'Confirmado', concluido: 'Concluído', cancelado: 'Cancelado' }[a.status] || a.status;
         const hora = formatarHora(a.data_hora);
         const valor = a.preco ? 'R$ ' + parseFloat(a.preco).toFixed(2) : '';
+        const statusTexto = a.status === 'cancelado' ? '<span style="color:var(--error);font-weight:var(--font-bold);font-size:var(--text-xs);text-transform:uppercase;display:block;margin-top:4px;">❌ CANCELADO</span>' : '';
         return `
           <div class="ag-card st-${a.status}">
             <div class="ag-hora">${hora}</div>
             <div class="ag-info">
               <div class="ag-cliente">${a.cliente_nome || 'Cliente'}</div>
-              <div class="ag-serv">${a.servico_nome || 'Serviço'} ${valor ? ' • ' + valor : ''} ${a.is_especial ? '<span class="ag-especial">Especial</span>' : ''}</div>
+              <div class="ag-serv">${a.servico_nome || 'Serviço'} ${valor ? ' • ' + valor : ''} ${a.is_especial ? '<span class="ag-especial">Especial</span>' : ''}${statusTexto}</div>
             </div>
             <div class="ag-acoes">
               ${a.status === 'agendado' ? `<button onclick="mudarStatus('${a.id}','confirmado')" title="Confirmar"><i class="fas fa-check"></i></button>` : ''}

@@ -17,7 +17,7 @@ router.get('/', async (req, res) => {
 
 // POST /api/profissionais (agora aceita comissao, permissoes e criar usuario)
 router.post('/', exigirRole('owner'), async (req, res) => {
-  const { nome, especialidade, telefone, notificar_whatsapp, ordem,
+  const { nome, especialidade, telefone, notificar_whatsapp, ordem, eh_responsavel,
           comissao_servico_percentual, comissao_produto_percentual, data_contratacao, permissoes,
           criar_acesso, email, senha } = req.body;
   if (!nome) return res.status(400).json({ erro: 'Nome obrigatorio' });
@@ -27,10 +27,10 @@ router.post('/', exigirRole('owner'), async (req, res) => {
 
   const { rows } = await query(
     `INSERT INTO profissionais (barbearia_id, nome, especialidade, telefone, notificar_whatsapp, avatar_inicial, ordem,
-                                comissao_servico_percentual, comissao_produto_percentual, data_contratacao, permissoes)
-     VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11::jsonb) RETURNING *`,
+                                eh_responsavel, comissao_servico_percentual, comissao_produto_percentual, data_contratacao, permissoes)
+     VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12::jsonb) RETURNING *`,
     [req.barbeariaId, nome, especialidade || null, telefone || null,
-     notificar_whatsapp !== false, inicial, ordem || 0,
+     notificar_whatsapp !== false, inicial, ordem || 0, eh_responsavel === true,
      comissao_servico_percentual || 0, comissao_produto_percentual || 0,
      data_contratacao || null, JSON.stringify(perm)]
   );
@@ -55,7 +55,7 @@ router.post('/', exigirRole('owner'), async (req, res) => {
 
 // PUT /api/profissionais/:id
 router.put('/:id', async (req, res) => {
-  const { nome, especialidade, telefone, notificar_whatsapp, ativo, ordem,
+  const { nome, especialidade, telefone, notificar_whatsapp, ativo, ordem, eh_responsavel,
           comissao_servico_percentual, comissao_produto_percentual, data_contratacao, permissoes } = req.body;
 
   let sql = `UPDATE profissionais SET `;
@@ -63,6 +63,7 @@ router.put('/:id', async (req, res) => {
   const fields = [
     ['nome', nome], ['especialidade', especialidade], ['telefone', telefone],
     ['notificar_whatsapp', notificar_whatsapp], ['ativo', ativo], ['ordem', ordem],
+    ['eh_responsavel', eh_responsavel],
     ['comissao_servico_percentual', comissao_servico_percentual],
     ['comissao_produto_percentual', comissao_produto_percentual],
     ['data_contratacao', data_contratacao],

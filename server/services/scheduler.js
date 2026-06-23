@@ -172,6 +172,74 @@ export async function notificarBarbeiroNovoAgendamento(barbeariaId, agendamentoI
 
 /**
  * ============================================================
+ * 1B. NOTIFICAR BARBEIRO/RESPONSÁVEL SOBRE CANCELAMENTO
+ * ============================================================
+ */
+export async function notificarBarberCancelamento(barbeariaId, agendamentoId) {
+  try {
+    const { rows } = await query(
+      `SELECT 
+          p.nome AS profissional_nome, 
+          p.telefone AS profissional_telefone,
+          p.notificar_whatsapp,
+          p.eh_responsavel,
+          c.nome AS cliente_nome, 
+          c.telefone AS cliente_telefone,
+          s.nome AS servico_nome,
+          a.data_hora
+         FROM agendamentos a
+         JOIN profissionais p ON p.id = a.profissional_id
+         LEFT JOIN clientes c ON c.id = a.cliente_id
+         LEFT JOIN servicos s ON s.id = a.servico_id
+        WHERE a.id = $1 AND a.barbearia_id = $2 AND a.status = 'cancelado'`,
+      [agendamentoId, barbeariaId]
+    );
+    
+    const d = rows[0];
+    if (!d) {
+      console.log(`⚠️  Agendamento ${agendamentoId} não encontrado ou não está cancelado`);
+      return { ok: false, motivo: 'agendamento_nao_encontrado' };
+    }
+    
+    if (d.notificar_whatsapp === false) {
+      return { ok: false, motivo: 'notificacao_desativada' };
+    }
+    
+    if (!d.profissional_telefone) {
+      console.log(`⚠️  Profissional sem telefone`);
+      return { ok: false, motivo: 'sem_telefone' };
+    }
+    
+    const { hora: horaFmt, completo: dataFmt } = formatarDataHoraWallClock(d.data_hora);
+    
+    const mensagem = 
+      `⚠️ *Cancelamento de agendamento*\n\n` +
+      `Olá ${d.profissional_nome}! Um agendamento foi cancelado:\n\n` +
+      `👤 Cliente: ${d.cliente_nome || 'Cliente'}\n` +
+      `📱 Contato: ${d.cliente_telefone || 'não informado'}\n` +
+      `✂️ Serviço: ${d.servico_nome || 'Atendimento'}\n` +
+      `📅 Era para: ${dataFmt}\n\n` +
+      `O horário volta a ficar disponível.`;
+    
+    await enviarMensagemEvolution(barbeariaId, d.profissional_telefone, mensagem);
+    
+    // Registra envio
+    await query(
+      `INSERT INTO whatsapp_mensagens (barbearia_id, agendamento_id, telefone, mensagem, tipo, status)
+       VALUES ($1, $2, $3, $4, 'cancelamento_barbeiro', 'enviada')`,
+      [barbeariaId, agendamentoId, d.profissional_telefone, mensagem]
+    );
+    
+    console.log(`✅ Barbeiro ${d.profissional_nome} notificado sobre cancelamento ${agendamentoId}`);
+    return { ok: true };
+  } catch (err) {
+    console.error(`❌ Erro ao notificar cancelamento:`, err.message);
+    return { ok: false, erro: err.message };
+  }
+}
+
+/**
+ * ============================================================
  * 2. ENVIAR LEMBRETES 30 MINUTOS ANTES
  * ============================================================
  */
