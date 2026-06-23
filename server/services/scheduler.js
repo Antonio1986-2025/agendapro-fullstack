@@ -26,9 +26,31 @@ let intervalId = null;
  * MENSAGENS PRÉ-FORMATADAS
  * ============================================================
  */
+/**
+ * Formata data/hora vinda do banco (string "2026-06-23 15:00:00") como "wall clock"
+ * Evita conversão de fuso (cliente em MS UTC-4 vê 15h, não 14h)
+ */
+function formatarDataHoraWallClock(dataHora) {
+  if (!dataHora) return { data: '', hora: '', completo: '' };
+  const s = String(dataHora);
+  // Match "YYYY-MM-DD HH:MM" ou "YYYY-MM-DDTHH:MM"
+  const m = s.match(/(\d{4})-(\d{2})-(\d{2})[T ](\d{2}):(\d{2})/);
+  if (!m) return { data: '', hora: '', completo: s };
+  const [, ano, mes, dia, hh, mm] = m;
+  const meses = ['janeiro','fevereiro','março','abril','maio','junho','julho','agosto','setembro','outubro','novembro','dezembro'];
+  const diasSemana = ['domingo','segunda-feira','terça-feira','quarta-feira','quinta-feira','sexta-feira','sábado'];
+  // Calcula dia da semana usando UTC para evitar conversões
+  const d = new Date(`${ano}-${mes}-${dia}T12:00:00Z`);
+  const ds = diasSemana[d.getUTCDay()];
+  return {
+    data: `${dia}/${mes}/${ano}`,
+    hora: `${hh}:${mm}`,
+    completo: `${ds}, ${parseInt(dia)} de ${meses[parseInt(mes) - 1]}, ${hh}:${mm}`,
+  };
+}
+
 function montarLembrete30Min({ clienteNome, servicoNome, profissionalNome, dataHora, barbeariaNome, endereco }) {
-  const data = new Date(dataHora);
-  const horaFmt = data.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
+  const { hora: horaFmt } = formatarDataHoraWallClock(dataHora);
   
   return (
     `⏰ *Lembrete do seu agendamento!*\n\n` +
@@ -55,11 +77,7 @@ function montarMensagemRetorno({ clienteNome, barbeariaNome, ultimoServico, prof
 }
 
 function montarNotificacaoBarbeiro({ profissionalNome, clienteNome, clienteTelefone, servicoNome, dataHora, observacoes }) {
-  const data = new Date(dataHora);
-  const dataFmt = data.toLocaleString('pt-BR', {
-    weekday: 'long', day: '2-digit', month: 'long',
-    hour: '2-digit', minute: '2-digit',
-  });
+  const { completo: dataFmt } = formatarDataHoraWallClock(dataHora);
   
   return (
     `🔔 *Novo agendamento!*\n\n` +

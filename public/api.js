@@ -2,6 +2,35 @@
  * AgendaPro - Cliente de API compartilhado
  * Gerencia token JWT, chamadas HTTP e protecao de paginas.
  */
+
+// ─────────────────────────────────────────────────────────────────────
+// HELPERS DE DATA/HORA (Wall Clock — sem conversão de fuso horário)
+// ─────────────────────────────────────────────────────────────────────
+// data_hora vem do backend como string ISO sem TZ ("2026-06-23T15:00:00")
+// Esses helpers extraem HH:MM literal da string, sem conversão de fuso.
+// Crítico para clientes em fusos diferentes do servidor (ex: MS UTC-4).
+
+window.formatarHora = function(dataHora) {
+  if (!dataHora) return '';
+  const m = String(dataHora).match(/(\d{2}):(\d{2})/);
+  return m ? `${m[1]}:${m[2]}` : '';
+};
+
+window.formatarData = function(dataHora) {
+  if (!dataHora) return '';
+  const m = String(dataHora).match(/(\d{4})-(\d{2})-(\d{2})/);
+  if (!m) return '';
+  const [, ano, mes, dia] = m;
+  return `${dia}/${mes}/${ano}`;
+};
+
+window.formatarDataHora = function(dataHora) {
+  if (!dataHora) return '';
+  const data = window.formatarData(dataHora);
+  const hora = window.formatarHora(dataHora);
+  return data && hora ? `${data} ${hora}` : (data || hora);
+};
+
 const API = (() => {
   const TOKEN_KEY = 'agendapro_token';
   const USER_KEY = 'agendapro_user';

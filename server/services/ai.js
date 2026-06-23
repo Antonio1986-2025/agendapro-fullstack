@@ -844,8 +844,9 @@ async function executarTool(ctx, toolName, args) {
         }
         
         const slots = estado.slots;
-        const dataHora = `${slots.data.valor.data}T${slots.horario.valor.hora}:00`;
-        const dh = new Date(dataHora);
+        // dataHoraStr = "2026-06-23 15:00:00" — relógio de parede, sem conversão de TZ
+        const dataHoraStr = `${slots.data.valor.data} ${slots.horario.valor.hora}:00`;
+        const dh = new Date(dataHoraStr.replace(' ', 'T'));
         
         if (isNaN(dh.getTime())) {
           return { resultado: { erro: 'Data/hora inválida.' } };
@@ -854,12 +855,12 @@ async function executarTool(ctx, toolName, args) {
           return { resultado: { erro: 'Não é possível agendar no passado.' } };
         }
         
-        // Verifica conflito
+        // Verifica conflito (passa STRING, não Date — evita conversão de TZ)
         const { rows: conflito } = await query(
           `SELECT id FROM agendamentos
-            WHERE barbearia_id = $1 AND profissional_id = $2 AND data_hora = $3
+            WHERE barbearia_id = $1 AND profissional_id = $2 AND data_hora = $3::timestamp
               AND status NOT IN ('cancelado') LIMIT 1`,
-          [barbeariaId, slots.profissional.valor.id, dh]
+          [barbeariaId, slots.profissional.valor.id, dataHoraStr]
         );
         if (conflito[0]) {
           return {
@@ -878,16 +879,16 @@ async function executarTool(ctx, toolName, args) {
           observacoes = `Agendado por ${slots.cliente.valor.nome} para ${slots.para_quem.valor.nome_pessoa}`;
         }
         
-        // CRIA O AGENDAMENTO
+        // CRIA O AGENDAMENTO (envia STRING para data_hora — sem conversão de TZ)
         const { rows } = await query(
           `INSERT INTO agendamentos
             (barbearia_id, cliente_id, servico_id, profissional_id, data_hora,
              duracao_minutos, preco, status, observacoes)
-           VALUES ($1, $2, $3, $4, $5, $6, $7, 'agendado', $8)
+           VALUES ($1, $2, $3, $4, $5::timestamp, $6, $7, 'agendado', $8)
            RETURNING id, data_hora`,
           [
             barbeariaId, clienteAlvoId, slots.servico.valor.id, slots.profissional.valor.id,
-            dh, slots.servico.valor.duracao, slots.servico.valor.preco, observacoes,
+            dataHoraStr, slots.servico.valor.duracao, slots.servico.valor.preco, observacoes,
           ]
         );
         
@@ -1130,6 +1131,12 @@ async function calcularHorariosDisponiveis(barbeariaId, dataYMD, profissionalId)
   );
   
   const setOcupados = new Set(ocupados.map(o => {
+    // data_hora vem como string "2026-06-23 15:00:00" (TIMESTAMP sem TZ)
+    // Extrai HH:MM direto da string para evitar conversão de fuso
+    const s = String(o.data_hora);
+    const m = s.match(/(\d{2}):(\d{2})/);
+    if (m) return `${m[1]}:${m[2]}`;
+    // Fallback se vier como Date
     const d = new Date(o.data_hora);
     return `${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}`;
   }));

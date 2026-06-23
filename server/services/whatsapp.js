@@ -73,12 +73,25 @@ export async function enviarMensagem(barbeariaId, { telefone, mensagem, tipo, ag
   }
 }
 
+/**
+ * Formata data/hora vinda do banco como "wall clock" (sem conversão de TZ)
+ * data_hora vem como string "2026-06-23 15:00:00" (TIMESTAMP sem TZ)
+ */
+function formatarDataHoraBR(dataHora) {
+  if (!dataHora) return '';
+  const s = String(dataHora);
+  const m = s.match(/(\d{4})-(\d{2})-(\d{2})[T ](\d{2}):(\d{2})/);
+  if (!m) return s;
+  const [, ano, mes, dia, hh, mm] = m;
+  const meses = ['janeiro','fevereiro','março','abril','maio','junho','julho','agosto','setembro','outubro','novembro','dezembro'];
+  const diasSemana = ['domingo','segunda-feira','terça-feira','quarta-feira','quinta-feira','sexta-feira','sábado'];
+  const d = new Date(`${ano}-${mes}-${dia}T12:00:00Z`);
+  const ds = diasSemana[d.getUTCDay()];
+  return `${ds}, ${parseInt(dia)} de ${meses[parseInt(mes) - 1]}, ${hh}:${mm}`;
+}
+
 export function textoConfirmacao({ clienteNome, barbeariaNome, servicoNome, profissionalNome, dataHora }) {
-  const data = new Date(dataHora);
-  const dataFmt = data.toLocaleString('pt-BR', {
-    weekday: 'long', day: '2-digit', month: 'long',
-    hour: '2-digit', minute: '2-digit',
-  });
+  const dataFmt = formatarDataHoraBR(dataHora);
   return (
     `Ola, ${clienteNome}! ✅\n\n` +
     `Seu agendamento na *${barbeariaNome}* foi confirmado:\n\n` +
@@ -90,11 +103,7 @@ export function textoConfirmacao({ clienteNome, barbeariaNome, servicoNome, prof
 }
 
 export function textoNotificacaoBarbeiro({ profissionalNome, clienteNome, clienteTelefone, servicoNome, dataHora, isEspecial }) {
-  const data = new Date(dataHora);
-  const dataFmt = data.toLocaleString('pt-BR', {
-    weekday: 'long', day: '2-digit', month: 'long',
-    hour: '2-digit', minute: '2-digit',
-  });
+  const dataFmt = formatarDataHoraBR(dataHora);
   return (
     `🔔 *Novo agendamento!*\n\n` +
     `Ola, ${profissionalNome}! Voce tem um novo cliente:\n\n` +

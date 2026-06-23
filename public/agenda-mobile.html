@@ -290,7 +290,7 @@
         cont.innerHTML = `<div class="empty"><i class="fas fa-calendar-check"></i>Nenhum agendamento neste dia.<br>Toque no + para criar.</div>`;
       } else {
         cont.innerHTML = ags.map(a => {
-          const hora = new Date(a.data_hora).toLocaleTimeString('pt-BR', { hour:'2-digit', minute:'2-digit' });
+          const hora = formatarHora(a.data_hora);
           return `
           <div class="ag-card st-${a.status}">
             <div class="ag-hora">${hora}</div>
@@ -346,7 +346,7 @@
 
       const mapa = {};
       ags.forEach(a => {
-        const h = new Date(a.data_hora).toLocaleTimeString('pt-BR', { hour:'2-digit', minute:'2-digit' });
+        const h = formatarHora(a.data_hora);
         const pn = a.profissional_nome || 'Sem profissional';
         if (!mapa[pn]) mapa[pn] = {};
         mapa[pn][h] = a;
