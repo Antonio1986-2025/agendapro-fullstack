@@ -361,3 +361,16 @@ CREATE TABLE IF NOT EXISTS solicitacoes_especiais (
 CREATE INDEX IF NOT EXISTS idx_solicitacoes_barbearia ON solicitacoes_especiais(barbearia_id);
 CREATE INDEX IF NOT EXISTS idx_solicitacoes_status ON solicitacoes_especiais(status);
 
+-- ---------- BLOQUEIOS (barbeiro bloqueia horarios livres) ----------
+CREATE TABLE IF NOT EXISTS bloqueios (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    barbearia_id UUID NOT NULL REFERENCES barbearias(id) ON DELETE CASCADE,
+    profissional_id UUID NOT NULL REFERENCES profissionais(id) ON DELETE CASCADE,
+    data_hora TIMESTAMP NOT NULL,
+    duracao_minutos INTEGER NOT NULL DEFAULT 30,
+    motivo VARCHAR(255),
+    created_at TIMESTAMPTZ DEFAULT now()
+);
+CREATE INDEX IF NOT EXISTS idx_bloqueios_barbearia ON bloqueios(barbearia_id);
+CREATE INDEX IF NOT EXISTS idx_bloqueios_prof_data ON bloqueios(profissional_id, data_hora);
+

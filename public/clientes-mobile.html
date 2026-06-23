@@ -153,6 +153,9 @@
   <script src="api.js?v=20260623"></script>
   <script>
     API.exigirLogin();
+    const user = API.getUser();
+    const isStaff = user && user.role === 'staff';
+
     function toggleTheme() {
       const html = document.documentElement;
       const isDark = html.getAttribute('data-theme') === 'dark';
@@ -163,14 +166,36 @@
     }
     if (localStorage.getItem('theme') === 'dark') { document.documentElement.setAttribute('data-theme','dark'); document.querySelectorAll('#theme-icon, #theme-icon-desk').forEach(el => el.className = 'fas fa-sun'); }
     document.addEventListener('DOMContentLoaded', function() {
-      const user = API.getUser();
       if (user) {
         const avatar = document.getElementById('sidebar-avatar');
         const name = document.getElementById('sidebar-name');
         const role = document.getElementById('sidebar-role');
         if (avatar) avatar.textContent = (user.nome || 'U').charAt(0).toUpperCase();
-        if (name) name.textContent = user.nome || 'Usuário';
-        if (role) role.textContent = user.role === 'owner' ? 'Proprietário' : user.role;
+        if (name) name.textContent = user.nome || 'Usuario';
+        if (role) role.textContent = user.role === 'owner' ? 'Proprietario' : user.role;
+      }
+
+      if (isStaff) {
+        // Sidebar simplificada para staff
+        document.querySelector('.sidebar-nav').innerHTML = `
+          <div class="nav-section">Principal</div>
+          <a href="barbeiro.html" class="sidebar-item"><i class="fas fa-calendar-day"></i> Minha Agenda</a>
+          <a href="clientes-mobile.html" class="sidebar-item active"><i class="fas fa-users"></i> Clientes</a>
+        `;
+        // Bottom nav simplificado para staff
+        document.querySelector('.nav-items').innerHTML = `
+          <a href="barbeiro.html" class="nav-item"><i class="nav-icon fas fa-calendar-day"></i><span class="nav-label">Agenda</span></a>
+          <a href="clientes-mobile.html" class="nav-item active"><i class="nav-icon fas fa-users"></i><span class="nav-label">Clientes</span></a>
+        `;
+        // Esconder FAB
+        const fab = document.querySelector('.fab');
+        if (fab) fab.style.display = 'none';
+        // Esconder modal
+        const modal = document.getElementById('modal');
+        if (modal) modal.style.display = 'none';
+        // Desktop header: voltar para barbeiro
+        const backBtn = document.querySelector('.header-content .back-btn');
+        if (backBtn) backBtn.onclick = function() { location.href = 'barbeiro.html'; };
       }
     });
 
@@ -189,7 +214,7 @@
     function render(lista) {
       const cont = document.getElementById('lista');
       if (!lista.length) {
-        cont.innerHTML = `<div class="empty"><i class="fas fa-users"></i>Nenhum cliente encontrado.<br>Toque no + para adicionar.</div>`;
+        cont.innerHTML = `<div class="empty"><i class="fas fa-users"></i>Nenhum cliente encontrado.${!isStaff ? '<br>Toque no + para adicionar.' : ''}</div>`;
       } else {
         cont.innerHTML = lista.map(c => `
           <div class="cli-card">
@@ -201,12 +226,12 @@
             </div>
             <div class="cli-actions">
               ${c.telefone ? `<button class="icon-btn wa" onclick="abrirWhats('${c.telefone}')"><i class="fab fa-whatsapp"></i></button>` : ''}
-              <button class="icon-btn" onclick='editar(${JSON.stringify(c)})'><i class="fas fa-pen"></i></button>
-              <button class="icon-btn danger" onclick="excluir('${c.id}','${c.nome.replace(/'/g,"")}')"><i class="fas fa-trash"></i></button>
+              ${!isStaff ? `<button class="icon-btn" onclick='editar(${JSON.stringify(c)})'><i class="fas fa-pen"></i></button>` : ''}
+              ${!isStaff ? `<button class="icon-btn danger" onclick="excluir('${c.id}','${c.nome.replace(/'/g,"")}')"><i class="fas fa-trash"></i></button>` : ''}
             </div>
           </div>`).join('');
       }
-      renderTabela(lista);
+      if (!isStaff) renderTabela(lista);
     }
 
     function renderTabela(lista) {

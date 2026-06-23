@@ -94,6 +94,17 @@ router.post('/', async (req, res) => {
     return res.status(409).json({ erro: 'Ja existe agendamento para este profissional neste horario' });
   }
 
+  // Verifica bloqueio de horario para o mesmo profissional
+  const bloqueado = await query(
+    `SELECT 1 FROM bloqueios
+      WHERE barbearia_id = $1 AND profissional_id = $2
+        AND data_hora = $3`,
+    [req.barbeariaId, profissional_id, data_hora]
+  );
+  if (bloqueado.rowCount > 0) {
+    return res.status(409).json({ erro: 'Este horario esta bloqueado para este profissional' });
+  }
+
   const { rows } = await query(
     `INSERT INTO agendamentos
        (barbearia_id, cliente_id, profissional_id, servico_id, data_hora, duracao_minutos, preco, is_especial, observacoes)

@@ -31,6 +31,7 @@ import publicoRoutes from './routes/publico.js';
 import comissoesRoutes from './routes/comissoes.js';
 import aiRoutes from './routes/ai.js';
 import adminRoutes from './routes/admin.js';
+import bloqueiosRoutes from './routes/bloqueios.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const PUBLIC_DIR = path.join(__dirname, '..', 'public');
@@ -74,6 +75,7 @@ app.use('/api/publico', publicoRoutes);
 app.use('/api/comissoes', comissoesRoutes);
 app.use('/api/ai', aiRoutes);
 app.use('/api/admin', adminRoutes);
+app.use('/api/bloqueios', bloqueiosRoutes);
 
 // ---------- FRONTEND ESTATICO ----------
 // no-cache durante desenvolvimento: garante que o navegador sempre pegue a versao nova
