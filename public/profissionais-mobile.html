@@ -201,11 +201,17 @@
 
       <hr style="border-color:var(--border-color);margin:var(--space-md) 0;">
 
-      <h3 style="font-size:var(--text-md);font-weight:var(--font-bold);margin-bottom:var(--space-md);">Permissões</h3>
+      <h3 style="font-size:var(--text-md);font-weight:var(--font-bold);margin-bottom:var(--space-md);">Permissoes</h3>
       <div class="switch-row"><label style="margin:0">Ver clientes</label><input type="checkbox" id="f-perm-clientes" checked style="width:20px;height:20px;"></div>
       <div class="switch-row"><label style="margin:0">Ver comandas</label><input type="checkbox" id="f-perm-comandas" checked style="width:20px;height:20px;"></div>
       <div class="switch-row"><label style="margin:0">Gerenciar agenda de todos</label><input type="checkbox" id="f-perm-gerenciar" style="width:20px;height:20px;"></div>
-      <div class="switch-row"><label style="margin:0">Ver relatórios</label><input type="checkbox" id="f-perm-relatorios" style="width:20px;height:20px;"></div>
+      <div class="switch-row"><label style="margin:0">Ver relatorios</label><input type="checkbox" id="f-perm-relatorios" style="width:20px;height:20px;"></div>
+      <div class="switch-row"><label style="margin:0">Acessar caixa</label><input type="checkbox" id="f-perm-caixa" style="width:20px;height:20px;"></div>
+      <div class="switch-row"><label style="margin:0">Gerenciar estoque</label><input type="checkbox" id="f-perm-estoque" style="width:20px;height:20px;"></div>
+      <div class="switch-row"><label style="margin:0">Criar/editar servicos</label><input type="checkbox" id="f-perm-servicos" style="width:20px;height:20px;"></div>
+      <div class="switch-row"><label style="margin:0">Configurar horarios</label><input type="checkbox" id="f-perm-horarios" style="width:20px;height:20px;"></div>
+      <div class="switch-row"><label style="margin:0">Configuracoes da barbearia</label><input type="checkbox" id="f-perm-configuracoes" style="width:20px;height:20px;"></div>
+      <div class="switch-row"><label style="margin:0">Cancelar agendamentos</label><input type="checkbox" id="f-perm-cancelar" style="width:20px;height:20px;"></div>
 
       <div style="display:flex; gap: var(--space-sm); margin-top: var(--space-lg);">
         <button class="btn btn-secondary btn-full" onclick="fecharModal()">Cancelar</button>
@@ -341,6 +347,12 @@
       document.getElementById('f-perm-comandas').checked = true;
       document.getElementById('f-perm-gerenciar').checked = false;
       document.getElementById('f-perm-relatorios').checked = false;
+      document.getElementById('f-perm-caixa').checked = false;
+      document.getElementById('f-perm-estoque').checked = false;
+      document.getElementById('f-perm-servicos').checked = false;
+      document.getElementById('f-perm-horarios').checked = false;
+      document.getElementById('f-perm-configuracoes').checked = false;
+      document.getElementById('f-perm-cancelar').checked = false;
       document.getElementById('modal-alerta').className = 'alert';
       document.getElementById('modal').classList.add('open');
     }
@@ -363,6 +375,12 @@
         document.getElementById('f-perm-comandas').checked = perm.comandas !== false;
         document.getElementById('f-perm-gerenciar').checked = perm.gerenciar_agenda === true;
         document.getElementById('f-perm-relatorios').checked = perm.relatorios === true;
+        document.getElementById('f-perm-caixa').checked = perm.caixa === true;
+        document.getElementById('f-perm-estoque').checked = perm.estoque === true;
+        document.getElementById('f-perm-servicos').checked = perm.servicos === true;
+        document.getElementById('f-perm-horarios').checked = perm.horarios === true;
+        document.getElementById('f-perm-configuracoes').checked = perm.configuracoes === true;
+        document.getElementById('f-perm-cancelar').checked = perm.cancelar_agendamento === true;
       }
       document.getElementById('modal-alerta').className = 'alert';
       document.getElementById('modal').classList.add('open');
@@ -385,6 +403,12 @@
           comandas: document.getElementById('f-perm-comandas').checked,
           gerenciar_agenda: document.getElementById('f-perm-gerenciar').checked,
           relatorios: document.getElementById('f-perm-relatorios').checked,
+          caixa: document.getElementById('f-perm-caixa').checked,
+          estoque: document.getElementById('f-perm-estoque').checked,
+          servicos: document.getElementById('f-perm-servicos').checked,
+          horarios: document.getElementById('f-perm-horarios').checked,
+          configuracoes: document.getElementById('f-perm-configuracoes').checked,
+          cancelar_agendamento: document.getElementById('f-perm-cancelar').checked,
         },
         criar_acesso: document.getElementById('f-criar-acesso').checked,
         email: document.getElementById('f-email').value.trim(),

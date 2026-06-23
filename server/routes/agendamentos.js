@@ -161,6 +161,13 @@ router.patch('/:id/status', async (req, res) => {
     }
   }
 
+  // 🛡️ PROTEÇÃO: Staff precisa de permissão 'cancelar_agendamento' para cancelar
+  if (status === 'cancelado' && req.contexto.role === 'staff') {
+    if (!req.contexto.permissoes?.cancelar_agendamento) {
+      return res.status(403).json({ erro: 'Voce nao tem permissao para cancelar agendamentos' });
+    }
+  }
+
   // LOG: Captura o status ANTERIOR antes de atualizar
   const { rows: anterior } = await query(
     `SELECT status, confirmacao_enviada_em, profissional_id FROM agendamentos WHERE id = $1 AND barbearia_id = $2`,

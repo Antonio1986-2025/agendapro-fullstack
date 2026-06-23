@@ -1,6 +1,7 @@
 import { Router } from 'express';
 import { query } from '../config/database.js';
 import { autenticar } from '../middleware/auth.js';
+import { requerPermissao } from '../middleware/permissoes.js';
 
 const router = Router();
 router.use(autenticar);
@@ -19,7 +20,7 @@ router.get('/especiais', async (req, res) => {
 });
 
 // PUT /api/horarios/especiais -> define (upsert) o estado de um slot especial
-router.put('/especiais', async (req, res) => {
+router.put('/especiais', requerPermissao('horarios'), async (req, res) => {
   const { profissional_id, horario, ativo } = req.body;
   if (!profissional_id || !horario) {
     return res.status(400).json({ erro: 'profissional_id e horario obrigatorios' });
@@ -36,7 +37,7 @@ router.put('/especiais', async (req, res) => {
 });
 
 // PUT /api/horarios/config -> atualiza janelas de funcionamento da barbearia
-router.put('/config', async (req, res) => {
+router.put('/config', requerPermissao('horarios'), async (req, res) => {
   const { horario_config } = req.body;
   const { rows } = await query(
     `UPDATE barbearias SET horario_config = $1 WHERE id = $2 RETURNING horario_config`,

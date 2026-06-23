@@ -1,13 +1,13 @@
 import { Router } from 'express';
 import { query } from '../config/database.js';
 import { autenticar } from '../middleware/auth.js';
-import { requerRole } from '../middleware/permissoes.js';
+import { requerPermissao } from '../middleware/permissoes.js';
 
 const router = Router();
 router.use(autenticar);
 
-// 🛡️ PROTEÇÃO: Apenas owner/admin podem gerenciar estoque
-router.use(requerRole(['owner', 'admin']));
+// 🛡️ PROTEÇÃO: Verifica permissão 'estoque'
+router.use(requerPermissao('estoque'));
 
 // GET /api/estoque
 router.get('/', async (req, res) => {

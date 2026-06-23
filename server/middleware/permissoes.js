@@ -40,9 +40,15 @@ async function carregarPermissoesStaff(usuarioId, barbeariaId) {
       profissional_nome: null,
       permissoes: {
         clientes: true,
-        comandas: false,
+        comandas: true,
         gerenciar_agenda: false,
         relatorios: false,
+        caixa: false,
+        estoque: false,
+        servicos: false,
+        horarios: false,
+        configuracoes: false,
+        cancelar_agendamento: false,
       },
     };
   }
@@ -52,9 +58,15 @@ async function carregarPermissoesStaff(usuarioId, barbeariaId) {
     profissional_nome: rows[0].profissional_nome,
     permissoes: rows[0].permissoes || {
       clientes: true,
-      comandas: false,
+      comandas: true,
       gerenciar_agenda: false,
       relatorios: false,
+      caixa: false,
+      estoque: false,
+      servicos: false,
+      horarios: false,
+      configuracoes: false,
+      cancelar_agendamento: false,
     },
   };
 }
@@ -143,6 +155,12 @@ export async function injetarContextoPermissoes(req, res, next) {
       comandas: true,
       gerenciar_agenda: true,
       relatorios: true,
+      caixa: true,
+      estoque: true,
+      servicos: true,
+      horarios: true,
+      configuracoes: true,
+      cancelar_agendamento: true,
     };
     return next();
   }
