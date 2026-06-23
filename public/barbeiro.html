@@ -153,10 +153,7 @@
           <button class="fab" onclick="abrirModalAgendamento()" title="Novo agendamento"><i class="fas fa-plus"></i></button>
           <button class="fab" style="bottom:150px;background:var(--bg-secondary);color:var(--text-primary);border:1px solid var(--border-color);" onclick="abrirModalBloqueio()" title="Bloquear horario"><i class="fas fa-ban"></i></button>
           <nav class="nav-inferior bottom-nav">
-            <div class="nav-itens">
-              <a href="#" class="nav-item active"><i class="nav-icon fas fa-calendar-day"></i><span class="nav-label">Agenda</span></a>
-              <a href="clientes-mobile.html" class="nav-item"><i class="nav-icon fas fa-users"></i><span class="nav-label">Clientes</span></a>
-            </div>
+            <div class="nav-itens" id="bottom-nav-itens"></div>
           </nav>
         </div>
       </div>
@@ -234,6 +231,37 @@
     let todasComissoes = [];
     let clientes = [];
     let servicos = [];
+    let permissoes = {};
+
+    function temPermissao(p) { return permissoes[p] === true; }
+
+    function montarSidebar() {
+      const nav = document.querySelector('.sidebar-nav');
+      let html = '<div class="nav-section">Principal</div>';
+      html += '<a href="barbeiro.html" class="sidebar-item active"><i class="fas fa-calendar-day"></i> Minha Agenda</a>';
+      if (temPermissao('clientes')) html += '<a href="clientes-mobile.html" class="sidebar-item"><i class="fas fa-users"></i> Clientes</a>';
+      if (temPermissao('gerenciar_agenda')) html += '<a href="agenda-mobile.html" class="sidebar-item"><i class="fas fa-calendar"></i> Agenda Geral</a>';
+      html += '<div class="nav-section">Operacao</div>';
+      if (temPermissao('caixa')) html += '<a href="financeiro-mobile.html" class="sidebar-item"><i class="fas fa-cash-register"></i> Caixa</a>';
+      if (temPermissao('comandas')) html += '<a href="comanda-detalhe.html" class="sidebar-item"><i class="fas fa-receipt"></i> Comandas</a>';
+      if (temPermissao('servicos')) html += '<a href="servicos-mobile.html" class="sidebar-item"><i class="fas fa-cut"></i> Servicos</a>';
+      if (temPermissao('estoque')) html += '<a href="estoque-mobile.html" class="sidebar-item"><i class="fas fa-boxes"></i> Estoque</a>';
+      html += '<div class="nav-section">Outros</div>';
+      if (temPermissao('horarios')) html += '<a href="horarios-especiais.html" class="sidebar-item"><i class="fas fa-clock"></i> Horarios</a>';
+      if (temPermissao('relatorios')) html += '<a href="relatorios-mobile.html" class="sidebar-item"><i class="fas fa-chart-bar"></i> Relatorios</a>';
+      if (temPermissao('configuracoes')) html += '<a href="configuracoes-mobile.html" class="sidebar-item"><i class="fas fa-cog"></i> Configuracoes</a>';
+      nav.innerHTML = html;
+    }
+
+    function montarBottomNav() {
+      const nav = document.getElementById('bottom-nav-itens');
+      if (!nav) return;
+      let html = '<a href="#" class="nav-item active"><i class="nav-icon fas fa-calendar-day"></i><span class="nav-label">Agenda</span></a>';
+      if (temPermissao('clientes')) html += '<a href="clientes-mobile.html" class="nav-item"><i class="nav-icon fas fa-users"></i><span class="nav-label">Clientes</span></a>';
+      if (temPermissao('caixa')) html += '<a href="financeiro-mobile.html" class="nav-item"><i class="nav-icon fas fa-cash-register"></i><span class="nav-label">Caixa</span></a>';
+      if (temPermissao('configuracoes')) html += '<a href="configuracoes-mobile.html" class="nav-item"><i class="nav-icon fas fa-cog"></i><span class="nav-label">Config</span></a>';
+      nav.innerHTML = html;
+    }
 
     function toggleTheme() {
       const html = document.documentElement;
@@ -525,6 +553,13 @@
         document.documentElement.setAttribute('data-theme', 'dark');
         document.querySelectorAll('#theme-icon, #theme-icon-desk').forEach(el => el.className = 'fas fa-sun');
       }
+
+      // Carrega permissoes do usuario
+      const user = API.getUser();
+      if (user && user.permissoes) permissoes = user.permissoes;
+      montarSidebar();
+      montarBottomNav();
+
       await carregar();
       refreshTimer = setInterval(carregar, 30000);
     });

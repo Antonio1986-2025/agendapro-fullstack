@@ -114,6 +114,16 @@ router.post('/login', async (req, res) => {
   if (!ok) return res.status(401).json({ erro: 'Credenciais invalidas' });
 
   const token = gerarToken(usuario);
+  
+  // Busca permissoes do profissional vinculado (se existir)
+  let permissoes = null;
+  if (usuario.profissional_id) {
+    const { rows: permRows } = await query(
+      'SELECT permissoes FROM profissionais WHERE id = $1', [usuario.profissional_id]
+    );
+    if (permRows[0]?.permissoes) permissoes = permRows[0].permissoes;
+  }
+  
   res.json({
     token,
     usuario: {
@@ -124,21 +134,32 @@ router.post('/login', async (req, res) => {
       barbearia_id: usuario.barbearia_id,
       barbearia_nome: usuario.barbearia_nome,
       barbearia_slug: usuario.barbearia_slug,
+      profissional_id: usuario.profissional_id || null,
+      permissoes,
     },
   });
 });
 
-// GET /api/auth/me  -> dados do usuario logado
+// GET /api/auth/me  -> dados do usuario logado (inclui permissoes do profissional)
 router.get('/me', autenticar, async (req, res) => {
   const { rows } = await query(
     `SELECT u.id, u.nome, u.email, u.role, u.barbearia_id, u.profissional_id,
-            b.nome AS barbearia_nome, b.slug AS barbearia_slug, b.horario_config
-       FROM usuarios u JOIN barbearias b ON b.id = u.barbearia_id
+            b.nome AS barbearia_nome, b.slug AS barbearia_slug, b.horario_config,
+            p.permissoes AS profissional_permissoes
+       FROM usuarios u
+       JOIN barbearias b ON b.id = u.barbearia_id
+       LEFT JOIN profissionais p ON p.id = u.profissional_id
       WHERE u.id = $1`,
     [req.user.sub]
   );
   if (!rows[0]) return res.status(404).json({ erro: 'Usuario nao encontrado' });
-  res.json(rows[0]);
+  const user = rows[0];
+  // Serializa permissoes para o frontend
+  if (user.profissional_permissoes && typeof user.profissional_permissoes === 'object') {
+    user.permissoes = user.profissional_permissoes;
+  }
+  delete user.profissional_permissoes;
+  res.json(user);
 });
 
 // GET /api/auth/setup-status -> quantos itens de setup faltam

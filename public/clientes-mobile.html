@@ -166,6 +166,9 @@
     API.exigirLogin();
     const user = API.getUser();
     const isStaff = user && user.role === 'staff';
+    const permissoes = (user && user.permissoes) || {};
+
+    function temPermissao(p) { return permissoes[p] === true; }
 
     function toggleTheme() {
       const html = document.documentElement;
@@ -187,15 +190,26 @@
       }
 
       if (isStaff) {
-        document.querySelector('.sidebar-nav').innerHTML = `
-          <div class="nav-section">Principal</div>
-          <a href="barbeiro.html" class="sidebar-item"><i class="fas fa-calendar-day"></i> Minha Agenda</a>
-          <a href="clientes-mobile.html" class="sidebar-item active"><i class="fas fa-users"></i> Clientes</a>
-        `;
-        document.querySelector('.nav-items').innerHTML = `
-          <a href="barbeiro.html" class="nav-item"><i class="nav-icon fas fa-calendar-day"></i><span class="nav-label">Agenda</span></a>
-          <a href="clientes-mobile.html" class="nav-item active"><i class="nav-icon fas fa-users"></i><span class="nav-label">Clientes</span></a>
-        `;
+        // Sidebar dinamica baseada em permissoes
+        let sidebarHtml = '<div class="nav-section">Principal</div>';
+        sidebarHtml += '<a href="barbeiro.html" class="sidebar-item"><i class="fas fa-calendar-day"></i> Minha Agenda</a>';
+        sidebarHtml += '<a href="clientes-mobile.html" class="sidebar-item active"><i class="fas fa-users"></i> Clientes</a>';
+        if (temPermissao('gerenciar_agenda')) sidebarHtml += '<a href="agenda-mobile.html" class="sidebar-item"><i class="fas fa-calendar"></i> Agenda Geral</a>';
+        if (temPermissao('caixa')) sidebarHtml += '<a href="financeiro-mobile.html" class="sidebar-item"><i class="fas fa-cash-register"></i> Caixa</a>';
+        if (temPermissao('comandas')) sidebarHtml += '<a href="comanda-detalhe.html" class="sidebar-item"><i class="fas fa-receipt"></i> Comandas</a>';
+        if (temPermissao('servicos')) sidebarHtml += '<a href="servicos-mobile.html" class="sidebar-item"><i class="fas fa-cut"></i> Servicos</a>';
+        if (temPermissao('estoque')) sidebarHtml += '<a href="estoque-mobile.html" class="sidebar-item"><i class="fas fa-boxes"></i> Estoque</a>';
+        if (temPermissao('horarios')) sidebarHtml += '<a href="horarios-especiais.html" class="sidebar-item"><i class="fas fa-clock"></i> Horarios</a>';
+        if (temPermissao('relatorios')) sidebarHtml += '<a href="relatorios-mobile.html" class="sidebar-item"><i class="fas fa-chart-bar"></i> Relatorios</a>';
+        if (temPermissao('configuracoes')) sidebarHtml += '<a href="configuracoes-mobile.html" class="sidebar-item"><i class="fas fa-cog"></i> Configuracoes</a>';
+        document.querySelector('.sidebar-nav').innerHTML = sidebarHtml;
+
+        // Bottom nav dinamico
+        let bottomHtml = '<a href="barbeiro.html" class="nav-item"><i class="nav-icon fas fa-calendar-day"></i><span class="nav-label">Agenda</span></a>';
+        bottomHtml += '<a href="clientes-mobile.html" class="nav-item active"><i class="nav-icon fas fa-users"></i><span class="nav-label">Clientes</span></a>';
+        if (temPermissao('caixa')) bottomHtml += '<a href="financeiro-mobile.html" class="nav-item"><i class="nav-icon fas fa-cash-register"></i><span class="nav-label">Caixa</span></a>';
+        if (temPermissao('configuracoes')) bottomHtml += '<a href="configuracoes-mobile.html" class="nav-item"><i class="nav-icon fas fa-cog"></i><span class="nav-label">Config</span></a>';
+        document.querySelector('.nav-items').innerHTML = bottomHtml;
         const fab = document.querySelector('.fab');
         if (fab) fab.style.display = 'none';
         const modal = document.getElementById('modal');
