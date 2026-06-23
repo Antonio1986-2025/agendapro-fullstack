@@ -58,6 +58,11 @@
     .filtro-row { display: flex; gap: var(--space-sm); margin-bottom: var(--space-md); }
     .filtro-btn { flex: 1; padding: var(--space-sm); border: 1px solid var(--border-color); border-radius: var(--radius-md); background: var(--bg-card); cursor: pointer; font-size: var(--text-sm); color: var(--text-secondary); text-align: center; }
     .filtro-btn.active { background: var(--primary); color: #fff; border-color: var(--primary); }
+@media (min-width: 768px) {
+    .mobile-app { max-width: 100%; padding: 0 var(--space-lg); }
+    .bottom-nav { display: none; }
+    .main-content { padding-bottom: var(--space-md); }
+  }
   </style>
 </head>
 <body>
