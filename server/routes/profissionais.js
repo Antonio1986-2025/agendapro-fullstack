@@ -96,3 +96,82 @@ router.delete('/:id', async (req, res) => {
 });
 
 export default router;
+
+// PATCH /api/profissionais/:id/permissoes - Endpoint dedicado para atualizar permissões
+router.patch('/:id/permissoes', exigirRole('owner', 'admin'), async (req, res) => {
+  const { clientes, comandas, gerenciar_agenda, relatorios } = req.body;
+  
+  // Valida que pelo menos uma permissão foi enviada
+  if (clientes === undefined && comandas === undefined && 
+      gerenciar_agenda === undefined && relatorios === undefined) {
+    return res.status(400).json({ 
+      erro: 'Envie pelo menos uma permissão',
+      permissoes_disponiveis: ['clientes', 'comandas', 'gerenciar_agenda', 'relatorios']
+    });
+  }
+  
+  // Busca permissões atuais
+  const { rows: atual } = await query(
+    `SELECT permissoes FROM profissionais WHERE id = $1 AND barbearia_id = $2`,
+    [req.params.id, req.barbeariaId]
+  );
+  
+  if (atual.length === 0) {
+    return res.status(404).json({ erro: 'Profissional não encontrado' });
+  }
+  
+  // Merge com permissões atuais (preserva outras permissões não enviadas)
+  const permissoesAtuais = atual[0].permissoes || {};
+  const novasPermissoes = {
+    clientes: clientes !== undefined ? clientes : permissoesAtuais.clientes,
+    comandas: comandas !== undefined ? comandas : permissoesAtuais.comandas,
+    gerenciar_agenda: gerenciar_agenda !== undefined ? gerenciar_agenda : permissoesAtuais.gerenciar_agenda,
+    relatorios: relatorios !== undefined ? relatorios : permissoesAtuais.relatorios,
+  };
+  
+  // Atualiza
+  const { rows } = await query(
+    `UPDATE profissionais SET permissoes = $1::jsonb
+      WHERE id = $2 AND barbearia_id = $3 RETURNING *`,
+    [JSON.stringify(novasPermissoes), req.params.id, req.barbeariaId]
+  );
+  
+  res.json({
+    sucesso: true,
+    profissional: rows[0].nome,
+    permissoes_anteriores: permissoesAtuais,
+    permissoes_novas: novasPermissoes,
+  });
+});
+
+// GET /api/profissionais/:id/permissoes - Ver permissões de um profissional
+router.get('/:id/permissoes', async (req, res) => {
+  const { rows } = await query(
+    `SELECT id, nome, permissoes FROM profissionais 
+      WHERE id = $1 AND barbearia_id = $2`,
+    [req.params.id, req.barbeariaId]
+  );
+  
+  if (rows.length === 0) {
+    return res.status(404).json({ erro: 'Profissional não encontrado' });
+  }
+  
+  const permissoes = rows[0].permissoes || {
+    clientes: true,
+    comandas: false,
+    gerenciar_agenda: false,
+    relatorios: false,
+  };
+  
+  res.json({
+    profissional_id: rows[0].id,
+    profissional_nome: rows[0].nome,
+    permissoes,
+    descricoes: {
+      clientes: 'Ver todos os clientes da barbearia',
+      comandas: 'Acessar e gerenciar comandas',
+      gerenciar_agenda: 'Ver agenda de todos os profissionais (padrão: apenas própria agenda)',
+      relatorios: 'Acessar dashboard e relatórios financeiros',
+    },
+  });
+});
