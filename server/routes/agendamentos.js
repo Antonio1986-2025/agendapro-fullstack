@@ -120,6 +120,13 @@ router.patch('/:id/status', async (req, res) => {
     return res.status(400).json({ erro: 'Status invalido' });
   }
 
+  // LOG: Captura o status ANTERIOR antes de atualizar
+  const { rows: anterior } = await query(
+    `SELECT status, confirmacao_enviada_em FROM agendamentos WHERE id = $1 AND barbearia_id = $2`,
+    [req.params.id, req.barbeariaId]
+  );
+  console.log(`📝 [PATCH /status] ID: ${req.params.id} | Status ANTERIOR: ${anterior[0]?.status} → NOVO: ${status}`);
+
   const { rows } = await query(
     `UPDATE agendamentos SET status = $1
       WHERE id = $2 AND barbearia_id = $3 RETURNING *`,
@@ -128,31 +135,51 @@ router.patch('/:id/status', async (req, res) => {
   if (!rows[0]) return res.status(404).json({ erro: 'Agendamento nao encontrado' });
   const ag = rows[0];
 
-  // Ao confirmar, dispara WhatsApp para o cliente
+  // Ao confirmar, dispara WhatsApp para o cliente (COM PROTEÇÃO ANTI-DUPLICATA)
   if (status === 'confirmado' && ag.cliente_id) {
-    const det = await query(
-      `SELECT c.nome AS cliente_nome, c.telefone, b.nome AS barbearia_nome,
-              p.nome AS profissional_nome, s.nome AS servico_nome
-         FROM agendamentos a
-         JOIN clientes c ON c.id = a.cliente_id
-         JOIN barbearias b ON b.id = a.barbearia_id
-         JOIN profissionais p ON p.id = a.profissional_id
-         LEFT JOIN servicos s ON s.id = a.servico_id
-        WHERE a.id = $1`,
-      [ag.id]
-    );
-    const d = det.rows[0];
-    if (d?.telefone) {
-      const msg = textoConfirmacao({
-        clienteNome: d.cliente_nome,
-        barbeariaNome: d.barbearia_nome,
-        servicoNome: d.servico_nome || 'Atendimento',
-        profissionalNome: d.profissional_nome,
-        dataHora: ag.data_hora,
-      });
-      enviarMensagem(req.barbeariaId, {
-        telefone: d.telefone, mensagem: msg, tipo: 'confirmacao', agendamentoId: ag.id,
-      }).catch((e) => console.error('WhatsApp falhou:', e.message));
+    // 🛡️ PROTEÇÃO: Não envia se status anterior já era "confirmado" OU se já enviou antes
+    if (anterior[0]?.status === 'confirmado') {
+      console.log(`⏭️  [ANTI-DUPLICATA] Status já era "confirmado", não reenvia confirmação`);
+    } else if (anterior[0]?.confirmacao_enviada_em) {
+      console.log(`⏭️  [ANTI-DUPLICATA] Confirmação já foi enviada em ${anterior[0].confirmacao_enviada_em}, não reenvia`);
+    } else {
+      const det = await query(
+        `SELECT c.nome AS cliente_nome, c.telefone, b.nome AS barbearia_nome,
+                p.nome AS profissional_nome, s.nome AS servico_nome
+           FROM agendamentos a
+           JOIN clientes c ON c.id = a.cliente_id
+           JOIN barbearias b ON b.id = a.barbearia_id
+           JOIN profissionais p ON p.id = a.profissional_id
+           LEFT JOIN servicos s ON s.id = a.servico_id
+          WHERE a.id = $1`,
+        [ag.id]
+      );
+      const d = det.rows[0];
+      if (d?.telefone) {
+        console.log(`📤 Enviando confirmação para ${d.telefone}`);
+        const msg = textoConfirmacao({
+          clienteNome: d.cliente_nome,
+          barbeariaNome: d.barbearia_nome,
+          servicoNome: d.servico_nome || 'Atendimento',
+          profissionalNome: d.profissional_nome,
+          dataHora: ag.data_hora,
+        });
+        
+        // Marca ANTES de enviar (evita race condition se houver múltiplas requisições simultâneas)
+        await query(
+          `UPDATE agendamentos SET confirmacao_enviada_em = now() WHERE id = $1`,
+          [ag.id]
+        );
+        
+        enviarMensagem(req.barbeariaId, {
+          telefone: d.telefone, mensagem: msg, tipo: 'confirmacao', agendamentoId: ag.id,
+        }).catch((e) => {
+          console.error('WhatsApp falhou:', e.message);
+          // Se falhar, remove a marca para poder tentar novamente
+          query(`UPDATE agendamentos SET confirmacao_enviada_em = NULL WHERE id = $1`, [ag.id])
+            .catch(() => {});
+        });
+      }
     }
   }
 

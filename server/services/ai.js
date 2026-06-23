@@ -938,6 +938,7 @@ async function executarTool(ctx, toolName, args) {
         }
         
         // CRIA O AGENDAMENTO (envia STRING para data_hora — sem conversão de TZ)
+        console.log(`   🔨 CRIANDO AGENDAMENTO: ${slots.servico.valor.nome} | ${dataHoraStr} | Cliente: ${clienteAlvoId}`);
         const { rows } = await query(
           `INSERT INTO agendamentos
             (barbearia_id, cliente_id, servico_id, profissional_id, data_hora,
@@ -951,7 +952,7 @@ async function executarTool(ctx, toolName, args) {
         );
         
         const agendamentoId = rows[0].id;
-        console.log(`   ✅ AGENDAMENTO CRIADO: ${agendamentoId}`);
+        console.log(`   ✅ AGENDAMENTO CRIADO: ${agendamentoId} | Data/Hora: ${rows[0].data_hora}`);
         
         // Cria comanda automaticamente
         try {

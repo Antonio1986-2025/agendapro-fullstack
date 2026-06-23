@@ -125,6 +125,12 @@ router.post('/webhook/evolution/:barbeariaId', async (req, res) => {
  * Processa mensagem recebida via webhook
  */
 async function processarMensagemRecebida(barbeariaId, telefone, mensagem) {
+  const timestamp = new Date().toISOString();
+  console.log(`\n🔵 [${timestamp}] ====== PROCESSAR MENSAGEM WEBHOOK ======`);
+  console.log(`🏪 Barbearia: ${barbeariaId}`);
+  console.log(`📞 Telefone: ${telefone}`);
+  console.log(`💬 Mensagem: "${mensagem}"`);
+  
   try {
     const cfg = await query(
       `SELECT ai_enabled, ai_prompt,

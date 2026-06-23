@@ -339,6 +339,7 @@ ALTER TABLE whatsapp_config ADD COLUMN IF NOT EXISTS evolution_phone VARCHAR(30)
 -- Controle de notificações automáticas em agendamentos
 ALTER TABLE agendamentos ADD COLUMN IF NOT EXISTS lembrete_enviado_em TIMESTAMPTZ;
 ALTER TABLE agendamentos ADD COLUMN IF NOT EXISTS notificacao_barbeiro_enviada_em TIMESTAMPTZ;
+ALTER TABLE agendamentos ADD COLUMN IF NOT EXISTS confirmacao_enviada_em TIMESTAMPTZ;
 
 -- Controle de mensagem de retorno (20 dias depois) - por cliente
 ALTER TABLE clientes ADD COLUMN IF NOT EXISTS ultimo_servico_em TIMESTAMPTZ;
