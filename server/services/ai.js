@@ -1905,7 +1905,7 @@ export async function processarMensagem(barbeariaId, barbeariaNome, mensagemClie
         model: MODEL_NAME,
         messages,
         tools,
-        tool_choice: 'auto',
+        tool_choice: ctx.estado.fluxo_ativo ? 'required' : 'auto',
         temperature: 0.4,
         max_tokens: 600,
       });
