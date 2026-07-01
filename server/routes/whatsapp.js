@@ -82,8 +82,10 @@ router.post('/webhook/evolution/:barbeariaId', async (req, res) => {
         historico = typeof conv[0].historico === 'string'
           ? JSON.parse(conv[0].historico)
           : conv[0].historico;
-        // Remove mensagens de tool que possam ter sido salvas anteriormente
-        historico = historico.filter(m => m.role !== 'tool');
+        // Remove mensagens de tool e assistant com tool_calls que possam ter sido salvas
+        historico = historico.filter(m => 
+          m.role === 'user' || (m.role === 'assistant' && !m.tool_calls)
+        );
       }
     } catch {}
 
