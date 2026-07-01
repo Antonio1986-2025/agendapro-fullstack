@@ -43,6 +43,10 @@ async function isBaileysAtivo(barbeariaId) {
 
 export async function conectarBaileys(barbeariaId) {
   if (connecting.has(barbeariaId)) {
+    const existing = connections.get(barbeariaId);
+    if (existing?.qrCode) {
+      return { status: 'connecting', ja_conectando: true, qrCode: existing.qrCode, qrCodeBase64: existing.qrCodeBase64 };
+    }
     return { status: 'connecting', ja_conectando: true };
   }
   if (connections.has(barbeariaId)) {
