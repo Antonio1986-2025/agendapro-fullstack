@@ -232,12 +232,17 @@ export async function conectarBaileys(barbeariaId) {
     }
   });
 
-  } finally {
-    connecting.delete(barbeariaId);
-  }
-
   const qrResult = await qrPromise;
   return { status: 'connecting', qrCode: qrResult?.qrCode || null, qrCodeBase64: qrResult?.qrCodeBase64 || null };
+
+  const qrResult = await qrPromise;
+  connecting.delete(barbeariaId);
+  return { status: 'connecting', qrCode: qrResult?.qrCode || null, qrCodeBase64: qrResult?.qrCodeBase64 || null };
+
+  } catch (err) {
+    connecting.delete(barbeariaId);
+    throw err;
+  }
 }
 
 export async function getStatusBaileys(barbeariaId) {
