@@ -41,6 +41,39 @@ async function isBaileysAtivo(barbeariaId) {
   return cfg && cfg.provider === 'baileys' && cfg.enabled === true;
 }
 
+function temAuthState(barbeariaId) {
+  const dir = getAuthDir(barbeariaId);
+  const credsFile = path.join(dir, 'creds.json');
+  return fs.existsSync(credsFile);
+}
+
+export async function limparSessoesStale() {
+  try {
+    const { rows } = await query(
+      `SELECT barbearia_id FROM whatsapp_config
+        WHERE provider = 'baileys' AND session_status = 'connected'`
+    );
+    
+    let limpas = 0;
+    for (const row of rows) {
+      if (!temAuthState(row.barbearia_id)) {
+        await query(
+          `UPDATE whatsapp_config SET session_status = 'disconnected', qr_code = NULL, updated_at = now()
+            WHERE barbearia_id = $1`,
+          [row.barbearia_id]
+        );
+        limpas++;
+        console.log(`🧹 Sessão stale limpa para barbearia ${row.barbearia_id} (auth state perdido)`);
+      }
+    }
+    if (limpas > 0) {
+      console.log(`🧹 ${limpas} sessão(ões) stale limpa(s) no startup`);
+    }
+  } catch (err) {
+    console.error('❌ Erro ao limpar sessões stale:', err.message);
+  }
+}
+
 export async function conectarBaileys(barbeariaId) {
   if (connecting.has(barbeariaId)) {
     const existing = connections.get(barbeariaId);
@@ -342,6 +375,15 @@ export async function reconectarTodasBaileys() {
     for (const b of rows) {
       const conn = connections.get(b.barbearia_id);
       if (!conn || conn.status !== 'connected') {
+        if (!temAuthState(b.barbearia_id)) {
+          console.log(`   ⚠️  ${b.barbearia_id}: auth state perdido, pulando reconexão`);
+          await query(
+            `UPDATE whatsapp_config SET session_status = 'disconnected', qr_code = NULL, updated_at = now()
+              WHERE barbearia_id = $1`,
+            [b.barbearia_id]
+          );
+          continue;
+        }
         console.log(`   🔄 Reconectando ${b.barbearia_id}...`);
         conectarBaileys(b.barbearia_id).catch(e =>
           console.error(`   ❌ Falha ao reconectar ${b.barbearia_id}:`, e.message)

@@ -117,6 +117,16 @@ async function start() {
     console.log(`Frontend: http://localhost:${PORT}`);
     console.log(`API health: http://localhost:${PORT}/api/health`);
     
+    // Limpa sessões stale (auth state perdido em deploys Railway)
+    setTimeout(async () => {
+      try {
+        const { limparSessoesStale } = await import('./services/baileys-provider.js');
+        await limparSessoesStale();
+      } catch (err) {
+        console.error(`⚠️  Limpeza stale:`, err.message);
+      }
+    }, 2000);
+    
     // Inicializa Baileys (WhatsApp nativo)
     setTimeout(async () => {
       try {
