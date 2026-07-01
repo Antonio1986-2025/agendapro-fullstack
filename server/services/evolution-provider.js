@@ -67,7 +67,7 @@ export async function criarInstancia(barbeariaId) {
       },
     });
     
-    const instanceApiKey = response.data.hash?.apikey || response.data.hash || '';
+    const instanceApiKey = response.data.hash?.apikey || response.data.hash || response.data.token || '';
     
     // Salva dados da instância no banco
     await query(
@@ -82,6 +82,7 @@ export async function criarInstancia(barbeariaId) {
     );
     
     console.log(`✅ Instância criada com sucesso: ${instanceName}`);
+    console.log(`   API Key: ${instanceApiKey.substring(0, 8)}...`);
     
     return {
       instanceName,
