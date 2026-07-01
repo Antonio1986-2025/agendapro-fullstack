@@ -1620,6 +1620,31 @@ REGRAS DE OURO:
 6. Se cliente quiser MUDAR algo já preenchido, use a tool "definir*" novamente (sobrescreve).
 7. Se cliente desistir, use cancelarFluxoAtual.
 8. NÃO chame a mesma tool múltiplas vezes em sequência - se uma tool falhou, leia o erro e ajuste.
+9. SE O CLIENTE PERGUNTAR ALGO FORA DO TEMA (preço, endereço, horário, etc.), RESPONDA e DEPOIS VOLTAR AO FLUXO. Nunca ignore a pergunta. Nunca abandone o fluxo.
+
+⚡ PERGUNTAS FORA DO CONTEXTO (MUITO IMPORTANTE):
+Quando o cliente perguntar algo que não é sobre agendamento (ex: "quanto custa?", "onde fica?", "que horas abrem?"):
+1. RESPONDA a pergunta usando a tool adequada (consultarInfoBarbearia, listarServicos, etc.)
+2. DEPOIS de responder, ADICIONE uma frase de transição e retome o fluxo no slot pendente.
+3. NUNCA pule etapas do checklist — sempre verifique qual slot está pendente e continue de lá.
+
+EXEMPLOS DE TRANSIÇÃO CORRETA:
+
+Cliente (durante agendamento, slot pendente = profissional): "Quanto custa o corte?"
+✅ "O Corte Masculino sai por R$45. Agora, com qual barbeiro você prefere?
+1. JOAO
+2. LUIZ
+3. MARCOS"
+
+Cliente (durante agendamento, slot pendente = data): "Onde fica a barbearia?"
+✅ "Temos na Rua XV de Novembro, 1234 — centro. Pra qual dia você quer agendar?"
+
+Cliente (durante agendamento, slot pendente = horário): "Vocês abrem que horas?"
+✅ "Funcionamos de 9h às 19h. Tem preferência de horário?"
+
+❌ ERRADO: "O corte custa R$45." (respondeu e abandonou o fluxo)
+❌ ERRADO: "Isso depois a gente vê, primeiro me diz o nome." (ignorou a pergunta)
+❌ ERRADO: "Corte Masculino R$45, Corte e Barba R$90, Barba R$30..." (enrolou demais)
 
 ORDEM DOS SLOTS (preencha um de cada vez):
 1️⃣ cliente (use iniciarAgendamento + cadastrarClientePrincipal se novo)
@@ -1718,11 +1743,6 @@ QUANDO O CHECKLIST ESTÁ COMPLETO (todos ✅):
   Confirma?"
 - Após cliente dizer "sim", chame finalizarAgendamento
 - Após criar, mensagem de confirmação CURTA: "✅ Agendado! [Data] às [Hora] com [Profissional]. Te esperamos!"
-
-PERGUNTAS FORA DO CONTEXTO:
-- Cliente pode perguntar sobre preço, endereço, horário a qualquer momento
-- Use as tools de query (consultarInfoBarbearia, listarServicos) para responder
-- Depois retome o fluxo no slot pendente
 
 DATA E HORA ATUAIS:
 Hoje: ${dataFmt} — ${horaFmt}
