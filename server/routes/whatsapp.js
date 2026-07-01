@@ -82,12 +82,14 @@ router.post('/webhook/evolution/:barbeariaId', async (req, res) => {
         historico = typeof conv[0].historico === 'string'
           ? JSON.parse(conv[0].historico)
           : conv[0].historico;
+        // Remove mensagens de tool que possam ter sido salvas anteriormente
+        historico = historico.filter(m => m.role !== 'tool');
       }
     } catch {}
 
     // Processa com IA
     const { processarMensagem } = await import('../services/ai.js');
-    const { resposta, toolInteractionMessages } = await processarMensagem(
+    const { resposta } = await processarMensagem(
       barbeariaId, barbeariaNome, texto, historico,
       wc[0]?.ai_prompt || null, remoteJid
     );
@@ -96,13 +98,9 @@ router.post('/webhook/evolution/:barbeariaId', async (req, res) => {
       // Envia resposta via Evolution API
       await enviarMensagemEvolution(barbeariaId, telefone, resposta);
 
-      // Salva histórico COM contexto das tools para manter continuidade
-      historico.push({ role: 'user', content: texto });
-      if (toolInteractionMessages && toolInteractionMessages.length > 0) {
-        historico.push(...toolInteractionMessages);
-      }
-      historico.push({ role: 'assistant', content: resposta });
-      const limitado = historico.slice(-40);
+      // Salva histórico (só user + assistant, tool calls são gerenciados pelo estado)
+      historico.push({ role: 'user', content: texto }, { role: 'assistant', content: resposta });
+      const limitado = historico.slice(-30);
 
       await query(
         `INSERT INTO ai_conversas (barbearia_id, cliente_telefone, historico, ultima_interacao)
