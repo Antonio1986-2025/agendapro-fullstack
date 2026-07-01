@@ -10,7 +10,7 @@
  */
 
 import { query } from '../config/database.js';
-import { enviarMensagemBaileys } from './baileys-provider.js';
+import { enviarMensagem } from './whatsapp.js';
 
 // Intervalos em milissegundos
 const INTERVALO_VERIFICACAO = 5 * 60 * 1000; // 5 minutos
@@ -147,7 +147,7 @@ export async function notificarBarbeiroNovoAgendamento(barbeariaId, agendamentoI
       observacoes: d.observacoes,
     });
     
-    await enviarMensagemBaileys(barbeariaId, d.profissional_telefone, mensagem);
+    await enviarMensagem(barbeariaId, { telefone: d.profissional_telefone, mensagem, tipo: 'notificacao_barbeiro' });
     
     // Registra envio
     await query(
@@ -221,7 +221,7 @@ export async function notificarBarberCancelamento(barbeariaId, agendamentoId) {
       `📅 Era para: ${dataFmt}\n\n` +
       `O horário volta a ficar disponível.`;
     
-    await enviarMensagemBaileys(barbeariaId, d.profissional_telefone, mensagem);
+    await enviarMensagem(barbeariaId, { telefone: d.profissional_telefone, mensagem, tipo: 'notificacao_barbeiro' });
     
     // Registra envio
     await query(
@@ -283,7 +283,7 @@ async function enviarLembretes30Min() {
           endereco: ag.endereco,
         });
         
-        await enviarMensagemBaileys(ag.barbearia_id, ag.cliente_telefone, mensagem);
+        await enviarMensagem(ag.barbearia_id, { telefone: ag.cliente_telefone, mensagem, tipo: 'lembrete_cliente' });
         
         await query(
           `INSERT INTO whatsapp_mensagens (barbearia_id, agendamento_id, telefone, mensagem, tipo, status)
@@ -383,7 +383,7 @@ async function enviarMensagensRetorno() {
           profissionalNome: cli.ultimo_profissional,
         });
         
-        await enviarMensagemBaileys(cli.barbearia_id, cli.telefone, mensagem);
+        await enviarMensagem(cli.barbearia_id, { telefone: cli.telefone, mensagem, tipo: 'retorno_cliente' });
         
         await query(
           `INSERT INTO whatsapp_mensagens (barbearia_id, telefone, mensagem, tipo, status)
@@ -417,12 +417,19 @@ async function executarVerificacoes() {
   console.log(`\n⏰ ====== SCHEDULER (${new Date().toLocaleString('pt-BR')}) ======`);
   
   try {
-    // 1. Reconecta instâncias Baileys offline (importante para resiliência)
+    // 1. Reconecta instâncias offline (Baileys e Evolution)
     try {
       const { reconectarTodasBaileys } = await import('./baileys-provider.js');
       await reconectarTodasBaileys();
     } catch (err) {
-      console.error(`⚠️  Falha ao verificar reconexões:`, err.message);
+      console.error(`⚠️  Falha ao reconectar Baileys:`, err.message);
+    }
+    
+    try {
+      const { reconectarTodasOffline } = await import('./evolution-provider.js');
+      await reconectarTodasOffline();
+    } catch (err) {
+      console.error(`⚠️  Falha ao reconectar Evolution:`, err.message);
     }
     
     // 2. Lembretes 30min

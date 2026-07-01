@@ -9,6 +9,14 @@ import {
   getQRCodeBaileys,
   enviarMensagemBaileys,
 } from '../services/baileys-provider.js';
+import {
+  criarInstancia,
+  conectarInstancia,
+  getStatusInstancia,
+  desconectarInstancia,
+  deletarInstancia,
+  enviarMensagemEvolution,
+} from '../services/evolution-provider.js';
 import { processarMensagem, getConversa, salvarConversa } from '../services/ai.js';
 
 const router = Router();
@@ -73,30 +81,61 @@ router.put('/config', async (req, res) => {
   }
 });
 
-// POST /api/whatsapp/conectar -> conecta via Baileys
+// POST /api/whatsapp/conectar -> conecta via Baileys ou Evolution API
 router.post('/conectar', async (req, res) => {
   try {
-    await query(
-      `INSERT INTO whatsapp_config (barbearia_id, provider, enabled, updated_at)
-       VALUES ($1, 'baileys', true, now())
-       ON CONFLICT (barbearia_id) DO UPDATE SET 
-          provider = 'baileys', 
-          enabled = true, 
-          updated_at = now()`,
+    const { rows: existing } = await query(
+      `SELECT provider FROM whatsapp_config WHERE barbearia_id = $1`,
       [req.barbeariaId]
     );
-
-    const result = await conectarBaileys(req.barbeariaId);
-
-    res.json({
-      ok: true,
-      provider: 'baileys',
-      qr: result.qrCode || null,
-      qrBase64: result.qrCodeBase64 || null,
-      status: result.status,
-    });
+    
+    const provider = existing[0]?.provider || 'baileys';
+    const useEvolution = provider === 'evolution' || process.env.EVOLUTION_API_URL;
+    
+    if (useEvolution) {
+      await query(
+        `INSERT INTO whatsapp_config (barbearia_id, provider, enabled, updated_at)
+         VALUES ($1, 'evolution', true, now())
+         ON CONFLICT (barbearia_id) DO UPDATE SET 
+            provider = 'evolution', 
+            enabled = true, 
+            updated_at = now()`,
+        [req.barbeariaId]
+      );
+      
+      await criarInstancia(req.barbeariaId);
+      const result = await conectarInstancia(req.barbeariaId);
+      
+      res.json({
+        ok: true,
+        provider: 'evolution',
+        qr: result.qr || null,
+        qrBase64: result.qr || null,
+        status: result.status,
+      });
+    } else {
+      await query(
+        `INSERT INTO whatsapp_config (barbearia_id, provider, enabled, updated_at)
+         VALUES ($1, 'baileys', true, now())
+         ON CONFLICT (barbearia_id) DO UPDATE SET 
+            provider = 'baileys', 
+            enabled = true, 
+            updated_at = now()`,
+        [req.barbeariaId]
+      );
+      
+      const result = await conectarBaileys(req.barbeariaId);
+      
+      res.json({
+        ok: true,
+        provider: 'baileys',
+        qr: result.qrCode || null,
+        qrBase64: result.qrCodeBase64 || null,
+        status: result.status,
+      });
+    }
   } catch (err) {
-    console.error('Erro ao conectar Baileys:', err.message);
+    console.error('Erro ao conectar WhatsApp:', err.message);
     res.status(500).json({
       erro: err.message,
       dica: 'Verifique os logs do servidor para mais detalhes',
@@ -120,14 +159,26 @@ router.get('/qrcode', async (req, res) => {
 // GET /api/whatsapp/status
 router.get('/status', async (req, res) => {
   try {
-    const stat = await getStatusBaileys(req.barbeariaId);
+    const { rows } = await query(
+      `SELECT provider FROM whatsapp_config WHERE barbearia_id = $1`,
+      [req.barbeariaId]
+    );
+    const provider = rows[0]?.provider || 'baileys';
+    
+    let stat;
+    if (provider === 'evolution') {
+      stat = await getStatusInstancia(req.barbeariaId);
+    } else {
+      stat = await getStatusBaileys(req.barbeariaId);
+    }
+    
     try {
       await query(
         `UPDATE whatsapp_config SET session_status = $1 WHERE barbearia_id = $2`,
         [stat.status, req.barbeariaId]
       );
     } catch {}
-    res.json({ status: stat.status, telefone: stat.telefone, provider: 'baileys' });
+    res.json({ status: stat.status, telefone: stat.telefone, provider });
   } catch (err) {
     res.status(500).json({ erro: err.message });
   }
@@ -136,7 +187,17 @@ router.get('/status', async (req, res) => {
 // POST /api/whatsapp/desconectar
 router.post('/desconectar', async (req, res) => {
   try {
-    await desconectarBaileys(req.barbeariaId);
+    const { rows } = await query(
+      `SELECT provider FROM whatsapp_config WHERE barbearia_id = $1`,
+      [req.barbeariaId]
+    );
+    const provider = rows[0]?.provider || 'baileys';
+    
+    if (provider === 'evolution') {
+      await desconectarInstancia(req.barbeariaId);
+    } else {
+      await desconectarBaileys(req.barbeariaId);
+    }
     res.json({ ok: true });
   } catch (err) {
     res.status(500).json({ erro: err.message });
@@ -501,13 +562,24 @@ router.post('/enviar', async (req, res) => {
   }
 
   try {
-    await enviarMensagemBaileys(req.barbeariaId, telefone, mensagem);
+    const { rows } = await query(
+      `SELECT provider FROM whatsapp_config WHERE barbearia_id = $1`,
+      [req.barbeariaId]
+    );
+    const provider = rows[0]?.provider || 'baileys';
+    
+    if (provider === 'evolution') {
+      await enviarMensagemEvolution(req.barbeariaId, telefone, mensagem);
+    } else {
+      await enviarMensagemBaileys(req.barbeariaId, telefone, mensagem);
+    }
+    
     await query(
       `INSERT INTO whatsapp_mensagens (barbearia_id, telefone, mensagem, tipo, status)
        VALUES ($1, $2, $3, 'manual', 'enviada')`,
       [req.barbeariaId, telefone, mensagem]
     );
-    res.json({ ok: true, provider: 'baileys', status: 'enviada' });
+    res.json({ ok: true, provider, status: 'enviada' });
   } catch (err) {
     await query(
       `INSERT INTO whatsapp_mensagens (barbearia_id, telefone, mensagem, tipo, status)
