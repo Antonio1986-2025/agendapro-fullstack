@@ -131,7 +131,7 @@ export async function conectarBaileys(barbeariaId) {
 
     if (connection === 'close') {
       const statusCode = lastDisconnect?.error?.output?.statusCode;
-      const shouldReconnect = statusCode !== DisconnectReason.loggedOut;
+      const shouldReconnect = statusCode !== DisconnectReason.loggedOut && statusCode !== 401;
       connectionState.status = 'disconnected';
 
       await query(
@@ -143,7 +143,16 @@ export async function conectarBaileys(barbeariaId) {
 
       if (shouldReconnect) {
         const retries = connectionState.retries || 0;
-        const delay = retries < 3 ? 5000 : retries < 6 ? 15000 : 30000;
+        if (retries >= 5) {
+          console.log(`⛔ Máximo de tentativas atingido para ${barbeariaId}. Reconexão manual necessária.`);
+          connections.delete(barbeariaId);
+          await query(
+            `UPDATE whatsapp_config SET session_status = 'disconnected' WHERE barbearia_id = $1`,
+            [barbeariaId]
+          );
+          return;
+        }
+        const delay = retries < 2 ? 30000 : retries < 4 ? 60000 : 120000;
         connectionState.retries = retries + 1;
         console.log(`🔄 Reconectando em ${delay / 1000}s (tentativa ${connectionState.retries})...`);
         setTimeout(() => {
@@ -317,7 +326,7 @@ export async function reconectarTodasBaileys() {
   try {
     const { rows } = await query(
       `SELECT barbearia_id FROM whatsapp_config
-        WHERE provider = 'baileys' AND enabled = true`
+        WHERE provider = 'baileys' AND enabled = true AND session_status = 'connected'`
     );
 
     console.log(`   📋 ${rows.length} barbearia(s) com Baileys`);
