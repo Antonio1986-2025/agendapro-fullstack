@@ -1,4 +1,4 @@
-import { makeWASocket, useMultiFileAuthState, DisconnectReason, fetchLatestBaileysVersion, makeInMemoryStore } from '@whiskeysockets/baileys';
+import { makeWASocket, useMultiFileAuthState, DisconnectReason, fetchLatestBaileysVersion } from '@whiskeysockets/baileys';
 import { Boom } from '@hapi/boom';
 import { query } from '../config/database.js';
 import fs from 'fs';
@@ -53,9 +53,6 @@ export async function conectarBaileys(barbeariaId) {
   const { state, saveCreds } = await useMultiFileAuthState(authDir);
   const { version } = await fetchLatestBaileysVersion();
 
-  const store = makeInMemoryStore({});
-  store.readFromFile(path.join(authDir, 'store.json'));
-
   const sock = makeWASocket({
     version,
     auth: state,
@@ -64,11 +61,8 @@ export async function conectarBaileys(barbeariaId) {
     markOnlineOnConnect: false,
   });
 
-  store.bind(sock.ev);
-
   const connectionState = {
     socket: sock,
-    store,
     saveCreds,
     authDir,
     status: 'connecting',
@@ -125,8 +119,6 @@ export async function conectarBaileys(barbeariaId) {
       );
 
       console.log(`❌ WhatsApp desconectado para barbearia ${barbeariaId}${shouldReconnect ? ' (reconectando...)' : ''}`);
-
-      store.writeToFile(path.join(authDir, 'store.json'));
 
       if (shouldReconnect) {
         setTimeout(() => {
@@ -246,7 +238,6 @@ export async function desconectarBaileys(barbeariaId) {
   const conn = connections.get(barbeariaId);
   if (conn) {
     try {
-      conn.store?.writeToFile(path.join(conn.authDir, 'store.json'));
       conn.socket?.end(undefined);
       conn.socket?.ws?.close();
     } catch {}
