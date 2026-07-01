@@ -233,9 +233,6 @@ export async function conectarBaileys(barbeariaId) {
   });
 
   const qrResult = await qrPromise;
-  return { status: 'connecting', qrCode: qrResult?.qrCode || null, qrCodeBase64: qrResult?.qrCodeBase64 || null };
-
-  const qrResult = await qrPromise;
   connecting.delete(barbeariaId);
   return { status: 'connecting', qrCode: qrResult?.qrCode || null, qrCodeBase64: qrResult?.qrCodeBase64 || null };
 
