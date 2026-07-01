@@ -938,11 +938,12 @@
 
         const res = await API.post('/whatsapp/conectar');
 
-        if (res.qr) {
-          if (res.qr.startsWith('data:')) {
-            document.getElementById('qr-container').innerHTML = '<img src="' + res.qr + '" alt="QR Code">';
+        const qrImage = res.qrBase64 || res.qr;
+        if (qrImage) {
+          if (qrImage.startsWith('data:')) {
+            document.getElementById('qr-container').innerHTML = '<img src="' + qrImage + '" alt="QR Code">';
           } else {
-            document.getElementById('qr-container').innerHTML = '<img src="data:image/png;base64,' + res.qr + '" alt="QR Code">';
+            document.getElementById('qr-container').innerHTML = '<img src="data:image/png;base64,' + qrImage + '" alt="QR Code">';
           }
           document.getElementById('qr-status-msg').textContent = 'Aguardando leitura do QR Code...';
 
