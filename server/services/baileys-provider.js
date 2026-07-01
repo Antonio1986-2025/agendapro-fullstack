@@ -14,6 +14,7 @@ if (!fs.existsSync(AUTH_DIR)) {
 }
 
 const connections = new Map();
+const connecting = new Set();
 
 function getAuthDir(barbeariaId) {
   const dir = path.join(AUTH_DIR, barbeariaId.replace(/-/g, ''));
@@ -41,6 +42,9 @@ async function isBaileysAtivo(barbeariaId) {
 }
 
 export async function conectarBaileys(barbeariaId) {
+  if (connecting.has(barbeariaId)) {
+    return { status: 'connecting', ja_conectando: true };
+  }
   if (connections.has(barbeariaId)) {
     const existing = connections.get(barbeariaId);
     if (existing.socket?.ws?.readyState === 1) {
@@ -48,6 +52,9 @@ export async function conectarBaileys(barbeariaId) {
     }
     await desconectarBaileys(barbeariaId);
   }
+
+  connecting.add(barbeariaId);
+  try {
 
   const authDir = getAuthDir(barbeariaId);
   const { state, saveCreds } = await useMultiFileAuthState(authDir);
@@ -224,6 +231,10 @@ export async function conectarBaileys(barbeariaId) {
       console.error(`❌ Erro ao processar mensagem Baileys:`, err.message);
     }
   });
+
+  } finally {
+    connecting.delete(barbeariaId);
+  }
 
   const qrResult = await qrPromise;
   return { status: 'connecting', qrCode: qrResult?.qrCode || null, qrCodeBase64: qrResult?.qrCodeBase64 || null };
