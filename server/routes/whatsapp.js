@@ -33,14 +33,15 @@ router.post('/webhook/evolution/:barbeariaId', async (req, res) => {
     const { barbeariaId } = req.params;
     const payload = req.body;
 
-    // Só processa mensagens entrantes
+    // Só processa mensagens entrantes de conversas 1:1
     if (payload.event !== 'messages.upsert') return;
     if (payload.data?.key?.fromMe) return;
+    const remoteJid = payload.data?.key?.remoteJid || '';
+    if (remoteJid.endsWith('@g.us')) return; // Ignora mensagens de grupo
 
     const texto = payload.data?.message?.conversation
       || payload.data?.message?.extendedTextMessage?.text
       || '';
-    const remoteJid = payload.data?.key?.remoteJid || '';
     const pushName = payload.data?.pushName || '';
 
     if (!texto || !remoteJid) return;
