@@ -135,7 +135,11 @@ export async function conectarBaileys(barbeariaId) {
 
     if (connection === 'close') {
       const statusCode = lastDisconnect?.error?.output?.statusCode;
-      const shouldReconnect = statusCode !== DisconnectReason.loggedOut && statusCode !== 401;
+      const reason = lastDisconnect?.error?.output?.payload?.error;
+      const shouldReconnect = statusCode !== DisconnectReason.loggedOut
+        && statusCode !== 401
+        && statusCode !== DisconnectReason.connectionReplaced
+        && statusCode !== undefined;
       connectionState.status = 'disconnected';
 
       await query(
@@ -143,7 +147,7 @@ export async function conectarBaileys(barbeariaId) {
         [barbeariaId]
       );
 
-      console.log(`❌ WhatsApp desconectado para barbearia ${barbeariaId}${shouldReconnect ? ' (reconectando...)' : ''}`);
+      console.log(`❌ WhatsApp desconectado para barbearia ${barbeariaId} | status=${statusCode} reason=${reason}${shouldReconnect ? ' (reconectando...)' : ' (sessão substituída/deslogada)'}`);
 
       if (shouldReconnect) {
         const retries = connectionState.retries || 0;
