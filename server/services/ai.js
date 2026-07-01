@@ -25,11 +25,14 @@ function getOpenAI() {
     return null;
   }
   
+  const baseURL = process.env.OPENAI_BASE_URL || undefined;
+  const nomeProvedor = baseURL ? new URL(baseURL).hostname : 'OpenAI';
+  
   try {
-    _openai = new OpenAI({ apiKey: key, timeout: 30000, maxRetries: 2 });
-    console.log('✅ OpenAI cliente inicializado');
+    _openai = new OpenAI({ apiKey: key, baseURL, timeout: 30000, maxRetries: 2 });
+    console.log(`✅ ${nomeProvedor} cliente inicializado`);
   } catch (err) {
-    console.error('❌ Erro ao inicializar OpenAI:', err.message);
+    console.error(`❌ Erro ao inicializar ${nomeProvedor}:`, err.message);
     return null;
   }
   
@@ -1388,7 +1391,7 @@ async function executarTool(ctx, toolName, args) {
         }
         
         // Notifica cada responsável
-        const { enviarMensagemEvolution } = await import('./evolution-provider.js');
+        const { enviarMensagemBaileys } = await import('./baileys-provider.js');
         let notificacoesEnviadas = 0;
         
         for (const resp of responsaveis) {
@@ -1402,7 +1405,7 @@ async function executarTool(ctx, toolName, args) {
               (args.observacoes ? `📝 Obs: ${args.observacoes}\n` : '') +
               `\n💡 Entre em contato com o cliente para organizar o agendamento.`;
             
-            await enviarMensagemEvolution(barbeariaId, resp.telefone, mensagem);
+            await enviarMensagemBaileys(barbeariaId, resp.telefone, mensagem);
             
             await query(
               `INSERT INTO whatsapp_mensagens (barbearia_id, telefone, mensagem, tipo, status)
@@ -1861,8 +1864,10 @@ export async function processarMensagem(barbeariaId, barbeariaNome, mensagemClie
     while (iteracao < MAX_ITERACOES) {
       iteracao++;
       
+      const MODEL_NAME = process.env.OPENAI_MODEL || 'gpt-4o-mini';
+      
       const resp = await ai.chat.completions.create({
-        model: 'gpt-4o-mini',
+        model: MODEL_NAME,
         messages,
         tools,
         tool_choice: 'auto',
@@ -1941,7 +1946,7 @@ export async function processarMensagem(barbeariaId, barbeariaNome, mensagemClie
     console.warn('⚠️  Limite de iterações atingido, forçando resposta final');
     
     const respostaFinal = await ai.chat.completions.create({
-      model: 'gpt-4o-mini',
+      model: process.env.OPENAI_MODEL || 'gpt-4o-mini',
       messages: [
         ...messages,
         { 

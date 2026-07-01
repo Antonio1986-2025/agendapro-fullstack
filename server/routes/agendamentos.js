@@ -123,12 +123,16 @@ router.post('/', async (req, res) => {
     const proxNum = await query(
       `SELECT COALESCE(MAX(numero),0) + 1 AS prox FROM comandas WHERE barbearia_id = $1`, [req.barbeariaId]
     );
+    // 🛡️ Issue 6: Busca nome do cliente separadamente para evitar INSERT com SELECT WHERE id = NULL
+    let clienteNome = null;
+    if (ag.cliente_id) {
+      const cli = await query(`SELECT nome FROM clientes WHERE id = $1`, [ag.cliente_id]);
+      clienteNome = cli.rows[0]?.nome || null;
+    }
     const cmd = await query(
       `INSERT INTO comandas (barbearia_id, agendamento_id, numero, cliente_id, cliente_nome, valor)
-       SELECT $1, $2, $3, c.id, c.nome, $4
-         FROM clientes c WHERE c.id = $5
-       RETURNING *`,
-      [req.barbeariaId, ag.id, proxNum.rows[0].prox, preco.toFixed(2), ag.cliente_id]
+       VALUES ($1,$2,$3,$4,$5,$6) RETURNING *`,
+      [req.barbeariaId, ag.id, proxNum.rows[0].prox, ag.cliente_id, clienteNome, preco.toFixed(2)]
     );
     if (cmd.rows[0] && servico_id) {
       const srv = await query(`SELECT nome FROM servicos WHERE id = $1`, [servico_id]);
@@ -193,6 +197,15 @@ router.patch('/:id/status', async (req, res) => {
   );
   if (!rows[0]) return res.status(404).json({ erro: 'Agendamento nao encontrado' });
   const ag = rows[0];
+
+  // 🛡️ Issue 5: Cancela comanda associada quando agendamento é cancelado
+  if (status === 'cancelado') {
+    await query(
+      `UPDATE comandas SET status = 'cancelada'
+       WHERE agendamento_id = $1 AND status = 'aberta'`,
+      [ag.id]
+    );
+  }
 
   // Ao confirmar, dispara WhatsApp para o cliente (COM PROTEÇÃO ANTI-DUPLICATA)
   if (status === 'confirmado' && ag.cliente_id) {

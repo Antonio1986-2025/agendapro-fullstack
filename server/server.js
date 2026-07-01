@@ -117,30 +117,23 @@ async function start() {
     console.log(`Frontend: http://localhost:${PORT}`);
     console.log(`API health: http://localhost:${PORT}/api/health`);
     
-    // Verifica configuração da Evolution API
-    if (process.env.EVOLUTION_API_URL && process.env.EVOLUTION_API_KEY) {
-      console.log(`✅ Evolution API: ${process.env.EVOLUTION_API_URL}`);
-      
-      // Tenta reconectar todas as instâncias 5 segundos após boot
-      // (importante para resiliência: se servidor reiniciou, instâncias podem estar offline)
-      setTimeout(async () => {
-        try {
-          const { reconectarTodasOffline } = await import('./services/evolution-provider.js');
-          await reconectarTodasOffline();
-        } catch (err) {
-          console.error(`⚠️  Falha ao reconectar instâncias após boot:`, err.message);
-        }
-      }, 5000);
-      
-      // Inicia scheduler de notificações automáticas
+    // Inicializa Baileys (WhatsApp nativo)
+    setTimeout(async () => {
       try {
-        const { iniciarScheduler } = await import('./services/scheduler.js');
-        iniciarScheduler();
+        const { reconectarTodasBaileys } = await import('./services/baileys-provider.js');
+        await reconectarTodasBaileys();
+        console.log(`✅ Baileys: reconexão automática iniciada`);
       } catch (err) {
-        console.error(`⚠️  Falha ao iniciar scheduler:`, err.message);
+        console.error(`⚠️  Baileys:`, err.message);
       }
-    } else {
-      console.log(`⚠️  Evolution API não configurada (EVOLUTION_API_URL e EVOLUTION_API_KEY)`);
+    }, 5000);
+    
+    // Inicia scheduler de notificações automáticas
+    try {
+      const { iniciarScheduler } = await import('./services/scheduler.js');
+      iniciarScheduler();
+    } catch (err) {
+      console.error(`⚠️  Falha ao iniciar scheduler:`, err.message);
     }
     
     console.log('============================================\n');

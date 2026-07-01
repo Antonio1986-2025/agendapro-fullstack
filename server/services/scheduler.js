@@ -10,7 +10,7 @@
  */
 
 import { query } from '../config/database.js';
-import { enviarMensagemEvolution } from './evolution-provider.js';
+import { enviarMensagemBaileys } from './baileys-provider.js';
 
 // Intervalos em milissegundos
 const INTERVALO_VERIFICACAO = 5 * 60 * 1000; // 5 minutos
@@ -147,7 +147,7 @@ export async function notificarBarbeiroNovoAgendamento(barbeariaId, agendamentoI
       observacoes: d.observacoes,
     });
     
-    await enviarMensagemEvolution(barbeariaId, d.profissional_telefone, mensagem);
+    await enviarMensagemBaileys(barbeariaId, d.profissional_telefone, mensagem);
     
     // Registra envio
     await query(
@@ -221,7 +221,7 @@ export async function notificarBarberCancelamento(barbeariaId, agendamentoId) {
       `📅 Era para: ${dataFmt}\n\n` +
       `O horário volta a ficar disponível.`;
     
-    await enviarMensagemEvolution(barbeariaId, d.profissional_telefone, mensagem);
+    await enviarMensagemBaileys(barbeariaId, d.profissional_telefone, mensagem);
     
     // Registra envio
     await query(
@@ -283,7 +283,7 @@ async function enviarLembretes30Min() {
           endereco: ag.endereco,
         });
         
-        await enviarMensagemEvolution(ag.barbearia_id, ag.cliente_telefone, mensagem);
+        await enviarMensagemBaileys(ag.barbearia_id, ag.cliente_telefone, mensagem);
         
         await query(
           `INSERT INTO whatsapp_mensagens (barbearia_id, agendamento_id, telefone, mensagem, tipo, status)
@@ -383,7 +383,7 @@ async function enviarMensagensRetorno() {
           profissionalNome: cli.ultimo_profissional,
         });
         
-        await enviarMensagemEvolution(cli.barbearia_id, cli.telefone, mensagem);
+        await enviarMensagemBaileys(cli.barbearia_id, cli.telefone, mensagem);
         
         await query(
           `INSERT INTO whatsapp_mensagens (barbearia_id, telefone, mensagem, tipo, status)
@@ -417,10 +417,10 @@ async function executarVerificacoes() {
   console.log(`\n⏰ ====== SCHEDULER (${new Date().toLocaleString('pt-BR')}) ======`);
   
   try {
-    // 1. Reconecta instâncias offline (importante para resiliência)
+    // 1. Reconecta instâncias Baileys offline (importante para resiliência)
     try {
-      const { reconectarTodasOffline } = await import('./evolution-provider.js');
-      await reconectarTodasOffline();
+      const { reconectarTodasBaileys } = await import('./baileys-provider.js');
+      await reconectarTodasBaileys();
     } catch (err) {
       console.error(`⚠️  Falha ao verificar reconexões:`, err.message);
     }
@@ -440,15 +440,23 @@ async function executarVerificacoes() {
 /**
  * Inicia o scheduler
  */
-export function iniciarScheduler() {
+export async function iniciarScheduler() {
   if (schedulerAtivo) {
     console.log(`ℹ️  Scheduler já está ativo`);
     return;
   }
   
-  // Só inicia se Evolution estiver configurada
-  if (!process.env.EVOLUTION_API_URL || !process.env.EVOLUTION_API_KEY) {
-    console.log(`⚠️  Scheduler não iniciado - Evolution API não configurada`);
+  // Só inicia se houver barbearias com Baileys ativo
+  try {
+    const { rows } = await query(
+      `SELECT COUNT(*) AS total FROM whatsapp_config WHERE provider = 'baileys' AND enabled = true`
+    );
+    if (parseInt(rows[0]?.total || '0') === 0) {
+      console.log(`⚠️  Scheduler não iniciado - nenhuma barbearia com Baileys ativo`);
+      return;
+    }
+  } catch {
+    console.log(`⚠️  Scheduler não iniciado - erro ao verificar Baileys`);
     return;
   }
   

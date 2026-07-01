@@ -3,217 +3,15 @@ import { query } from '../config/database.js';
 import { autenticar } from '../middleware/auth.js';
 import { enviarMensagem } from '../services/whatsapp.js';
 import {
-  criarInstancia,
-  conectarInstancia,
-  getStatusInstancia,
-  desconectarInstancia,
-  deletarInstancia,
-  enviarMensagemEvolution,
-  testarEvolutionAPI,
-} from '../services/evolution-provider.js';
+  conectarBaileys,
+  getStatusBaileys,
+  desconectarBaileys,
+  getQRCodeBaileys,
+  enviarMensagemBaileys,
+} from '../services/baileys-provider.js';
 import { processarMensagem, getConversa, salvarConversa } from '../services/ai.js';
 
 const router = Router();
-
-// ============================================================
-// WEBHOOK EVOLUTION API (sem autenticação - chamado pela Evolution)
-// ============================================================
-router.post('/webhook/evolution/:barbeariaId', async (req, res) => {
-  // Responde imediatamente para evitar timeout
-  res.sendStatus(200);
-  
-  try {
-    const { barbeariaId } = req.params;
-    const body = req.body || {};
-    const event = body.event || body.eventName;
-    
-    console.log(`\n📥 ====== WEBHOOK EVOLUTION ======`);
-    console.log(`🏪 Barbearia: ${barbeariaId}`);
-    console.log(`📡 Evento: ${event}`);
-    
-    // Atualização de conexão
-    if (event === 'connection.update' || event === 'CONNECTION_UPDATE') {
-      const state = body.data?.state || body.state;
-      console.log(`🔌 Estado da conexão: ${state}`);
-      
-      let dbStatus = 'disconnected';
-      if (state === 'open') dbStatus = 'connected';
-      else if (state === 'connecting') dbStatus = 'connecting';
-      
-      try {
-        await query(
-          `UPDATE whatsapp_config SET session_status = $1, updated_at = now() WHERE barbearia_id = $2`,
-          [dbStatus, barbeariaId]
-        );
-      } catch {}
-      
-      // Se desconectou, agenda tentativa de reconexão silenciosa em 30 segundos
-      if (state === 'close' || state === 'closed') {
-        console.log(`⚠️  Conexão fechada. Agendando reconexão automática em 30s...`);
-        setTimeout(async () => {
-          try {
-            const { reconectarInstanciaSilencioso } = await import('../services/evolution-provider.js');
-            const result = await reconectarInstanciaSilencioso(barbeariaId);
-            if (result.ok) {
-              console.log(`✅ Reconexão automática bem-sucedida para ${barbeariaId}`);
-            } else {
-              console.log(`⚠️  Reconexão automática falhou: ${result.motivo}`);
-            }
-          } catch (err) {
-            console.error(`❌ Erro na reconexão automática:`, err.message);
-          }
-        }, 30000);
-      }
-      return;
-    }
-    
-    // Mensagem recebida
-    if (event === 'messages.upsert' || event === 'MESSAGES_UPSERT') {
-      const data = body.data || body;
-      const key = data.key || {};
-      const message = data.message || {};
-      
-      console.log(`📨 fromMe: ${key.fromMe}`);
-      console.log(`📞 remoteJid: ${key.remoteJid}`);
-      
-      // Ignora mensagens próprias, grupos e broadcasts
-      if (key.fromMe) {
-        console.log(`⏭️  Ignorada: mensagem própria`);
-        return;
-      }
-      if (key.remoteJid?.includes('@g.us')) {
-        console.log(`⏭️  Ignorada: grupo`);
-        return;
-      }
-      if (key.remoteJid?.includes('@broadcast') || key.remoteJid === 'status@broadcast') {
-        console.log(`⏭️  Ignorada: broadcast`);
-        return;
-      }
-      
-      // Extrai texto
-      const texto = message.conversation 
-                 || message.extendedTextMessage?.text 
-                 || message.imageMessage?.caption 
-                 || '';
-      
-      if (!texto) {
-        console.log(`⚠️  Mensagem sem texto`);
-        return;
-      }
-      
-      // Extrai telefone
-      const telefone = (key.remoteJid || '').split('@')[0].replace(/\D/g, '');
-      
-      if (!telefone || telefone.length < 10) {
-        console.log(`⚠️  Telefone inválido: ${telefone}`);
-        return;
-      }
-      
-      console.log(`📞 Telefone: ${telefone}`);
-      console.log(`💬 Texto: ${texto}`);
-      
-      // Processa mensagem com IA
-      await processarMensagemRecebida(barbeariaId, telefone, texto);
-    }
-  } catch (err) {
-    console.error('❌ Erro no webhook Evolution:', err.message);
-    console.error(err.stack);
-  }
-});
-
-/**
- * Processa mensagem recebida via webhook
- */
-async function processarMensagemRecebida(barbeariaId, telefone, mensagem) {
-  const timestamp = new Date().toISOString();
-  console.log(`\n🔵 [${timestamp}] ====== PROCESSAR MENSAGEM WEBHOOK ======`);
-  console.log(`🏪 Barbearia: ${barbeariaId}`);
-  console.log(`📞 Telefone: ${telefone}`);
-  console.log(`💬 Mensagem: "${mensagem}"`);
-  
-  try {
-    const cfg = await query(
-      `SELECT ai_enabled, ai_prompt,
-              (SELECT nome FROM barbearias WHERE id = $1) AS barbearia_nome
-         FROM whatsapp_config WHERE barbearia_id = $1`,
-      [barbeariaId]
-    );
-    const config = cfg.rows[0];
-    
-    if (!config?.ai_enabled) {
-      console.log(`⏭️  IA desabilitada para esta barbearia`);
-      return;
-    }
-    
-    // Salva mensagem recebida
-    await query(
-      `INSERT INTO whatsapp_mensagens (barbearia_id, telefone, mensagem, tipo, status)
-       VALUES ($1, $2, $3, 'recebida', 'recebida')`,
-      [barbeariaId, telefone, mensagem]
-    );
-    
-    // Busca histórico
-    const conversa = await getConversa(barbeariaId, telefone);
-    const historico = conversa?.historico || [];
-    console.log(`📚 Histórico: ${historico.length} mensagens`);
-    
-    // Processa com IA (PASSANDO O TELEFONE DO CLIENTE)
-    const { resposta } = await processarMensagem(
-      barbeariaId, 
-      config.barbearia_nome, 
-      mensagem, 
-      historico, 
-      config.ai_prompt,
-      telefone  // <-- Telefone do cliente para o agente saber automaticamente
-    );
-    
-    if (resposta) {
-      console.log(`💬 Resposta IA: ${resposta.substring(0, 100)}...`);
-      
-      // Envia resposta via Evolution API
-      try {
-        await enviarMensagemEvolution(barbeariaId, telefone, resposta);
-        
-        await query(
-          `INSERT INTO whatsapp_mensagens (barbearia_id, telefone, mensagem, tipo, status)
-           VALUES ($1, $2, $3, 'ia_resposta', 'enviada')`,
-          [barbeariaId, telefone, resposta]
-        );
-      } catch (err) {
-        console.error(`❌ Erro ao enviar resposta:`, err.message);
-        await query(
-          `INSERT INTO whatsapp_mensagens (barbearia_id, telefone, mensagem, tipo, status)
-           VALUES ($1, $2, $3, 'ia_resposta', 'erro')`,
-          [barbeariaId, telefone, resposta]
-        );
-      }
-    }
-    
-    // Atualiza histórico
-    const novoHistorico = [
-      ...historico,
-      { role: 'user', content: mensagem },
-      { role: 'assistant', content: resposta || '' },
-    ];
-    await salvarConversa(barbeariaId, telefone, novoHistorico);
-  } catch (err) {
-    console.error('❌ Erro ao processar mensagem:', err.message);
-    console.error(err.stack);
-  }
-}
-
-// GET /api/whatsapp/teste-evolution -> testa Evolution API (PÚBLICO)
-router.get('/teste-evolution', async (req, res) => {
-  const result = await testarEvolutionAPI();
-  res.json({
-    ...result,
-    config: {
-      url: process.env.EVOLUTION_API_URL || 'NÃO CONFIGURADO',
-      apiKey: process.env.EVOLUTION_API_KEY ? '✅ Configurada' : '❌ NÃO CONFIGURADO',
-      sistemaUrl: process.env.SISTEMA_URL || 'NÃO CONFIGURADO',
-    }
-  });
-});
 
 // ============================================================
 // ROTAS AUTENTICADAS
@@ -224,22 +22,20 @@ router.use(autenticar);
 router.get('/config', async (req, res) => {
   try {
     const { rows } = await query(
-      `SELECT provider, enabled, session_status, ai_enabled, ai_prompt,
-              evolution_instance_name, evolution_phone
+      `SELECT provider, enabled, session_status, ai_enabled, ai_prompt
          FROM whatsapp_config WHERE barbearia_id = $1`,
       [req.barbeariaId]
     );
-    const cfg = rows[0] || { provider: 'evolution', enabled: false, ai_enabled: false };
+    const cfg = rows[0] || { provider: 'baileys', enabled: false, ai_enabled: false };
 
-    // Atualiza status real da Evolution
-    if (cfg.evolution_instance_name) {
-      try {
-        const stat = await getStatusInstancia(req.barbeariaId);
-        cfg.session_status = stat.status;
-        if (stat.telefone) cfg.evolution_phone = stat.telefone;
-      } catch {}
-    }
-    
+    // Atualiza status real do Baileys
+    try {
+      const stat = await getStatusBaileys(req.barbeariaId);
+      cfg.session_status = stat.status;
+      if (stat.telefone) cfg.telefone = stat.telefone;
+      if (stat.qrCode) cfg.qr_code = stat.qrCode;
+    } catch {}
+
     try {
       await query(
         `UPDATE whatsapp_config SET session_status = $1 WHERE barbearia_id = $2`,
@@ -250,7 +46,7 @@ router.get('/config', async (req, res) => {
     res.json(cfg);
   } catch (e) {
     console.error('Erro ao buscar config:', e.message);
-    res.json({ provider: 'evolution', enabled: false });
+    res.json({ provider: 'baileys', enabled: false });
   }
 });
 
@@ -260,9 +56,9 @@ router.put('/config', async (req, res) => {
   try {
     const { rows } = await query(
       `INSERT INTO whatsapp_config (barbearia_id, provider, enabled, ai_enabled, ai_prompt, updated_at)
-       VALUES ($1,'evolution',$2,$3,$4, now())
+       VALUES ($1, 'baileys', $2, $3, $4, now())
        ON CONFLICT (barbearia_id) DO UPDATE SET
-          provider = 'evolution',
+          provider = 'baileys',
           enabled = COALESCE(NULLIF(EXCLUDED.enabled, NULL), whatsapp_config.enabled),
           ai_enabled = COALESCE(NULLIF(EXCLUDED.ai_enabled, NULL), whatsapp_config.ai_enabled),
           ai_prompt = COALESCE(NULLIF(EXCLUDED.ai_prompt, NULL), whatsapp_config.ai_prompt),
@@ -277,48 +73,63 @@ router.put('/config', async (req, res) => {
   }
 });
 
-// POST /api/whatsapp/conectar -> conecta via Evolution API
+// POST /api/whatsapp/conectar -> conecta via Baileys
 router.post('/conectar', async (req, res) => {
   try {
     await query(
       `INSERT INTO whatsapp_config (barbearia_id, provider, enabled, updated_at)
-       VALUES ($1, 'evolution', true, now())
+       VALUES ($1, 'baileys', true, now())
        ON CONFLICT (barbearia_id) DO UPDATE SET 
-          provider = 'evolution', 
+          provider = 'baileys', 
           enabled = true, 
           updated_at = now()`,
       [req.barbeariaId]
     );
-    
-    const result = await conectarInstancia(req.barbeariaId);
-    
+
+    const result = await conectarBaileys(req.barbeariaId);
+
+    const qrData = await getQRCodeBaileys(req.barbeariaId);
+
     res.json({
       ok: true,
-      provider: 'evolution',
-      qr: result.qr,
+      provider: 'baileys',
+      qr: qrData?.qrCode || null,
+      qrBase64: qrData?.qrCodeBase64 || null,
       status: result.status,
-      instanceName: result.instanceName,
     });
   } catch (err) {
-    console.error('Erro ao conectar:', err.message);
-    res.status(500).json({ 
+    console.error('Erro ao conectar Baileys:', err.message);
+    res.status(500).json({
       erro: err.message,
-      dica: 'Verifique se EVOLUTION_API_URL e EVOLUTION_API_KEY estão configurados'
+      dica: 'Verifique os logs do servidor para mais detalhes',
     });
+  }
+});
+
+// GET /api/whatsapp/qrcode -> obtém QR Code atual
+router.get('/qrcode', async (req, res) => {
+  try {
+    const qrData = await getQRCodeBaileys(req.barbeariaId);
+    if (!qrData || !qrData.qrCode) {
+      return res.json({ ok: false, mensagem: 'Nenhum QR Code disponível' });
+    }
+    res.json({ ok: true, qr: qrData.qrCode, qrBase64: qrData.qrCodeBase64 });
+  } catch (err) {
+    res.status(500).json({ erro: err.message });
   }
 });
 
 // GET /api/whatsapp/status
 router.get('/status', async (req, res) => {
   try {
-    const stat = await getStatusInstancia(req.barbeariaId);
+    const stat = await getStatusBaileys(req.barbeariaId);
     try {
       await query(
         `UPDATE whatsapp_config SET session_status = $1 WHERE barbearia_id = $2`,
         [stat.status, req.barbeariaId]
       );
     } catch {}
-    res.json({ status: stat.status, telefone: stat.telefone, provider: 'evolution' });
+    res.json({ status: stat.status, telefone: stat.telefone, provider: 'baileys' });
   } catch (err) {
     res.status(500).json({ erro: err.message });
   }
@@ -327,17 +138,17 @@ router.get('/status', async (req, res) => {
 // POST /api/whatsapp/desconectar
 router.post('/desconectar', async (req, res) => {
   try {
-    await desconectarInstancia(req.barbeariaId);
+    await desconectarBaileys(req.barbeariaId);
     res.json({ ok: true });
   } catch (err) {
     res.status(500).json({ erro: err.message });
   }
 });
 
-// POST /api/whatsapp/deletar -> deleta instância completamente (logout + delete)
+// POST /api/whatsapp/deletar -> desconecta (Baileys não precisa de delete separado)
 router.post('/deletar', async (req, res) => {
   try {
-    await deletarInstancia(req.barbeariaId);
+    await desconectarBaileys(req.barbeariaId);
     res.json({ ok: true });
   } catch (err) {
     res.status(500).json({ erro: err.message });
@@ -348,54 +159,43 @@ router.post('/deletar', async (req, res) => {
 router.get('/diagnostico', async (req, res) => {
   try {
     const { rows } = await query(
-      `SELECT provider, enabled, session_status, ai_enabled,
-              evolution_instance_name, evolution_phone
+      `SELECT provider, enabled, session_status, ai_enabled
          FROM whatsapp_config WHERE barbearia_id = $1`,
       [req.barbeariaId]
     );
-    
+
     const cfg = rows[0] || {};
-    
-    let evolutionStatus = null;
-    try {
-      const test = await testarEvolutionAPI();
-      evolutionStatus = test.ok ? '✅ Online' : `❌ ${test.erro}`;
-    } catch (err) {
-      evolutionStatus = `❌ ${err.message}`;
-    }
-    
-    // Status do scheduler
+
+    const stat = await getStatusBaileys(req.barbeariaId);
+
     let schedulerStatus = null;
     try {
       const { getStatusScheduler } = await import('../services/scheduler.js');
       schedulerStatus = getStatusScheduler();
     } catch {}
-    
+
     res.json({
       barbearia_id: req.barbeariaId,
       provider: cfg.provider || 'não configurado',
       enabled: cfg.enabled || false,
-      session_status: cfg.session_status || 'desconhecido',
+      session_status: stat.status || 'desconhecido',
       ia_ativada: cfg.ai_enabled || false,
-      evolution: {
-        api_url_configurada: !!process.env.EVOLUTION_API_URL,
-        api_key_configurada: !!process.env.EVOLUTION_API_KEY,
-        sistema_url_configurada: !!process.env.SISTEMA_URL,
-        api_status: evolutionStatus,
-        instance_name: cfg.evolution_instance_name || 'sem instância',
-        telefone: cfg.evolution_phone || null,
+      baileys: {
+        status: stat.status,
+        telefone: stat.telefone || null,
+        tem_qr: !!stat.qrCode,
       },
       scheduler: schedulerStatus,
-      acao_recomendada: !cfg.evolution_instance_name
-        ? 'Conectar para criar instância: POST /api/whatsapp/conectar'
-        : '✅ Configuração OK',
+      acao_recomendada: stat.status !== 'connected'
+        ? 'Conectar para escanear QR Code: POST /api/whatsapp/conectar'
+        : '✅ WhatsApp conectado',
     });
   } catch (err) {
     res.status(500).json({ erro: err.message });
   }
 });
 
-// POST /api/whatsapp/scheduler/executar -> roda scheduler manualmente (testar)
+// POST /api/whatsapp/scheduler/executar -> roda scheduler manualmente
 router.post('/scheduler/executar', async (req, res) => {
   try {
     const { executarManualmente } = await import('../services/scheduler.js');
@@ -406,46 +206,31 @@ router.post('/scheduler/executar', async (req, res) => {
   }
 });
 
-// POST /api/whatsapp/reconectar -> tenta reconectar silenciosamente (sem QR)
-router.post('/reconectar', async (req, res) => {
-  try {
-    const { reconectarInstanciaSilencioso } = await import('../services/evolution-provider.js');
-    const result = await reconectarInstanciaSilencioso(req.barbeariaId);
-    res.json(result);
-  } catch (err) {
-    res.status(500).json({ erro: err.message });
-  }
-});
-
 // GET /api/whatsapp/diagnostico-base -> mostra TUDO que o agente vê na base
 router.get('/diagnostico-base', async (req, res) => {
   try {
     const barbeariaId = req.barbeariaId;
-    
-    // Identificação da barbearia
+
     const { rows: barbearia } = await query(
       `SELECT id, nome, slug, telefone, email, endereco, plano, horario_config, ativo
          FROM barbearias WHERE id = $1`,
       [barbeariaId]
     );
-    
-    // Serviços (exatamente o que o agente vê)
+
     const { rows: servicos } = await query(
       `SELECT id, nome, categoria, duracao_minutos, preco, ativo
          FROM servicos WHERE barbearia_id = $1 
          ORDER BY ativo DESC, categoria, nome`,
       [barbeariaId]
     );
-    
-    // Profissionais (exatamente o que o agente vê)
+
     const { rows: profissionais } = await query(
       `SELECT id, nome, especialidade, telefone, ativo, ordem, notificar_whatsapp
          FROM profissionais WHERE barbearia_id = $1
          ORDER BY ativo DESC, ordem, nome`,
       [barbeariaId]
     );
-    
-    // Resumo geral
+
     const { rows: resumo } = await query(
       `SELECT 
         (SELECT COUNT(*) FROM clientes WHERE barbearia_id = $1) AS total_clientes,
@@ -455,8 +240,7 @@ router.get('/diagnostico-base', async (req, res) => {
         (SELECT COUNT(*) FROM profissionais WHERE barbearia_id = $1 AND ativo = true) AS profissionais_ativos`,
       [barbeariaId]
     );
-    
-    // Próximos agendamentos
+
     const { rows: proximosAgendamentos } = await query(
       `SELECT a.id, a.data_hora, a.status, a.preco, a.observacoes,
               c.nome AS cliente_nome, c.telefone AS cliente_telefone,
@@ -472,8 +256,7 @@ router.get('/diagnostico-base', async (req, res) => {
         LIMIT 10`,
       [barbeariaId]
     );
-    
-    // Conversas IA salvas (histórico)
+
     const { rows: conversas } = await query(
       `SELECT cliente_telefone, 
               jsonb_array_length(historico) AS msgs_count,
@@ -483,8 +266,7 @@ router.get('/diagnostico-base', async (req, res) => {
          LIMIT 10`,
       [barbeariaId]
     );
-    
-    // Mostra de qual banco está conectando (mascarado)
+
     let dbInfo = 'Não identificado';
     if (process.env.DATABASE_URL) {
       const url = process.env.DATABASE_URL;
@@ -492,10 +274,8 @@ router.get('/diagnostico-base', async (req, res) => {
       if (match) {
         dbInfo = `PostgreSQL ${match[2]} (user: ${match[1]})`;
       }
-    } else if (process.env.SUPABASE_DB_HOST) {
-      dbInfo = `Supabase ${process.env.SUPABASE_DB_HOST}`;
     }
-    
+
     res.json({
       conexao: {
         banco: dbInfo,
@@ -514,7 +294,7 @@ router.get('/diagnostico-base', async (req, res) => {
           duracao: s.duracao_minutos,
           preco: parseFloat(s.preco),
           ativo: s.ativo,
-          aviso: !s.ativo ? '⚠️  INATIVO - Agente NÃO usa' 
+          aviso: !s.ativo ? '⚠️  INATIVO - Agente NÃO usa'
                 : parseFloat(s.preco) === 0 ? '⚠️  PREÇO R$0,00 - Verifique!'
                 : null
         }))
@@ -529,7 +309,7 @@ router.get('/diagnostico-base', async (req, res) => {
           telefone: p.telefone,
           ativo: p.ativo,
           notificar_whatsapp: p.notificar_whatsapp,
-          aviso: !p.ativo ? '⚠️  INATIVO - Agente NÃO usa' 
+          aviso: !p.ativo ? '⚠️  INATIVO - Agente NÃO usa'
                 : !p.telefone ? '⚠️  Sem telefone - não vai receber notificação'
                 : null
         }))
@@ -542,11 +322,11 @@ router.get('/diagnostico-base', async (req, res) => {
   }
 });
 
-// POST /api/whatsapp/limpar-conversas -> apaga histórico de conversas IA (útil quando agente está confuso)
+// POST /api/whatsapp/limpar-conversas -> apaga histórico de conversas IA
 router.post('/limpar-conversas', async (req, res) => {
   try {
     const { telefone } = req.body;
-    
+
     if (telefone) {
       const tel = telefone.replace(/\D/g, '');
       const { rowCount } = await query(
@@ -556,8 +336,7 @@ router.post('/limpar-conversas', async (req, res) => {
       );
       return res.json({ ok: true, conversas_apagadas: rowCount, telefone: tel });
     }
-    
-    // Apaga TODAS as conversas da barbearia
+
     const { rowCount } = await query(
       `DELETE FROM ai_conversas WHERE barbearia_id = $1`,
       [req.barbeariaId]
@@ -572,11 +351,11 @@ router.post('/limpar-conversas', async (req, res) => {
 router.post('/desativar-servico', async (req, res) => {
   try {
     const { nome, id } = req.body;
-    
+
     if (!nome && !id) {
       return res.status(400).json({ erro: 'Forneça nome ou id do serviço' });
     }
-    
+
     let sql, params;
     if (id) {
       sql = `UPDATE servicos SET ativo = false WHERE id = $1 AND barbearia_id = $2 RETURNING id, nome`;
@@ -585,10 +364,10 @@ router.post('/desativar-servico', async (req, res) => {
       sql = `UPDATE servicos SET ativo = false WHERE LOWER(nome) LIKE LOWER($1) AND barbearia_id = $2 RETURNING id, nome`;
       params = [`%${nome}%`, req.barbeariaId];
     }
-    
+
     const { rows } = await query(sql, params);
-    res.json({ 
-      ok: true, 
+    res.json({
+      ok: true,
       desativados: rows.length,
       servicos: rows,
     });
@@ -601,15 +380,15 @@ router.post('/desativar-servico', async (req, res) => {
 router.post('/corrigir-servico', async (req, res) => {
   try {
     const { id, nome, novo_nome, novo_preco } = req.body;
-    
+
     if (!id && !nome) {
       return res.status(400).json({ erro: 'Forneça id ou nome do serviço para identificar' });
     }
-    
+
     const updates = [];
     const params = [req.barbeariaId];
     let paramIdx = 2;
-    
+
     if (novo_nome) {
       updates.push(`nome = $${paramIdx++}`);
       params.push(novo_nome);
@@ -618,11 +397,11 @@ router.post('/corrigir-servico', async (req, res) => {
       updates.push(`preco = $${paramIdx++}`);
       params.push(novo_preco);
     }
-    
+
     if (updates.length === 0) {
       return res.status(400).json({ erro: 'Forneça novo_nome ou novo_preco' });
     }
-    
+
     let whereSql;
     if (id) {
       params.push(id);
@@ -631,14 +410,14 @@ router.post('/corrigir-servico', async (req, res) => {
       params.push(`%${nome}%`);
       whereSql = `LOWER(nome) LIKE LOWER($${paramIdx})`;
     }
-    
+
     const sql = `UPDATE servicos SET ${updates.join(', ')} 
                  WHERE barbearia_id = $1 AND ${whereSql}
                  RETURNING id, nome, preco, ativo`;
-    
+
     const { rows } = await query(sql, params);
-    res.json({ 
-      ok: true, 
+    res.json({
+      ok: true,
       atualizados: rows.length,
       servicos: rows,
     });
@@ -654,26 +433,23 @@ router.post('/limpar-cliente', async (req, res) => {
     if (!telefone) {
       return res.status(400).json({ erro: 'Forneça o telefone do cliente' });
     }
-    
+
     const tel = telefone.replace(/\D/g, '');
-    
-    // Busca o cliente
+
     const { rows: clientes } = await query(
       `SELECT id FROM clientes 
         WHERE barbearia_id = $1 AND telefone LIKE $2`,
       [req.barbeariaId, `%${tel.slice(-11)}%`]
     );
-    
+
     if (clientes.length === 0) {
       return res.json({ ok: true, mensagem: 'Cliente não encontrado' });
     }
-    
+
     const clienteIds = clientes.map(c => c.id);
-    
-    // Apaga em ordem de dependências
+
     const result = {};
-    
-    // Comandas e itens
+
     const { rows: comandas } = await query(
       `SELECT id FROM comandas WHERE cliente_id = ANY($1)`,
       [clienteIds]
@@ -685,36 +461,32 @@ router.post('/limpar-cliente', async (req, res) => {
       result.comanda_itens = r1.rowCount;
       result.comandas = r2.rowCount;
     }
-    
-    // Agendamentos
+
     const r3 = await query(
       `DELETE FROM agendamentos WHERE cliente_id = ANY($1)`,
       [clienteIds]
     );
     result.agendamentos = r3.rowCount;
-    
-    // Mensagens WhatsApp
+
     const r4 = await query(
       `DELETE FROM whatsapp_mensagens 
         WHERE barbearia_id = $1 AND telefone LIKE $2`,
       [req.barbeariaId, `%${tel.slice(-11)}%`]
     );
     result.mensagens = r4.rowCount;
-    
-    // Conversas IA
+
     const r5 = await query(
       `DELETE FROM ai_conversas 
         WHERE barbearia_id = $1 AND cliente_telefone LIKE $2`,
       [req.barbeariaId, `%${tel.slice(-11)}%`]
     );
     result.conversas = r5.rowCount;
-    
-    // Cliente
+
     const r6 = await query(`DELETE FROM clientes WHERE id = ANY($1)`, [clienteIds]);
     result.clientes = r6.rowCount;
-    
-    res.json({ 
-      ok: true, 
+
+    res.json({
+      ok: true,
       telefone: tel,
       apagado: result,
     });
@@ -729,15 +501,15 @@ router.post('/enviar', async (req, res) => {
   if (!telefone || !mensagem) {
     return res.status(400).json({ erro: 'telefone e mensagem obrigatorios' });
   }
-  
+
   try {
-    await enviarMensagemEvolution(req.barbeariaId, telefone, mensagem);
+    await enviarMensagemBaileys(req.barbeariaId, telefone, mensagem);
     await query(
       `INSERT INTO whatsapp_mensagens (barbearia_id, telefone, mensagem, tipo, status)
        VALUES ($1, $2, $3, 'manual', 'enviada')`,
       [req.barbeariaId, telefone, mensagem]
     );
-    res.json({ ok: true, provider: 'evolution', status: 'enviada' });
+    res.json({ ok: true, provider: 'baileys', status: 'enviada' });
   } catch (err) {
     await query(
       `INSERT INTO whatsapp_mensagens (barbearia_id, telefone, mensagem, tipo, status)

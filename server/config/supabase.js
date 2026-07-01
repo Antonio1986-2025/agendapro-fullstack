@@ -6,17 +6,18 @@ dotenv.config();
 const supabaseUrl = process.env.SUPABASE_URL;
 const supabaseServiceKey = process.env.SUPABASE_SERVICE_KEY;
 
-if (!supabaseUrl || !supabaseServiceKey) {
-  console.error('❌ SUPABASE_URL e SUPABASE_SERVICE_KEY sao obrigatorios no .env');
-  process.exit(1);
-}
+let supabase = null;
 
-// Client com service_role (acesso total, uso SERVER-SIDE apenas)
-const supabase = createClient(supabaseUrl, supabaseServiceKey, {
-  auth: {
-    autoRefreshToken: false,
-    persistSession: false,
-  },
-});
+if (supabaseUrl && supabaseServiceKey) {
+  supabase = createClient(supabaseUrl, supabaseServiceKey, {
+    auth: {
+      autoRefreshToken: false,
+      persistSession: false,
+    },
+  });
+  console.log('✅ Supabase client inicializado');
+} else {
+  console.warn('⚠️ SUPABASE_URL/SUPABASE_SERVICE_KEY não configurados — Supabase desativado');
+}
 
 export default supabase;

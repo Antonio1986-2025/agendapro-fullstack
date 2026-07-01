@@ -1,5 +1,5 @@
 import { query } from '../config/database.js';
-import { enviarMensagemEvolution } from './evolution-provider.js';
+import { enviarMensagemBaileys } from './baileys-provider.js';
 
 async function getConfig(barbeariaId) {
   const { rows } = await query(
@@ -57,19 +57,19 @@ export async function enviarMensagem(barbeariaId, { telefone, mensagem, tipo, ag
     return { ok: true, provider: 'log', status: 'enviada' };
   }
 
-  // Evolution API
+  // Baileys (WhatsApp nativo)
   try {
-    await enviarMensagemEvolution(barbeariaId, tel, mensagem);
+    await enviarMensagemBaileys(barbeariaId, tel, mensagem);
     await registrarMensagem(barbeariaId, {
       agendamentoId, telefone: tel, mensagem, tipo, status: 'enviada',
     });
-    return { ok: true, provider: 'evolution', status: 'enviada' };
+    return { ok: true, provider: 'baileys', status: 'enviada' };
   } catch (err) {
-    console.error('❌ Erro WhatsApp Evolution:', err.message);
+    console.error('❌ Erro WhatsApp Baileys:', err.message);
     await registrarMensagem(barbeariaId, {
       agendamentoId, telefone: tel, mensagem, tipo, status: 'erro',
     });
-    return { ok: false, provider: 'evolution', status: 'erro', erro: err.message };
+    return { ok: false, provider: 'baileys', status: 'erro', erro: err.message };
   }
 }
 

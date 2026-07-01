@@ -63,6 +63,66 @@ ALTER TABLE profissionais ADD COLUMN IF NOT EXISTS comissao_produto_percentual D
 ALTER TABLE profissionais ADD COLUMN IF NOT EXISTS data_contratacao DATE;
 ALTER TABLE profissionais ADD COLUMN IF NOT EXISTS permissoes JSONB DEFAULT '{"clientes":true,"comandas":true,"gerenciar_agenda":false,"relatorios":false}';
 
+-- ---------- COMANDA ----------
+CREATE SEQUENCE IF NOT EXISTS comandas_numero_seq START 1;
+
+CREATE TABLE IF NOT EXISTS comandas (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    barbearia_id UUID NOT NULL REFERENCES barbearias(id) ON DELETE CASCADE,
+    agendamento_id UUID,
+    numero INTEGER NOT NULL DEFAULT nextval('comandas_numero_seq'),
+    cliente_id UUID,
+    cliente_nome VARCHAR(255) NOT NULL,
+    status VARCHAR(30) DEFAULT 'aberta',           -- aberta | finalizada | cancelada
+    valor DECIMAL(10,2) DEFAULT 0,
+    forma_pagamento VARCHAR(30),
+    troco DECIMAL(10,2),
+    valor_recebido DECIMAL(10,2),
+    abertura TIMESTAMPTZ DEFAULT now(),
+    fechamento TIMESTAMPTZ,
+    created_at TIMESTAMPTZ DEFAULT now()
+);
+
+CREATE TABLE IF NOT EXISTS comanda_itens (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    comanda_id UUID NOT NULL REFERENCES comandas(id) ON DELETE CASCADE,
+    descricao VARCHAR(255) NOT NULL,
+    valor DECIMAL(10,2) NOT NULL,
+    profissional_id UUID REFERENCES profissionais(id) ON DELETE SET NULL,
+    tipo VARCHAR(30) DEFAULT 'servico',           -- servico | produto
+    created_at TIMESTAMPTZ DEFAULT now()
+);
+
+ALTER TABLE comanda_itens ADD COLUMN IF NOT EXISTS quantidade INTEGER DEFAULT 1;
+
+-- ---------- CAIXA ----------
+CREATE TABLE IF NOT EXISTS caixa_registros (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    barbearia_id UUID NOT NULL REFERENCES barbearias(id) ON DELETE CASCADE,
+    data DATE NOT NULL,
+    valor_inicial DECIMAL(10,2) DEFAULT 0,
+    valor_final DECIMAL(10,2),
+    abertura TIMESTAMPTZ DEFAULT now(),
+    fechamento TIMESTAMPTZ,
+    status VARCHAR(30) DEFAULT 'aberto',           -- aberto | fechado
+    responsavel VARCHAR(255),
+    created_at TIMESTAMPTZ DEFAULT now(),
+    UNIQUE (barbearia_id, data)
+);
+
+CREATE TABLE IF NOT EXISTS caixa_movimentos (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    caixa_id UUID NOT NULL REFERENCES caixa_registros(id) ON DELETE CASCADE,
+    barbearia_id UUID NOT NULL REFERENCES barbearias(id) ON DELETE CASCADE,
+    tipo VARCHAR(30) NOT NULL,                     -- entrada | saida
+    descricao TEXT NOT NULL,
+    valor DECIMAL(10,2) NOT NULL,
+    forma_pagamento VARCHAR(30),
+    comanda_id UUID REFERENCES comandas(id) ON DELETE SET NULL,
+    hora TIMESTAMPTZ DEFAULT now(),
+    created_at TIMESTAMPTZ DEFAULT now()
+);
+
 -- ---------- comissoes ----------
 CREATE TABLE IF NOT EXISTS comissoes (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
@@ -148,6 +208,11 @@ BEGIN
   END IF;
 END $$;
 
+ALTER TABLE comandas ADD COLUMN IF NOT EXISTS agendamento_id UUID;
+ALTER TABLE comandas ADD FOREIGN KEY (agendamento_id) REFERENCES agendamentos(id) ON DELETE SET NULL;
+ALTER TABLE comandas ADD COLUMN IF NOT EXISTS cliente_id UUID;
+ALTER TABLE comandas ADD FOREIGN KEY (cliente_id) REFERENCES clientes(id) ON DELETE SET NULL;
+
 -- ---------- horarios especiais por profissional ----------
 CREATE TABLE IF NOT EXISTS horarios_especiais (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
@@ -198,64 +263,6 @@ CREATE TABLE IF NOT EXISTS ai_conversas (
     ultima_interacao TIMESTAMPTZ DEFAULT now(),
     created_at TIMESTAMPTZ DEFAULT now(),
     UNIQUE(barbearia_id, cliente_telefone)
-);
-
--- ---------- COMANDA ----------
-CREATE SEQUENCE IF NOT EXISTS comandas_numero_seq START 1;
-
-CREATE TABLE IF NOT EXISTS comandas (
-    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    barbearia_id UUID NOT NULL REFERENCES barbearias(id) ON DELETE CASCADE,
-    agendamento_id UUID REFERENCES agendamentos(id) ON DELETE SET NULL,
-    numero INTEGER NOT NULL DEFAULT nextval('comandas_numero_seq'),
-    cliente_id UUID REFERENCES clientes(id) ON DELETE SET NULL,
-    cliente_nome VARCHAR(255) NOT NULL,
-    status VARCHAR(30) DEFAULT 'aberta',           -- aberta | finalizada | cancelada
-    valor DECIMAL(10,2) DEFAULT 0,
-    forma_pagamento VARCHAR(30),
-    troco DECIMAL(10,2),
-    valor_recebido DECIMAL(10,2),
-    abertura TIMESTAMPTZ DEFAULT now(),
-    fechamento TIMESTAMPTZ,
-    created_at TIMESTAMPTZ DEFAULT now()
-);
-
-CREATE TABLE IF NOT EXISTS comanda_itens (
-    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    comanda_id UUID NOT NULL REFERENCES comandas(id) ON DELETE CASCADE,
-    descricao VARCHAR(255) NOT NULL,
-    valor DECIMAL(10,2) NOT NULL,
-    profissional_id UUID REFERENCES profissionais(id) ON DELETE SET NULL,
-    tipo VARCHAR(30) DEFAULT 'servico',           -- servico | produto
-    created_at TIMESTAMPTZ DEFAULT now()
-);
-
--- ---------- CAIXA ----------
-CREATE TABLE IF NOT EXISTS caixa_registros (
-    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    barbearia_id UUID NOT NULL REFERENCES barbearias(id) ON DELETE CASCADE,
-    data DATE NOT NULL,
-    valor_inicial DECIMAL(10,2) DEFAULT 0,
-    valor_final DECIMAL(10,2),
-    abertura TIMESTAMPTZ DEFAULT now(),
-    fechamento TIMESTAMPTZ,
-    status VARCHAR(30) DEFAULT 'aberto',           -- aberto | fechado
-    responsavel VARCHAR(255),
-    created_at TIMESTAMPTZ DEFAULT now(),
-    UNIQUE (barbearia_id, data)
-);
-
-CREATE TABLE IF NOT EXISTS caixa_movimentos (
-    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    caixa_id UUID NOT NULL REFERENCES caixa_registros(id) ON DELETE CASCADE,
-    barbearia_id UUID NOT NULL REFERENCES barbearias(id) ON DELETE CASCADE,
-    tipo VARCHAR(30) NOT NULL,                     -- entrada | saida
-    descricao TEXT NOT NULL,
-    valor DECIMAL(10,2) NOT NULL,
-    forma_pagamento VARCHAR(30),
-    comanda_id UUID REFERENCES comandas(id) ON DELETE SET NULL,
-    hora TIMESTAMPTZ DEFAULT now(),
-    created_at TIMESTAMPTZ DEFAULT now()
 );
 
 -- ---------- TRANSAÇÕES (Financeiro geral) ----------
@@ -331,10 +338,9 @@ ALTER TABLE whatsapp_config ADD COLUMN IF NOT EXISTS openwa_api_key VARCHAR(255)
 ALTER TABLE whatsapp_config ADD COLUMN IF NOT EXISTS ai_enabled BOOLEAN DEFAULT false;
 ALTER TABLE whatsapp_config ADD COLUMN IF NOT EXISTS ai_prompt TEXT;
 
--- Evolution API: cada barbearia tem sua própria instância
-ALTER TABLE whatsapp_config ADD COLUMN IF NOT EXISTS evolution_instance_name VARCHAR(120);
-ALTER TABLE whatsapp_config ADD COLUMN IF NOT EXISTS evolution_api_key VARCHAR(255);
-ALTER TABLE whatsapp_config ADD COLUMN IF NOT EXISTS evolution_phone VARCHAR(30);
+-- QR Code para conexão Baileys
+ALTER TABLE whatsapp_config ADD COLUMN IF NOT EXISTS qr_code TEXT;
+ALTER TABLE whatsapp_config ADD COLUMN IF NOT EXISTS qr_code_expira_em TIMESTAMPTZ;
 
 -- Controle de notificações automáticas em agendamentos
 ALTER TABLE agendamentos ADD COLUMN IF NOT EXISTS lembrete_enviado_em TIMESTAMPTZ;

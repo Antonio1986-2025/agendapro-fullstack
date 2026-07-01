@@ -56,27 +56,15 @@ router.post('/registrar', async (req, res) => {
       [barbeariaId, nome, email, senhaHash]
     );
 
-    // config WhatsApp padrao (Evolution API)
+    // config WhatsApp padrao (Baileys)
     await conn.query(
-      `INSERT INTO whatsapp_config (barbearia_id, provider, enabled) VALUES ($1, 'evolution', false)`,
+      `INSERT INTO whatsapp_config (barbearia_id, provider, enabled, ai_enabled) VALUES ($1, 'baileys', false, false)`,
       [barbeariaId]
     );
 
     await conn.query('COMMIT');
 
-    // Cria instância na Evolution API automaticamente (não-bloqueante)
-    // Se falhar, não impede o cadastro - barbearia pode conectar depois manualmente
-    if (process.env.EVOLUTION_API_URL && process.env.EVOLUTION_API_KEY) {
-      try {
-        const { criarInstancia } = await import('../services/evolution-provider.js');
-        await criarInstancia(barbeariaId);
-        console.log(`✅ Instância Evolution criada automaticamente para barbearia ${barbeariaId}`);
-      } catch (err) {
-        console.warn(`⚠️  Falha ao criar instância Evolution (cadastro continua):`, err.message);
-      }
-    } else {
-      console.log(`ℹ️  Evolution API não configurada - barbearia precisará configurar WhatsApp manualmente`);
-    }
+    console.log(`ℹ️  Barbearia criada. WhatsApp pode ser configurado no painel (Baileys) via QR Code.`);
 
     const token = gerarToken(usuario.rows[0]);
     res.status(201).json({

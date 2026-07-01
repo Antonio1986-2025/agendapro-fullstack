@@ -589,7 +589,7 @@
       <section class="section">
         <div class="section-header">
           <h2 class="section-title">Comandas Recentes</h2>
-          <a href="comanda-detalhe.html" class="view-all-btn">Nova</a>
+          <button class="btn btn-primary btn-sm" onclick="criarComanda()">Nova</button>
         </div>
         <div class="commands-list" id="commands-list">
           <div style="text-align:center;padding:var(--space-2xl);color:var(--text-muted);"><i class="fas fa-spinner fa-spin"></i> Carregando...</div>
@@ -599,7 +599,7 @@
       <!-- FORMAS DE PAGAMENTO -->
       <section class="section">
         <div class="section-header">
-          <h2 class="section-title">Transações Hoje</h2>
+          <h2 class="section-title" id="transacoes-title">Transações Hoje</h2>
         </div>
         <div class="payment-methods" id="payment-methods">
           <div style="text-align:center;padding:var(--space-lg);color:var(--text-muted);"><i class="fas fa-spinner fa-spin"></i> Carregando...</div>
@@ -681,6 +681,9 @@
     }
 
     async function carregarDados() {
+      const titulos = { today: 'Hoje', week: 'Últimos 7 dias', month: 'Este Mês', year: 'Este Ano' };
+      document.getElementById('transacoes-title').textContent = 'Transações - ' + (titulos[currentPeriod] || currentPeriod);
+
       try {
         const [comandas, transacoes] = await Promise.all([
           API.get('/comandas'),
@@ -692,6 +695,17 @@
         renderTransacoes(transacoes);
       } catch (e) {
         console.error('Erro ao carregar dados financeiros:', e);
+      }
+    }
+
+    async function criarComanda() {
+      const nome = prompt('Nome do cliente:');
+      if (!nome) return;
+      try {
+        const comanda = await API.post('/comandas', { cliente_nome: nome });
+        window.location.href = 'comanda-detalhe.html?id=' + comanda.id;
+      } catch (e) {
+        alert('Erro ao criar comanda: ' + e.message);
       }
     }
 
@@ -707,9 +721,9 @@
           btn.textContent = 'Fechar Caixa';
           btn.style.display = 'block';
           
+          const saldo = parseFloat(data.saldo) || 0;
           const entrada = parseFloat(data.total_entradas) || 0;
           const saida = parseFloat(data.total_saidas) || 0;
-          const saldo = entrada - saida;
           
           document.getElementById('caixa-status').innerHTML = `
             <div class="caixa-total ${saldo >= 0 ? 'positivo' : 'negativo'}">R$ ${saldo.toFixed(2)}</div>
