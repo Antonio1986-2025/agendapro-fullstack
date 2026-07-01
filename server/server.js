@@ -138,6 +138,17 @@ async function start() {
       }
     }, 5000);
     
+    // Reconecta instâncias Evolution API
+    setTimeout(async () => {
+      try {
+        const { reconectarTodasOffline } = await import('./services/evolution-provider.js');
+        const result = await reconectarTodasOffline();
+        console.log(`✅ Evolution: ${JSON.stringify(result)}`);
+      } catch (err) {
+        console.error(`⚠️  Evolution:`, err.message);
+      }
+    }, 6000);
+    
     // Inicia scheduler de notificações automáticas
     try {
       const { iniciarScheduler } = await import('./services/scheduler.js');

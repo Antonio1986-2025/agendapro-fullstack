@@ -131,7 +131,8 @@ export async function recuperarInstancia(barbeariaId) {
 }
 
 /**
- * Conecta a instância e retorna QR Code
+ * Conecta a instância e retorna QR Code.
+ * Se já está conectado, retorna status 'connected' sem gerar QR.
  */
 export async function conectarInstancia(barbeariaId) {
   const { rows } = await query(
@@ -150,10 +151,32 @@ export async function conectarInstancia(barbeariaId) {
     apiKey = nova.apiKey;
   }
   
+  const effectiveKey = apiKey || EVOLUTION_API_KEY;
+  
+  // Verifica se já está conectado antes de gerar QR
+  try {
+    const client = getClient(effectiveKey);
+    const statusResp = await client.get(`/instance/connectionState/${instanceName}`);
+    const state = statusResp.data?.instance?.state || statusResp.data?.state;
+    
+    if (state === 'open') {
+      console.log(`✅ Instância ${instanceName} já está conectada`);
+      await query(
+        `UPDATE whatsapp_config 
+            SET session_status = 'connected', updated_at = now()
+          WHERE barbearia_id = $1`,
+        [barbeariaId]
+      );
+      return { qr: null, status: 'connected', instanceName };
+    }
+  } catch (statusErr) {
+    console.log(`⚠️ Não foi possível verificar status: ${statusErr.message}`);
+  }
+  
   console.log(`🔗 Conectando instância ${instanceName}...`);
   
   try {
-    const client = getClient(apiKey);
+    const client = getClient(effectiveKey);
     const response = await client.get(`/instance/connect/${instanceName}`);
     
     const qrCode = response.data.base64 || response.data.code || null;
@@ -318,6 +341,15 @@ export async function getStatusInstancia(barbeariaId) {
     let status = 'disconnected';
     if (state === 'open') status = 'connected';
     else if (state === 'connecting') status = 'connecting';
+    
+    // Sincroniza status no banco
+    try {
+      await query(
+        `UPDATE whatsapp_config SET session_status = $1, updated_at = now() 
+         WHERE barbearia_id = $2 AND session_status != $1`,
+        [status, barbeariaId]
+      );
+    } catch {}
     
     // Tenta pegar o número
     let telefone = null;

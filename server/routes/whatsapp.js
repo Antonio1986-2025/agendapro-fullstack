@@ -35,10 +35,16 @@ router.get('/config', async (req, res) => {
       [req.barbeariaId]
     );
     const cfg = rows[0] || { provider: 'baileys', enabled: false, ai_enabled: false };
+    const provider = cfg.provider || 'baileys';
 
-    // Atualiza status real do Baileys
+    // Atualiza status real baseado no provider
     try {
-      const stat = await getStatusBaileys(req.barbeariaId);
+      let stat;
+      if (provider === 'evolution') {
+        stat = await getStatusInstancia(req.barbeariaId);
+      } else {
+        stat = await getStatusBaileys(req.barbeariaId);
+      }
       cfg.session_status = stat.status;
       if (stat.telefone) cfg.telefone = stat.telefone;
       if (stat.qrCode) cfg.qr_code = stat.qrCode;
@@ -103,7 +109,7 @@ router.post('/conectar', async (req, res) => {
         [req.barbeariaId]
       );
       
-      await criarInstancia(req.barbeariaId);
+      // conectarInstancia já cria a instância se não existir
       const result = await conectarInstancia(req.barbeariaId);
       
       res.json({

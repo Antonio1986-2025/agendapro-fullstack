@@ -453,17 +453,17 @@ export async function iniciarScheduler() {
     return;
   }
   
-  // Só inicia se houver barbearias com Baileys ativo
+  // Inicia se houver barbearias com Baileys OU Evolution ativo
   try {
     const { rows } = await query(
-      `SELECT COUNT(*) AS total FROM whatsapp_config WHERE provider = 'baileys' AND enabled = true`
+      `SELECT COUNT(*) AS total FROM whatsapp_config WHERE provider IN ('baileys', 'evolution') AND enabled = true`
     );
     if (parseInt(rows[0]?.total || '0') === 0) {
-      console.log(`⚠️  Scheduler não iniciado - nenhuma barbearia com Baileys ativo`);
+      console.log(`⚠️  Scheduler não iniciado - nenhuma barbearia com WhatsApp ativo`);
       return;
     }
   } catch {
-    console.log(`⚠️  Scheduler não iniciado - erro ao verificar Baileys`);
+    console.log(`⚠️  Scheduler não iniciado - erro ao verificar WhatsApp`);
     return;
   }
   
