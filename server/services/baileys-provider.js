@@ -115,6 +115,7 @@ export async function conectarBaileys(barbeariaId) {
 
     if (connection === 'open') {
       connectionState.status = 'connected';
+      connectionState.retries = 0;
       connectionState.qrCode = null;
 
       const telefone = sock.user?.id?.split(':')[0]?.replace(/[^0-9]/g, '') || null;
@@ -130,7 +131,7 @@ export async function conectarBaileys(barbeariaId) {
 
     if (connection === 'close') {
       const statusCode = lastDisconnect?.error?.output?.statusCode;
-      const shouldReconnect = statusCode !== DisconnectReason.loggedOut && statusCode !== 401;
+      const shouldReconnect = statusCode !== DisconnectReason.loggedOut;
       connectionState.status = 'disconnected';
 
       await query(
@@ -141,12 +142,16 @@ export async function conectarBaileys(barbeariaId) {
       console.log(`❌ WhatsApp desconectado para barbearia ${barbeariaId}${shouldReconnect ? ' (reconectando...)' : ''}`);
 
       if (shouldReconnect) {
+        const retries = connectionState.retries || 0;
+        const delay = retries < 3 ? 5000 : retries < 6 ? 15000 : 30000;
+        connectionState.retries = retries + 1;
+        console.log(`🔄 Reconectando em ${delay / 1000}s (tentativa ${connectionState.retries})...`);
         setTimeout(() => {
           if (connections.has(barbeariaId)) {
             connections.delete(barbeariaId);
             conectarBaileys(barbeariaId).catch(e => console.error(`Falha ao reconectar ${barbeariaId}:`, e.message));
           }
-        }, 5000);
+        }, delay);
       } else {
         connections.delete(barbeariaId);
         await query(
@@ -312,7 +317,7 @@ export async function reconectarTodasBaileys() {
   try {
     const { rows } = await query(
       `SELECT barbearia_id FROM whatsapp_config
-        WHERE provider = 'baileys' AND enabled = true AND session_status = 'connected'`
+        WHERE provider = 'baileys' AND enabled = true`
     );
 
     console.log(`   📋 ${rows.length} barbearia(s) com Baileys`);
