@@ -306,7 +306,8 @@ export async function getStatusInstancia(barbeariaId) {
     return { status: 'no_instance', telefone: null };
   }
   
-  const { evolution_instance_name: instanceName, evolution_api_key: apiKey } = rows[0];
+  const { evolution_instance_name: instanceName, evolution_api_key: instanceApiKey } = rows[0];
+  const apiKey = instanceApiKey || EVOLUTION_API_KEY;
   
   try {
     const client = getClient(apiKey);
@@ -350,7 +351,8 @@ export async function desconectarInstancia(barbeariaId) {
     return { ok: true, message: 'Nenhuma instância para desconectar' };
   }
   
-  const { evolution_instance_name: instanceName, evolution_api_key: apiKey } = rows[0];
+  const { evolution_instance_name: instanceName, evolution_api_key: instanceApiKey } = rows[0];
+  const apiKey = instanceApiKey || EVOLUTION_API_KEY;
   
   try {
     const client = getClient(apiKey);
@@ -385,7 +387,8 @@ export async function deletarInstancia(barbeariaId) {
     return { ok: true, message: 'Nenhuma instância para deletar' };
   }
   
-  const { evolution_instance_name: instanceName, evolution_api_key: apiKey } = rows[0];
+  const { evolution_instance_name: instanceName, evolution_api_key: instanceApiKey } = rows[0];
+  const apiKey = instanceApiKey || EVOLUTION_API_KEY;
   
   try {
     const client = getClient(apiKey);
@@ -430,7 +433,8 @@ export async function enviarMensagemEvolution(barbeariaId, telefone, texto) {
     throw new Error('Instância Evolution não configurada para esta barbearia');
   }
   
-  const { evolution_instance_name: instanceName, evolution_api_key: apiKey } = rows[0];
+  const { evolution_instance_name: instanceName, evolution_api_key: instanceApiKey } = rows[0];
+  const apiKey = instanceApiKey || EVOLUTION_API_KEY;
   
   // Normaliza telefone (apenas números)
   const numero = telefone.replace(/\D/g, '').replace(/^@.*/, '');
