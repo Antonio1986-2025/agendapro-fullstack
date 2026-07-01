@@ -122,7 +122,8 @@ export async function conectarBaileys(barbeariaId) {
     }
 
     if (connection === 'close') {
-      const shouldReconnect = lastDisconnect?.error?.output?.statusCode !== DisconnectReason.loggedOut;
+      const statusCode = lastDisconnect?.error?.output?.statusCode;
+      const shouldReconnect = statusCode !== DisconnectReason.loggedOut && statusCode !== 401;
       connectionState.status = 'disconnected';
 
       await query(
@@ -272,8 +273,13 @@ export async function enviarMensagemBaileys(barbeariaId, telefone, texto) {
     throw new Error('WhatsApp não conectado para esta barbearia');
   }
 
-  const numero = telefone.replace(/[^0-9]/g, '');
-  const jid = numero.includes('@') ? numero : `${numero}@s.whatsapp.net`;
+  let jid;
+  if (telefone.includes('@')) {
+    jid = telefone;
+  } else {
+    const numero = telefone.replace(/[^0-9]/g, '');
+    jid = `${numero}@s.whatsapp.net`;
+  }
 
   console.log(`📤 [Baileys] Enviando para ${jid}: ${texto.substring(0, 100)}...`);
 
