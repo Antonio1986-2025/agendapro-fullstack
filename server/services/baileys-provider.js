@@ -61,12 +61,19 @@ export async function conectarBaileys(barbeariaId) {
     markOnlineOnConnect: false,
   });
 
+  let qrResolve = null;
+  const qrPromise = new Promise((resolve) => {
+    qrResolve = resolve;
+    setTimeout(() => resolve(null), 30000);
+  });
+
   const connectionState = {
     socket: sock,
     saveCreds,
     authDir,
     status: 'connecting',
     qrCode: null,
+    qrResolve,
     telefone: null,
   };
 
@@ -90,6 +97,11 @@ export async function conectarBaileys(barbeariaId) {
         `UPDATE whatsapp_config SET session_status = 'connecting', qr_code = $1, updated_at = now() WHERE barbearia_id = $2`,
         [qr, barbeariaId]
       );
+
+      if (connectionState.qrResolve) {
+        connectionState.qrResolve({ qrCode: qr, qrCodeBase64: connectionState.qrCodeBase64 });
+        connectionState.qrResolve = null;
+      }
 
       console.log(`📱 QR Code gerado para barbearia ${barbeariaId}`);
     }
@@ -130,7 +142,7 @@ export async function conectarBaileys(barbeariaId) {
       } else {
         connections.delete(barbeariaId);
         await query(
-          `UPDATE whatsapp_config SET evolution_instance_name = NULL, evolution_api_key = NULL, session_status = 'disconnected' WHERE barbearia_id = $1`,
+          `UPDATE whatsapp_config SET session_status = 'disconnected' WHERE barbearia_id = $1`,
           [barbeariaId]
         );
       }
@@ -212,7 +224,8 @@ export async function conectarBaileys(barbeariaId) {
     }
   });
 
-  return { status: 'connecting', qrCode: null };
+  const qrResult = await qrPromise;
+  return { status: 'connecting', qrCode: qrResult?.qrCode || null, qrCodeBase64: qrResult?.qrCodeBase64 || null };
 }
 
 export async function getStatusBaileys(barbeariaId) {

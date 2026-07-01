@@ -88,13 +88,11 @@ router.post('/conectar', async (req, res) => {
 
     const result = await conectarBaileys(req.barbeariaId);
 
-    const qrData = await getQRCodeBaileys(req.barbeariaId);
-
     res.json({
       ok: true,
       provider: 'baileys',
-      qr: qrData?.qrCode || null,
-      qrBase64: qrData?.qrCodeBase64 || null,
+      qr: result.qrCode || null,
+      qrBase64: result.qrCodeBase64 || null,
       status: result.status,
     });
   } catch (err) {
