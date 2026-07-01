@@ -1844,8 +1844,8 @@ export async function processarMensagem(barbeariaId, barbeariaNome, mensagemClie
   
   const systemPrompt = montarSystemPrompt(barbeariaNome, telefoneCliente, estado, promptPersonalizado);
   
-  // Histórico curto (estado já tem o contexto, não precisamos de muito histórico)
-  const historicoLimitado = (historico || []).slice(-8);
+  // Histórico suficiente para manter contexto em conversas longas
+  const historicoLimitado = (historico || []).slice(-20);
   
   let messages = [
     { role: 'system', content: systemPrompt },
@@ -1855,24 +1855,39 @@ export async function processarMensagem(barbeariaId, barbeariaNome, mensagemClie
   
   const ctx = { barbeariaId, telefone: telefoneCliente, estado };
   const toolsExecutados = [];
-  const ultimasTools = [];  // Detecta loops
+  const ultimasTools = [];
+  const toolInteractionMessages = [];
   
   try {
     let iteracao = 0;
     const MAX_ITERACOES = 6;
+    
+    // Base do messages: system + historico + user message
+    const systemMsg = { role: 'system', content: montarSystemPrompt(barbeariaNome, telefoneCliente, ctx.estado, promptPersonalizado) };
+    const baseMessages = [
+      systemMsg,
+      ...historicoLimitado,
+      { role: 'user', content: mensagemCliente },
+    ];
     
     while (iteracao < MAX_ITERACOES) {
       iteracao++;
       
       const MODEL_NAME = process.env.OPENAI_MODEL || 'gpt-4o-mini';
       
+      // Monta messages completas: base + interações anteriores das tools
+      messages = [
+        ...baseMessages,
+        ...toolInteractionMessages,
+      ];
+      
       const resp = await ai.chat.completions.create({
         model: MODEL_NAME,
         messages,
         tools,
         tool_choice: 'auto',
-        temperature: 0.4,  // Um pouco mais de naturalidade
-        max_tokens: 600,   // Continua forçando concisão
+        temperature: 0.4,
+        max_tokens: 600,
       });
       
       const choice = resp.choices[0];
@@ -1880,15 +1895,14 @@ export async function processarMensagem(barbeariaId, barbeariaNome, mensagemClie
       
       // Sem tools = resposta final
       if (!msg.tool_calls || msg.tool_calls.length === 0) {
-        // Salva estado final
         await ws.salvarEstado(barbeariaId, telefoneCliente, ctx.estado);
         
         const resposta = msg.content || 'Desculpe, não consegui processar. Pode reformular?';
         console.log(`✅ Resposta: ${resposta.substring(0, 80)}...`);
-        return { resposta, toolsExecutados };
+        return { resposta, toolsExecutados, toolInteractionMessages };
       }
       
-      // Detecta loop: mesma tool 3x seguidas
+      // Detecta loop: mesma tool 2x seguidas
       const nomesTools = msg.tool_calls.map(tc => tc.function.name).join(',');
       ultimasTools.push(nomesTools);
       if (ultimasTools.length >= 2 && ultimasTools[ultimasTools.length - 1] === ultimasTools[ultimasTools.length - 2]) {
@@ -1897,6 +1911,7 @@ export async function processarMensagem(barbeariaId, barbeariaNome, mensagemClie
         return {
           resposta: 'Desculpe, tive uma confusão. Pode me dizer novamente o que precisa?',
           toolsExecutados,
+          toolInteractionMessages,
         };
       }
       
@@ -1910,7 +1925,6 @@ export async function processarMensagem(barbeariaId, barbeariaNome, mensagemClie
         
         const { resultado, novoEstado } = await executarTool(ctx, tc.function.name, args);
         
-        // Atualiza estado se a tool modificou
         if (novoEstado) {
           ctx.estado = novoEstado;
         }
@@ -1925,21 +1939,18 @@ export async function processarMensagem(barbeariaId, barbeariaNome, mensagemClie
         toolsExecutados.push({ name: tc.function.name, args, resultado });
       }
       
-      // Reconstrói prompt com novo estado (importante!)
-      const novoSystemPrompt = montarSystemPrompt(barbeariaNome, telefoneCliente, ctx.estado, promptPersonalizado);
-      
-      // Adiciona ao contexto
-      messages = [
-        { role: 'system', content: novoSystemPrompt },
-        ...historicoLimitado,
-        { role: 'user', content: mensagemCliente },
+      // Acumula: resposta do assistant + resultados das tools
+      toolInteractionMessages.push(
         msg,
         ...toolResults.map(tr => ({
           role: 'tool',
           tool_call_id: tr.tool_call_id,
           content: JSON.stringify(tr.resultado),
-        })),
-      ];
+        }))
+      );
+      
+      // Atualiza system prompt com novo estado para próxima iteração
+      systemMsg.content = montarSystemPrompt(barbeariaNome, telefoneCliente, ctx.estado, promptPersonalizado);
     }
     
     // Limite de iterações - força resposta sem tools
@@ -1948,7 +1959,8 @@ export async function processarMensagem(barbeariaId, barbeariaNome, mensagemClie
     const respostaFinal = await ai.chat.completions.create({
       model: process.env.OPENAI_MODEL || 'gpt-4o-mini',
       messages: [
-        ...messages,
+        ...baseMessages,
+        ...toolInteractionMessages,
         { 
           role: 'system', 
           content: 'IMPORTANTE: Não chame mais tools. Responda ao cliente diretamente baseado no que já foi coletado. Se faltarem dados, peça ao cliente.' 
@@ -1963,6 +1975,7 @@ export async function processarMensagem(barbeariaId, barbeariaNome, mensagemClie
     return {
       resposta: respostaFinal.choices[0].message.content || 'Pode me dizer novamente o que precisa?',
       toolsExecutados,
+      toolInteractionMessages,
     };
     
   } catch (err) {

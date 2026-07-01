@@ -86,7 +86,7 @@ router.post('/webhook/evolution/:barbeariaId', async (req, res) => {
 
     // Processa com IA
     const { processarMensagem } = await import('../services/ai.js');
-    const { resposta } = await processarMensagem(
+    const { resposta, toolInteractionMessages } = await processarMensagem(
       barbeariaId, barbeariaNome, texto, historico,
       wc[0]?.ai_prompt || null, remoteJid
     );
@@ -95,9 +95,13 @@ router.post('/webhook/evolution/:barbeariaId', async (req, res) => {
       // Envia resposta via Evolution API
       await enviarMensagemEvolution(barbeariaId, telefone, resposta);
 
-      // Salva histórico
-      historico.push({ role: 'user', content: texto }, { role: 'assistant', content: resposta });
-      const limitado = historico.slice(-30);
+      // Salva histórico COM contexto das tools para manter continuidade
+      historico.push({ role: 'user', content: texto });
+      if (toolInteractionMessages && toolInteractionMessages.length > 0) {
+        historico.push(...toolInteractionMessages);
+      }
+      historico.push({ role: 'assistant', content: resposta });
+      const limitado = historico.slice(-40);
 
       await query(
         `INSERT INTO ai_conversas (barbearia_id, cliente_telefone, historico, ultima_interacao)
