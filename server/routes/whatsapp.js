@@ -22,6 +22,99 @@ import { processarMensagem, getConversa, salvarConversa } from '../services/ai.j
 const router = Router();
 
 // ============================================================
+// WEBHOOK - EVOLUTION API (SEM AUTENTICAÇÃO)
+// Recebe mensagens entrantes do WhatsApp via Evolution API
+// ============================================================
+router.post('/webhook/evolution/:barbeariaId', async (req, res) => {
+  // Responde 200 imediatamente para a Evolution API não reenviar
+  res.status(200).json({ ok: true });
+
+  try {
+    const { barbeariaId } = req.params;
+    const payload = req.body;
+
+    // Só processa mensagens entrantes
+    if (payload.event !== 'messages.upsert') return;
+    if (payload.data?.key?.fromMe) return;
+
+    const texto = payload.data?.message?.conversation
+      || payload.data?.message?.extendedTextMessage?.text
+      || '';
+    const remoteJid = payload.data?.key?.remoteJid || '';
+    const pushName = payload.data?.pushName || '';
+
+    if (!texto || !remoteJid) return;
+
+    const telefone = remoteJid.replace(/[^0-9]/g, '');
+
+    console.log(`📩 [Evolution] Mensagem de ${telefone} (${pushName}): ${texto.substring(0, 100)}`);
+
+    // Registra mensagem recebida
+    await query(
+      `INSERT INTO whatsapp_mensagens (barbearia_id, telefone, mensagem, tipo, status)
+       VALUES ($1, $2, $3, 'recebida', 'recebida')`,
+      [barbeariaId, telefone, texto]
+    );
+
+    // Verifica se IA está habilitada
+    const { rows: wc } = await query(
+      `SELECT ai_enabled, ai_prompt, provider FROM whatsapp_config WHERE barbearia_id = $1`,
+      [barbeariaId]
+    );
+    if (!wc[0]?.ai_enabled) return;
+
+    // Busca nome da barbearia
+    const { rows: barb } = await query(
+      `SELECT nome FROM barbearias WHERE id = $1`,
+      [barbeariaId]
+    );
+    const barbeariaNome = barb[0]?.nome || 'Barbearia';
+
+    // Carrega histórico da conversa
+    let historico = [];
+    try {
+      const { rows: conv } = await query(
+        `SELECT historico FROM ai_conversas WHERE barbearia_id = $1 AND cliente_telefone = $2`,
+        [barbeariaId, telefone]
+      );
+      if (conv[0]?.historico) {
+        historico = typeof conv[0].historico === 'string'
+          ? JSON.parse(conv[0].historico)
+          : conv[0].historico;
+      }
+    } catch {}
+
+    // Processa com IA
+    const { processarMensagem } = await import('../services/ai.js');
+    const { resposta } = await processarMensagem(
+      barbeariaId, barbeariaNome, texto, historico,
+      wc[0]?.ai_prompt || null, remoteJid
+    );
+
+    if (resposta) {
+      // Envia resposta via Evolution API
+      await enviarMensagemEvolution(barbeariaId, telefone, resposta);
+
+      // Salva histórico
+      historico.push({ role: 'user', content: texto }, { role: 'assistant', content: resposta });
+      const limitado = historico.slice(-30);
+
+      await query(
+        `INSERT INTO ai_conversas (barbearia_id, cliente_telefone, historico, ultima_interacao)
+         VALUES ($1, $2, $3, now())
+         ON CONFLICT (barbearia_id, cliente_telefone) DO UPDATE SET
+            historico = $3, ultima_interacao = now()`,
+        [barbeariaId, telefone, JSON.stringify(limitado)]
+      );
+
+      console.log(`🤖 [Evolution] Resposta enviada para ${telefone}`);
+    }
+  } catch (err) {
+    console.error(`❌ [Evolution] Erro ao processar webhook:`, err.message);
+  }
+});
+
+// ============================================================
 // ROTAS AUTENTICADAS
 // ============================================================
 router.use(autenticar);
