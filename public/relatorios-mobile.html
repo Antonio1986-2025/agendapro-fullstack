@@ -553,52 +553,47 @@
       </div>
 
       <div class="financial-summary">
-        <div class="summary-title">Faturamento Total (30 dias)</div>
-        <div class="summary-amount">R$ 0,00</div>
-        <div class="summary-change" style="opacity: 0.7;">
-          <span>Sem dados para comparar</span>
+        <div class="summary-title" id="summary-title">Faturamento Total (30 dias)</div>
+        <div class="summary-amount" id="summary-amount">R$ 0,00</div>
+        <div class="summary-change" id="summary-change" style="opacity: 0.7;">
+          <span>Carregando...</span>
         </div>
       </div>
 
       <div class="metrics-grid">
         <div class="metric-card">
           <div class="metric-icon"><i class="fas fa-calendar-check"></i></div>
-          <div class="metric-value">0</div>
+          <div class="metric-value" id="metric-agendamentos">0</div>
           <div class="metric-label">Agendamentos</div>
         </div>
         <div class="metric-card">
           <div class="metric-icon"><i class="fas fa-users"></i></div>
-          <div class="metric-value">0</div>
+          <div class="metric-value" id="metric-clientes">0</div>
           <div class="metric-label">Clientes</div>
         </div>
         <div class="metric-card">
           <div class="metric-icon"><i class="fas fa-percent"></i></div>
-          <div class="metric-value">0%</div>
+          <div class="metric-value" id="metric-presenca">0%</div>
           <div class="metric-label">Taxa Presença</div>
         </div>
         <div class="metric-card">
           <div class="metric-icon"><i class="fas fa-clock"></i></div>
-          <div class="metric-value">0%</div>
+          <div class="metric-value" id="metric-ocupacao">0%</div>
           <div class="metric-label">Ocupação</div>
         </div>
       </div>
 
       <section class="chart-section">
         <h2 class="section-title"><i class="fas fa-chart-line" style="color: var(--primary);"></i> Faturamento Diário</h2>
-        <div class="chart-card">
-          <div style="text-align: center; padding: var(--space-xl) 0; color: var(--text-secondary);">
-            <i class="fas fa-chart-bar" style="font-size: 2rem; margin-bottom: var(--space-md); opacity: 0.3;"></i>
-            <p>Sem dados de faturamento ainda</p>
-          </div>
+        <div class="chart-card" id="chart-card">
+          <div id="grafico-container" class="simple-bar-chart"></div>
+          <div id="grafico-labels" class="chart-labels"></div>
         </div>
       </section>
 
       <section class="top-services">
         <h2 class="section-title"><i class="fas fa-trophy" style="color: var(--warning);"></i> Serviços Mais Vendidos</h2>
-        <div style="text-align: center; padding: var(--space-xl); color: var(--text-secondary); background: var(--bg-card); border: 1px solid var(--border-color); border-radius: var(--radius-lg);">
-          <i class="fas fa-scissors" style="font-size: 2rem; margin-bottom: var(--space-md); opacity: 0.3;"></i>
-          <p>Nenhum serviço registrado ainda</p>
-        </div>
+        <div id="servicos-lista"></div>
       </section>
     </main>
 
@@ -618,6 +613,8 @@
 
   <script src="api.js?v=20260623"></script>
   <script>
+    let diasAtual = 30;
+
     function toggleTheme() {
       const html = document.documentElement;
       const isDark = html.getAttribute('data-theme') === 'dark';
@@ -625,6 +622,97 @@
       else { html.setAttribute('data-theme','dark'); localStorage.setItem('theme','dark'); }
       const cls = isDark ? 'fa-moon' : 'fa-sun';
       document.querySelectorAll('#theme-icon, #theme-icon-desk').forEach(el => el.className = 'fas ' + cls);
+    }
+
+    function formatar(valor) {
+      return 'R$ ' + valor.toFixed(2).replace('.', ',');
+    }
+
+    function carregarRelatorios(dias) {
+      diasAtual = dias;
+      document.getElementById('summary-title').textContent = 'Faturamento Total (' + dias + (dias === 1 ? ' dia' : ' dias') + ')';
+      document.getElementById('summary-change').innerHTML = '<span><i class="fas fa-spinner fa-spin"></i> Carregando...</span>';
+
+      API.get('/dashboard/relatorios?dias=' + dias)
+        .then(d => {
+          document.getElementById('summary-amount').textContent = formatar(d.faturamento);
+          document.getElementById('metric-agendamentos').textContent = d.agendamentos;
+          document.getElementById('metric-clientes').textContent = d.clientes;
+          document.getElementById('metric-presenca').textContent = d.presenca_percentual + '%';
+          document.getElementById('metric-ocupacao').textContent = d.ocupacao_percentual + '%';
+
+          const diff = d.variacao_percentual;
+          let htmlChange;
+          if (d.faturamento_anterior > 0) {
+            const icone = diff >= 0 ? 'fa-arrow-up change-positive' : 'fa-arrow-down change-negative';
+            const cor = diff >= 0 ? 'var(--success-light)' : 'var(--error-light)';
+            htmlChange = '<span style="color:' + cor + ';"><i class="fas ' + icone + '"></i> ' + Math.abs(diff) + '% vs período anterior</span>';
+          } else {
+            htmlChange = '<span style="opacity:0.7;">Período anterior sem dados</span>';
+          }
+          document.getElementById('summary-change').innerHTML = htmlChange;
+
+          renderizarGrafico(d.faturamento_diario);
+          renderizarServicos(d.servicos_mais_vendidos);
+        })
+        .catch(e => {
+          document.getElementById('summary-change').innerHTML = '<span style="color:var(--error);">Erro: ' + e.message + '</span>';
+        });
+    }
+
+    function renderizarGrafico(dados) {
+      const container = document.getElementById('grafico-container');
+      const labels = document.getElementById('grafico-labels');
+
+      if (!dados || dados.length === 0) {
+        container.innerHTML = '<div style="text-align:center;padding:var(--space-xl) 0;color:var(--text-secondary);width:100%;"><i class="fas fa-chart-bar" style="font-size:2rem;margin-bottom:var(--space-md);opacity:0.3;display:block;"></i><p>Sem dados de faturamento ainda</p></div>';
+        labels.innerHTML = '';
+        return;
+      }
+
+      const maxValor = Math.max(...dados.map(d => d.valor), 1);
+      const altMax = 120;
+
+      let barras = '';
+      let lbls = '';
+      dados.forEach(d => {
+        const altura = Math.max((d.valor / maxValor) * altMax, 4);
+        const dia = new Date(d.data + 'T12:00:00').getDate();
+        barras += '<div class="bar" style="height:' + altura + 'px;" title="' + formatar(d.valor) + '"><span class="bar-value">' + formatar(d.valor) + '</span></div>';
+        lbls += '<span class="chart-label">' + dia + '</span>';
+      });
+
+      container.innerHTML = barras;
+      labels.innerHTML = lbls;
+    }
+
+    function renderizarServicos(servicos) {
+      const container = document.getElementById('servicos-lista');
+
+      if (!servicos || servicos.length === 0) {
+        container.innerHTML = '<div style="text-align:center;padding:var(--space-xl);color:var(--text-secondary);background:var(--bg-card);border:1px solid var(--border-color);border-radius:var(--radius-lg);"><i class="fas fa-scissors" style="font-size:2rem;margin-bottom:var(--space-md);opacity:0.3;display:block;"></i><p>Nenhum serviço vendido no período</p></div>';
+        return;
+      }
+
+      let html = '';
+      servicos.forEach((s, i) => {
+        const rank = i + 1;
+        html += '<div class="service-item">' +
+          '<div class="service-info">' +
+            '<div class="service-rank">' + rank + '</div>' +
+            '<div class="service-details">' +
+              '<h4>' + s.nome + '</h4>' +
+              '<div class="service-stats">' + s.quantidade + 'x realizado' + (s.quantidade !== 1 ? 's' : '') + '</div>' +
+            '</div>' +
+          '</div>' +
+          '<div class="service-revenue">' +
+            '<div class="revenue-amount">' + formatar(s.faturamento) + '</div>' +
+            '<div class="revenue-count">' + formatar(s.faturamento / s.quantidade) + ' cada</div>' +
+          '</div>' +
+        '</div>';
+      });
+
+      container.innerHTML = html;
     }
 
     document.addEventListener('DOMContentLoaded', function() {
@@ -643,20 +731,37 @@
         if (role) role.textContent = user.role === 'owner' ? 'Proprietário' : user.role;
       }
 
-      // Period tabs
       const periodTabs = document.querySelectorAll('.period-tab');
       const customPeriod = document.querySelector('.custom-period');
+      const periodMap = { 'hoje': 1, '7 dias': 7, '30 dias': 30, '3 meses': 90 };
       periodTabs.forEach(tab => {
         tab.addEventListener('click', function() {
           periodTabs.forEach(t => t.classList.remove('active'));
           this.classList.add('active');
-          const period = this.textContent.toLowerCase();
-          if (period === 'personalizado') customPeriod.style.display = 'flex';
-          else customPeriod.style.display = 'none';
+          const texto = this.textContent.trim();
+          if (texto === 'Personalizado') {
+            customPeriod.style.display = 'flex';
+          } else {
+            customPeriod.style.display = 'none';
+            const d = periodMap[texto] || 30;
+            carregarRelatorios(d);
+          }
         });
       });
 
-      // Animações
+      document.querySelectorAll('.date-input').forEach(inp => {
+        inp.addEventListener('change', function() {
+          const inicios = document.querySelectorAll('.date-input');
+          if (inicios[0].value && inicios[1].value) {
+            // Personalizado - calcula diferenca em dias
+            const d1 = new Date(inicios[0].value + 'T12:00:00');
+            const d2 = new Date(inicios[1].value + 'T12:00:00');
+            const diff = Math.round((d2 - d1) / (1000 * 60 * 60 * 24)) + 1;
+            if (diff > 0) carregarRelatorios(diff);
+          }
+        });
+      });
+
       document.querySelectorAll('.metric-card, .chart-card, .service-item').forEach((card, index) => {
         card.style.opacity = '0';
         card.style.transform = 'translateY(20px)';
@@ -667,26 +772,7 @@
         }, index * 100);
       });
 
-      // Gráficos
-      document.querySelectorAll('.bar').forEach(bar => {
-        bar.addEventListener('click', function() {
-          document.querySelectorAll('.bar').forEach(b => b.classList.remove('active'));
-          this.classList.add('active');
-        });
-      });
-
-      // Ações
-      document.querySelectorAll('.action-btn').forEach(btn => {
-        btn.addEventListener('click', function(e) {
-          e.preventDefault();
-          const original = this.querySelector('.action-icon').innerHTML;
-          this.querySelector('.action-icon').innerHTML = '<i class="fas fa-spinner fa-spin"></i>';
-          setTimeout(() => {
-            this.querySelector('.action-icon').innerHTML = '<i class="fas fa-check"></i>';
-            setTimeout(() => { this.querySelector('.action-icon').innerHTML = original; }, 1500);
-          }, 1000);
-        });
-      });
+      carregarRelatorios(30);
     });
   </script>
 </body>
