@@ -1917,22 +1917,6 @@ export async function processarMensagem(barbeariaId, barbeariaNome, mensagemClie
       
       // Sem tools = resposta final
       if (!msg.tool_calls || msg.tool_calls.length === 0) {
-        // Se fluxo ativo e faltam slots, força LLM a usar tools
-        if (ctx.estado.fluxo_ativo === 'agendamento' && !ws.checklistCompleto(ctx.estado)) {
-          console.log(`⏩ Fluxo ativo sem tool call - forçando tool use`);
-          const empurraoMsg = {
-            role: 'system',
-            content: 'IMPORTANTE: Você respondeu sem usar tools, mas o checklist ainda tem pendências. Use a tool adequada para o próximo slot ao invés de apenas conversar. Se o cliente já respondeu, use a tool "definir*" correspondente para registrar.'
-          };
-          messages = [
-            ...baseMessages,
-            ...toolInteractionMessages,
-            msg,
-            empurraoMsg,
-          ];
-          continue;
-        }
-        
         await ws.salvarEstado(barbeariaId, telefoneCliente, ctx.estado);
         
         const resposta = msg.content || 'Desculpe, não consegui processar. Pode reformular?';
