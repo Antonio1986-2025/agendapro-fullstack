@@ -10,8 +10,8 @@ router.use(autenticar);
 router.get('/conversas', async (req, res) => {
   const { rows } = await query(
     `SELECT c.cliente_telefone, c.ultima_interacao,
-            (SELECT nome FROM clientes WHERE barbearia_id = $1 AND telefone LIKE '%' || RIGHT(c.cliente_telefone, 11)) AS cliente_nome,
-            (SELECT mensagem FROM whatsapp_mensagens WHERE barbearia_id = $1 AND telefone LIKE '%' || RIGHT(c.cliente_telefone, 11) ORDER BY created_at DESC LIMIT 1) AS ultima_mensagem
+            (SELECT nome FROM clientes WHERE barbearia_id = $1 AND REPLACE(telefone, '-', '') LIKE '%' || REPLACE(RIGHT(c.cliente_telefone, 11), '-', '')) AS cliente_nome,
+            (SELECT mensagem FROM whatsapp_mensagens WHERE barbearia_id = $1 AND REPLACE(telefone, '-', '') LIKE '%' || REPLACE(RIGHT(c.cliente_telefone, 11), '-', '') ORDER BY created_at DESC LIMIT 1) AS ultima_mensagem
        FROM ai_conversas c
       WHERE c.barbearia_id = $1
       ORDER BY c.ultima_interacao DESC
@@ -48,7 +48,7 @@ router.post('/responder', async (req, res) => {
     const historico = conversa?.historico || [];
 
     const { resposta } = await processarMensagem(
-      req.barbeariaId, barb.nome, mensagem, historico, barb.ai_prompt
+      req.barbeariaId, barb.nome, mensagem, historico, barb.ai_prompt, telefone
     );
 
     if (resposta) {

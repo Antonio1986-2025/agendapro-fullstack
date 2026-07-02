@@ -350,6 +350,22 @@ ALTER TABLE agendamentos ADD COLUMN IF NOT EXISTS confirmacao_enviada_em TIMESTA
 -- Controle de mensagem de retorno (20 dias depois) - por cliente
 ALTER TABLE clientes ADD COLUMN IF NOT EXISTS ultimo_servico_em TIMESTAMPTZ;
 ALTER TABLE clientes ADD COLUMN IF NOT EXISTS retorno_enviado_em TIMESTAMPTZ;
+ALTER TABLE clientes ADD COLUMN IF NOT EXISTS updated_at TIMESTAMPTZ DEFAULT now();
+
+-- Trigger para atualizar updated_at automaticamente em clientes
+CREATE OR REPLACE FUNCTION atualizar_updated_at()
+RETURNS TRIGGER AS $$
+BEGIN
+    NEW.updated_at = now();
+    RETURN NEW;
+END;
+$$ LANGUAGE plpgsql;
+
+DROP TRIGGER IF EXISTS trg_clientes_updated_at ON clientes;
+CREATE TRIGGER trg_clientes_updated_at
+    BEFORE UPDATE ON clientes
+    FOR EACH ROW
+    EXECUTE FUNCTION atualizar_updated_at();
 
 -- ---------- solicitacoes_especiais (serviços não catalogados) ----------
 CREATE TABLE IF NOT EXISTS solicitacoes_especiais (

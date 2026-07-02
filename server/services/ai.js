@@ -262,6 +262,27 @@ async function resolverProfissional(barbeariaId, valor) {
   return null;
 }
 
+/**
+ * Busca cliente por telefone de forma consistente.
+ * Usa apenas dígitos e busca pelos últimos 11 dígitos para
+ * lidar com variações de formato (c/ ou s/ código do país).
+ */
+async function buscarClientePorTelefone(barbeariaId, telefone) {
+  if (!telefone) return null;
+  const tel = String(telefone).replace(/\D/g, '');
+  const ultimos11 = tel.slice(-11);
+  if (ultimos11.length < 10) return null;
+
+  const { rows } = await query(
+    `SELECT id, nome, telefone FROM clientes
+      WHERE barbearia_id = $1
+        AND REPLACE(telefone, '-', '') LIKE $2
+      LIMIT 1`,
+    [barbeariaId, `%${ultimos11}`]
+  );
+  return rows[0] || null;
+}
+
 // ============================================================
 // DEFINIÇÃO DAS TOOLS
 // ============================================================
@@ -524,15 +545,7 @@ async function executarTool(ctx, toolName, args) {
     switch (toolName) {
       // ───── INICIAR ─────
       case 'iniciarAgendamento': {
-        // Busca ou identifica o cliente automaticamente
-        const tel = String(telefone || '').replace(/\D/g, '');
-        const { rows: clienteRows } = await query(
-          `SELECT id, nome, telefone FROM clientes
-            WHERE barbearia_id = $1 AND telefone LIKE $2 LIMIT 1`,
-          [barbeariaId, `%${tel.slice(-11)}%`]
-        );
-        
-        const clienteData = clienteRows[0] || null;
+        const clienteData = await buscarClientePorTelefone(barbeariaId, telefone);
         const novoEstado = ws.iniciarFluxo(estado, 'agendamento', clienteData);
         
         console.log(`   ✅ Fluxo iniciado. Cliente: ${clienteData ? clienteData.nome : 'não cadastrado ainda'}`);
@@ -563,27 +576,23 @@ async function executarTool(ctx, toolName, args) {
         
         const tel = String(telefone || '').replace(/\D/g, '');
         
-        // Verifica se já existe
-        const { rows: existentes } = await query(
-          `SELECT id, nome FROM clientes 
-            WHERE barbearia_id = $1 AND telefone = $2 LIMIT 1`,
-          [barbeariaId, tel]
+        // UPSERT atômico: tenta insert, se conflito (23505), faz update do nome + incrementa visitas
+        let clienteId, clienteNome;
+        const { rows: upsertado } = await query(
+          `INSERT INTO clientes (barbearia_id, nome, telefone, total_visitas)
+           VALUES ($1, $2, $3, 1)
+           ON CONFLICT (barbearia_id, telefone) DO UPDATE SET
+              nome = CASE WHEN clientes.nome = $2 THEN clientes.nome ELSE $2 END,
+              total_visitas = clientes.total_visitas + 1
+           RETURNING id, nome, total_visitas`,
+          [barbeariaId, nome, tel]
         );
         
-        let clienteId, clienteNome;
-        if (existentes[0]) {
-          clienteId = existentes[0].id;
-          clienteNome = existentes[0].nome;
-          console.log(`   ℹ️  Cliente já existia: ${clienteNome}`);
-        } else {
-          const { rows: novo } = await query(
-            `INSERT INTO clientes (barbearia_id, nome, telefone, total_visitas)
-             VALUES ($1, $2, $3, 0) RETURNING id, nome`,
-            [barbeariaId, nome, tel]
-          );
-          clienteId = novo[0].id;
-          clienteNome = novo[0].nome;
-          console.log(`   ✅ Cliente cadastrado: ${clienteNome}`);
+        if (upsertado[0]) {
+          clienteId = upsertado[0].id;
+          clienteNome = upsertado[0].nome;
+          const isNovo = upsertado[0].total_visitas === 1;
+          console.log(`   ${isNovo ? '✅ Cliente cadastrado' : 'ℹ️  Cliente já existia'}: ${clienteNome} (visitas: ${upsertado[0].total_visitas})`);
         }
         
         const novoEstado = ws.definirSlot(estado, 'cliente', {
@@ -684,24 +693,17 @@ async function executarTool(ctx, toolName, args) {
         let valor;
         
         if (tipo === 'proprio_cliente') {
-          // Verifica se o cliente está identificado
           if (!estado.slots.cliente.preenchido) {
-            // Tenta identificar agora
-            const tel = String(telefone || '').replace(/\D/g, '');
-            const { rows } = await query(
-              `SELECT id, nome FROM clientes WHERE barbearia_id = $1 AND telefone LIKE $2 LIMIT 1`,
-              [barbeariaId, `%${tel.slice(-11)}%`]
-            );
-            if (!rows[0]) {
+            const clienteData = await buscarClientePorTelefone(barbeariaId, telefone);
+            if (!clienteData) {
               return {
                 resultado: {
                   erro: 'Cliente principal ainda não foi identificado/cadastrado. Cadastre o cliente primeiro com cadastrarClientePrincipal.',
                 },
               };
             }
-            // Atualiza slot cliente também
-            const estadoComCliente = ws.definirSlot(estado, 'cliente', { id: rows[0].id, nome: rows[0].nome });
-            valor = { tipo: 'proprio_cliente', cliente_alvo_id: rows[0].id };
+            const estadoComCliente = ws.definirSlot(estado, 'cliente', { id: clienteData.id, nome: clienteData.nome });
+            valor = { tipo: 'proprio_cliente', cliente_alvo_id: clienteData.id };
             const novoEstado = ws.definirSlot(estadoComCliente, 'para_quem', valor);
             return {
               resultado: { sucesso: true, mensagem: 'Agendamento será para o próprio cliente.' },
@@ -710,39 +712,30 @@ async function executarTool(ctx, toolName, args) {
           }
           valor = { tipo: 'proprio_cliente', cliente_alvo_id: estado.slots.cliente.valor.id };
         } else {
-          // Terceiro - precisa do nome
           if (!args.nome_pessoa || args.nome_pessoa.trim().length < 2) {
             return {
               resultado: { erro: 'Para agendamento de terceiro, forneça nome_pessoa (nome completo da pessoa).' },
             };
           }
-          
-          // Cadastra o terceiro como cliente
-          const tel = String(telefone || '').replace(/\D/g, '');
+
           const nomeTerceiro = args.nome_pessoa.trim();
-          
-          // Verifica se já existe cliente com nome similar e mesmo telefone
-          const { rows: existentes } = await query(
-            `SELECT id, nome FROM clientes 
-              WHERE barbearia_id = $1 AND telefone = $2 AND LOWER(nome) = LOWER($3) LIMIT 1`,
-            [barbeariaId, tel, nomeTerceiro]
+          const nomeNormalizado = nomeTerceiro.toLowerCase().replace(/\s+/g, '_');
+
+          // UPSERT: busca por nome + barbearia; se existir, incrementa visitas; senão, cria
+          const tel = String(telefone || '').replace(/\D/g, '');
+          const telTerceiro = tel ? `${tel}-t` : `terceiro-${nomeNormalizado}`;
+
+          const { rows: upsertado } = await query(
+            `INSERT INTO clientes (barbearia_id, nome, telefone, total_visitas)
+             VALUES ($1, $2, $3, 1)
+             ON CONFLICT (barbearia_id, telefone) DO UPDATE SET
+                total_visitas = clientes.total_visitas + 1
+             RETURNING id`,
+            [barbeariaId, nomeTerceiro, telTerceiro]
           );
-          
-          let clienteAlvoId;
-          if (existentes[0]) {
-            clienteAlvoId = existentes[0].id;
-          } else {
-            // Cadastra novo cliente (mesmo telefone, mas pode dar conflito de unique)
-            // Como a tabela tem UNIQUE (barbearia_id, telefone), vamos usar telefone vazio para terceiros
-            const telTerceiro = `${tel}-${Date.now().toString().slice(-4)}`;
-            const { rows: novo } = await query(
-              `INSERT INTO clientes (barbearia_id, nome, telefone, total_visitas)
-               VALUES ($1, $2, $3, 0) RETURNING id`,
-              [barbeariaId, nomeTerceiro, telTerceiro]
-            );
-            clienteAlvoId = novo[0].id;
-          }
-          
+
+          const clienteAlvoId = upsertado[0].id;
+
           valor = {
             tipo: 'terceiro',
             cliente_alvo_id: clienteAlvoId,
@@ -1112,6 +1105,7 @@ async function executarTool(ctx, toolName, args) {
       
       case 'listarMeusAgendamentos': {
         const tel = String(telefone || '').replace(/\D/g, '');
+        const ultimos11 = tel.slice(-11);
         const { rows } = await query(
           `SELECT a.id, a.data_hora, a.status, a.preco,
                   s.nome AS servico_nome, p.nome AS profissional_nome
@@ -1119,11 +1113,11 @@ async function executarTool(ctx, toolName, args) {
              JOIN clientes c ON c.id = a.cliente_id
              LEFT JOIN servicos s ON s.id = a.servico_id
              LEFT JOIN profissionais p ON p.id = a.profissional_id
-            WHERE a.barbearia_id = $1 AND c.telefone LIKE $2
+            WHERE a.barbearia_id = $1 AND REPLACE(c.telefone, '-', '') LIKE $2
               AND a.status NOT IN ('cancelado', 'concluido')
               AND a.data_hora >= NOW()
             ORDER BY a.data_hora`,
-          [barbeariaId, `%${tel.slice(-11)}%`]
+          [barbeariaId, `%${ultimos11}`]
         );
         
         if (rows.length === 0) {
@@ -1360,16 +1354,9 @@ async function executarTool(ctx, toolName, args) {
           return { resultado: { erro: 'Nome do serviço obrigatório.' } };
         }
         
-        // Identifica cliente
-        const tel = String(telefone || '').replace(/\D/g, '');
-        const { rows: clienteRows } = await query(
-          `SELECT id, nome, telefone FROM clientes
-            WHERE barbearia_id = $1 AND telefone LIKE $2 LIMIT 1`,
-          [barbeariaId, `%${tel.slice(-11)}%`]
-        );
-        
-        const clienteNome = clienteRows[0]?.nome || 'Cliente';
-        const clienteTelefone = clienteRows[0]?.telefone || tel;
+        const clienteData = await buscarClientePorTelefone(barbeariaId, telefone);
+        const clienteNome = clienteData?.nome || 'Cliente';
+        const clienteTelefone = clienteData?.telefone || String(telefone || '').replace(/\D/g, '');
         
         // Registra solicitação
         const { rows: solicitacao } = await query(

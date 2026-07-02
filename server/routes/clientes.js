@@ -23,11 +23,12 @@ router.get('/', async (req, res) => {
 router.post('/', async (req, res) => {
   const { nome, telefone, email, observacoes } = req.body;
   if (!nome || !telefone) return res.status(400).json({ erro: 'Nome e telefone obrigatorios' });
+  const telLimpo = String(telefone).replace(/\D/g, '');
   try {
     const { rows } = await query(
       `INSERT INTO clientes (barbearia_id, nome, telefone, email, observacoes)
        VALUES ($1, $2, $3, $4, $5) RETURNING *`,
-      [req.barbeariaId, nome, telefone, email || null, observacoes || null]
+      [req.barbeariaId, nome, telLimpo, email || null, observacoes || null]
     );
     res.status(201).json(rows[0]);
   } catch (err) {
@@ -41,6 +42,7 @@ router.post('/', async (req, res) => {
 // PUT /api/clientes/:id
 router.put('/:id', async (req, res) => {
   const { nome, telefone, email, observacoes } = req.body;
+  const telLimpo = telefone ? String(telefone).replace(/\D/g, '') : undefined;
   const { rows } = await query(
     `UPDATE clientes
         SET nome = COALESCE($1, nome),
@@ -49,7 +51,7 @@ router.put('/:id', async (req, res) => {
             observacoes = COALESCE($4, observacoes)
       WHERE id = $5 AND barbearia_id = $6
       RETURNING *`,
-    [nome, telefone, email, observacoes, req.params.id, req.barbeariaId]
+    [nome, telLimpo, email, observacoes, req.params.id, req.barbeariaId]
   );
   if (!rows[0]) return res.status(404).json({ erro: 'Cliente nao encontrado' });
   res.json(rows[0]);
