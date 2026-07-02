@@ -56,7 +56,8 @@ router.post('/', exigirRole('owner'), async (req, res) => {
 // PUT /api/profissionais/:id
 router.put('/:id', async (req, res) => {
   const { nome, especialidade, telefone, notificar_whatsapp, ativo, ordem, eh_responsavel,
-          comissao_servico_percentual, comissao_produto_percentual, data_contratacao, permissoes } = req.body;
+          comissao_servico_percentual, comissao_produto_percentual, data_contratacao, permissoes,
+          criar_acesso, email, senha } = req.body;
 
   let sql = `UPDATE profissionais SET `;
   const sets = []; const params = []; let i = 0;
@@ -82,7 +83,57 @@ router.put('/:id', async (req, res) => {
 
   const { rows } = await query(sql, params);
   if (!rows[0]) return res.status(404).json({ erro: 'Profissional nao encontrado' });
-  res.json(rows[0]);
+
+  const profissional = rows[0];
+
+  // ─── Gerenciar acesso ao sistema (criar/atualizar usuario) ───
+  if (criar_acesso === true) {
+    if (!email || !senha) {
+      return res.status(400).json({ erro: 'Email e senha obrigatorios para criar acesso' });
+    }
+    if (senha.length < 6) {
+      return res.status(400).json({ erro: 'Senha deve ter ao menos 6 caracteres' });
+    }
+
+    // Verifica se ja existe usuario vinculado a este profissional
+    const { rows: userExistente } = await query(
+      `SELECT id, email FROM usuarios WHERE profissional_id = $1 AND barbearia_id = $2 LIMIT 1`,
+      [profissional.id, req.barbeariaId]
+    );
+
+    if (userExistente[0]) {
+      // Verifica se o novo email ja esta em uso por OUTRO usuario
+      const { rows: emailConflito } = await query(
+        `SELECT id FROM usuarios WHERE email = $1 AND id != $2 LIMIT 1`,
+        [email, userExistente[0].id]
+      );
+      if (emailConflito[0]) {
+        return res.status(409).json({ erro: 'Este email ja esta em uso por outro usuario' });
+      }
+      const senhaHash = bcrypt.hashSync(senha, 10);
+      await query(
+        `UPDATE usuarios SET nome = $1, email = $2, senha_hash = $3 WHERE id = $4`,
+        [profissional.nome, email, senhaHash, userExistente[0].id]
+      );
+    } else {
+      // Verifica se o email ja esta em uso
+      const { rows: emailConflito } = await query(
+        `SELECT id FROM usuarios WHERE email = $1 LIMIT 1`,
+        [email]
+      );
+      if (emailConflito[0]) {
+        return res.status(409).json({ erro: 'Este email ja esta em uso' });
+      }
+      const senhaHash = bcrypt.hashSync(senha, 10);
+      await query(
+        `INSERT INTO usuarios (barbearia_id, nome, email, senha_hash, role, profissional_id)
+         VALUES ($1, $2, $3, $4, 'staff', $5)`,
+        [req.barbeariaId, profissional.nome, email, senhaHash, profissional.id]
+      );
+    }
+  }
+
+  res.json(profissional);
 });
 
 // DELETE /api/profissionais/:id
