@@ -7,7 +7,7 @@ const router = Router();
 router.use(autenticar);
 
 // GET /api/horarios/especiais -> lista config de horarios especiais por profissional
-router.get('/especiais', async (req, res) => {
+router.get('/especiais', requerPermissao('horarios'), async (req, res) => {
   const { rows } = await query(
     `SELECT he.*, p.nome AS profissional_nome
        FROM horarios_especiais he

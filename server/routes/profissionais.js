@@ -23,7 +23,11 @@ router.post('/', exigirRole('owner'), async (req, res) => {
   if (!nome) return res.status(400).json({ erro: 'Nome obrigatorio' });
   const inicial = nome.trim().charAt(0).toUpperCase();
 
-  const perm = permissoes || { clientes: true, comandas: true, gerenciar_agenda: false, relatorios: false };
+  const perm = permissoes || {
+    clientes: true, comandas: true, gerenciar_agenda: false, relatorios: false,
+    caixa: false, estoque: false, servicos: false, horarios: false,
+    configuracoes: false, cancelar_agendamento: false,
+  };
 
   const { rows } = await query(
     `INSERT INTO profissionais (barbearia_id, nome, especialidade, telefone, notificar_whatsapp, avatar_inicial, ordem,
@@ -54,7 +58,7 @@ router.post('/', exigirRole('owner'), async (req, res) => {
 });
 
 // PUT /api/profissionais/:id
-router.put('/:id', async (req, res) => {
+router.put('/:id', exigirRole('owner', 'admin'), async (req, res) => {
   const { nome, especialidade, telefone, notificar_whatsapp, ativo, ordem, eh_responsavel,
           comissao_servico_percentual, comissao_produto_percentual, data_contratacao, permissoes,
           criar_acesso, email, senha } = req.body;
@@ -137,7 +141,7 @@ router.put('/:id', async (req, res) => {
 });
 
 // DELETE /api/profissionais/:id
-router.delete('/:id', async (req, res) => {
+router.delete('/:id', exigirRole('owner'), async (req, res) => {
   const r = await query(
     `DELETE FROM profissionais WHERE id = $1 AND barbearia_id = $2`,
     [req.params.id, req.barbeariaId]
@@ -149,18 +153,10 @@ router.delete('/:id', async (req, res) => {
 export default router;
 
 // PATCH /api/profissionais/:id/permissoes - Endpoint dedicado para atualizar permissões
+const TODAS_PERMISSOES = ['clientes', 'comandas', 'gerenciar_agenda', 'relatorios',
+  'caixa', 'estoque', 'servicos', 'horarios', 'configuracoes', 'cancelar_agendamento'];
+
 router.patch('/:id/permissoes', exigirRole('owner', 'admin'), async (req, res) => {
-  const { clientes, comandas, gerenciar_agenda, relatorios } = req.body;
-  
-  // Valida que pelo menos uma permissão foi enviada
-  if (clientes === undefined && comandas === undefined && 
-      gerenciar_agenda === undefined && relatorios === undefined) {
-    return res.status(400).json({ 
-      erro: 'Envie pelo menos uma permissão',
-      permissoes_disponiveis: ['clientes', 'comandas', 'gerenciar_agenda', 'relatorios']
-    });
-  }
-  
   // Busca permissões atuais
   const { rows: atual } = await query(
     `SELECT permissoes FROM profissionais WHERE id = $1 AND barbearia_id = $2`,
@@ -170,17 +166,21 @@ router.patch('/:id/permissoes', exigirRole('owner', 'admin'), async (req, res) =
   if (atual.length === 0) {
     return res.status(404).json({ erro: 'Profissional não encontrado' });
   }
+
+  const temAlguma = TODAS_PERMISSOES.some(p => req.body[p] !== undefined);
+  if (!temAlguma) {
+    return res.status(400).json({
+      erro: 'Envie pelo menos uma permissão',
+      permissoes_disponiveis: TODAS_PERMISSOES,
+    });
+  }
   
-  // Merge com permissões atuais (preserva outras permissões não enviadas)
   const permissoesAtuais = atual[0].permissoes || {};
-  const novasPermissoes = {
-    clientes: clientes !== undefined ? clientes : permissoesAtuais.clientes,
-    comandas: comandas !== undefined ? comandas : permissoesAtuais.comandas,
-    gerenciar_agenda: gerenciar_agenda !== undefined ? gerenciar_agenda : permissoesAtuais.gerenciar_agenda,
-    relatorios: relatorios !== undefined ? relatorios : permissoesAtuais.relatorios,
-  };
+  const novasPermissoes = {};
+  TODAS_PERMISSOES.forEach(p => {
+    novasPermissoes[p] = req.body[p] !== undefined ? req.body[p] : permissoesAtuais[p];
+  });
   
-  // Atualiza
   const { rows } = await query(
     `UPDATE profissionais SET permissoes = $1::jsonb
       WHERE id = $2 AND barbearia_id = $3 RETURNING *`,
@@ -196,7 +196,7 @@ router.patch('/:id/permissoes', exigirRole('owner', 'admin'), async (req, res) =
 });
 
 // GET /api/profissionais/:id/permissoes - Ver permissões de um profissional
-router.get('/:id/permissoes', async (req, res) => {
+router.get('/:id/permissoes', exigirRole('owner', 'admin'), async (req, res) => {
   const { rows } = await query(
     `SELECT id, nome, permissoes FROM profissionais 
       WHERE id = $1 AND barbearia_id = $2`,
@@ -208,10 +208,9 @@ router.get('/:id/permissoes', async (req, res) => {
   }
   
   const permissoes = rows[0].permissoes || {
-    clientes: true,
-    comandas: false,
-    gerenciar_agenda: false,
-    relatorios: false,
+    clientes: true, comandas: true, gerenciar_agenda: false, relatorios: false,
+    caixa: false, estoque: false, servicos: false, horarios: false,
+    configuracoes: false, cancelar_agendamento: false,
   };
   
   res.json({
@@ -223,6 +222,12 @@ router.get('/:id/permissoes', async (req, res) => {
       comandas: 'Acessar e gerenciar comandas',
       gerenciar_agenda: 'Ver agenda de todos os profissionais (padrão: apenas própria agenda)',
       relatorios: 'Acessar dashboard e relatórios financeiros',
+      caixa: 'Acessar e gerenciar caixa',
+      estoque: 'Gerenciar estoque',
+      servicos: 'Criar/editar serviços',
+      horarios: 'Configurar horários',
+      configuracoes: 'Configurações da barbearia',
+      cancelar_agendamento: 'Pode cancelar agendamentos',
     },
   });
 });

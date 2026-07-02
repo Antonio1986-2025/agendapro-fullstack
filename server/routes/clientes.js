@@ -1,6 +1,7 @@
 import { Router } from 'express';
 import { query } from '../config/database.js';
 import { autenticar } from '../middleware/auth.js';
+import { requerPermissao } from '../middleware/permissoes.js';
 
 const router = Router();
 router.use(autenticar);
@@ -20,7 +21,7 @@ router.get('/', async (req, res) => {
 });
 
 // POST /api/clientes
-router.post('/', async (req, res) => {
+router.post('/', requerPermissao('clientes'), async (req, res) => {
   const { nome, telefone, email, observacoes } = req.body;
   if (!nome || !telefone) return res.status(400).json({ erro: 'Nome e telefone obrigatorios' });
   const telLimpo = String(telefone).replace(/\D/g, '');
@@ -40,7 +41,7 @@ router.post('/', async (req, res) => {
 });
 
 // PUT /api/clientes/:id
-router.put('/:id', async (req, res) => {
+router.put('/:id', requerPermissao('clientes'), async (req, res) => {
   const { nome, telefone, email, observacoes } = req.body;
   const telLimpo = telefone ? String(telefone).replace(/\D/g, '') : undefined;
   const { rows } = await query(
@@ -58,7 +59,7 @@ router.put('/:id', async (req, res) => {
 });
 
 // DELETE /api/clientes/:id
-router.delete('/:id', async (req, res) => {
+router.delete('/:id', requerPermissao('clientes'), async (req, res) => {
   const r = await query(
     `DELETE FROM clientes WHERE id = $1 AND barbearia_id = $2`,
     [req.params.id, req.barbeariaId]

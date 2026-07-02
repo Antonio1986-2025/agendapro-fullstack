@@ -61,7 +61,7 @@ ALTER TABLE profissionais ADD COLUMN IF NOT EXISTS notificar_whatsapp BOOLEAN DE
 ALTER TABLE profissionais ADD COLUMN IF NOT EXISTS comissao_servico_percentual DECIMAL(5,2) DEFAULT 0;
 ALTER TABLE profissionais ADD COLUMN IF NOT EXISTS comissao_produto_percentual DECIMAL(5,2) DEFAULT 0;
 ALTER TABLE profissionais ADD COLUMN IF NOT EXISTS data_contratacao DATE;
-ALTER TABLE profissionais ADD COLUMN IF NOT EXISTS permissoes JSONB DEFAULT '{"clientes":true,"comandas":true,"gerenciar_agenda":false,"relatorios":false}';
+ALTER TABLE profissionais ADD COLUMN IF NOT EXISTS permissoes JSONB DEFAULT '{"clientes":true,"comandas":true,"gerenciar_agenda":false,"relatorios":false,"caixa":false,"estoque":false,"servicos":false,"horarios":false,"configuracoes":false,"cancelar_agendamento":false}';
 
 -- ---------- COMANDA ----------
 CREATE SEQUENCE IF NOT EXISTS comandas_numero_seq START 1;

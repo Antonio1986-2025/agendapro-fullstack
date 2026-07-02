@@ -1,6 +1,7 @@
 import { Router } from 'express';
 import { query } from '../config/database.js';
 import { autenticar } from '../middleware/auth.js';
+import { requerPermissao } from '../middleware/permissoes.js';
 import { enviarMensagem } from '../services/whatsapp.js';
 import {
   conectarBaileys,
@@ -119,7 +120,7 @@ async function processarWebhookEvolution(barbeariaId, telefone, remoteJid, texto
 // ============================================================
 // ROTAS AUTENTICADAS
 // ============================================================
-router.use(autenticar);
+router.use(autenticar, requerPermissao('configuracoes'));
 
 // GET /api/whatsapp/config
 router.get('/config', async (req, res) => {
