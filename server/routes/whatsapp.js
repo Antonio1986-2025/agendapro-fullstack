@@ -18,6 +18,7 @@ import {
   enviarMensagemEvolution,
 } from '../services/evolution-provider.js';
 import { processarMensagem, getConversa, salvarConversa } from '../services/ai.js';
+import { enfileirar } from '../services/message-queue.js';
 
 const router = Router();
 
@@ -26,52 +27,52 @@ const router = Router();
 // Recebe mensagens entrantes do WhatsApp via Evolution API
 // ============================================================
 router.post('/webhook/evolution/:barbeariaId', async (req, res) => {
-  // Responde 200 imediatamente para a Evolution API não reenviar
   res.status(200).json({ ok: true });
 
   try {
     const { barbeariaId } = req.params;
     const payload = req.body;
 
-    // Só processa mensagens entrantes de conversas 1:1
     if (payload.event !== 'messages.upsert') return;
     if (payload.data?.key?.fromMe) return;
     const remoteJid = payload.data?.key?.remoteJid || '';
-    if (remoteJid.endsWith('@g.us')) return; // Ignora mensagens de grupo
+    if (remoteJid.endsWith('@g.us')) return;
 
     const texto = payload.data?.message?.conversation
       || payload.data?.message?.extendedTextMessage?.text
       || '';
-    const pushName = payload.data?.pushName || '';
-
     if (!texto || !remoteJid) return;
 
     const telefone = remoteJid.replace(/[^0-9]/g, '');
 
+    await enfileirar(telefone, () => processarWebhookEvolution(barbeariaId, telefone, remoteJid, texto, payload.data?.pushName || ''));
+  } catch (err) {
+    console.error(`❌ [Evolution] Erro ao processar webhook:`, err.message);
+  }
+});
+
+async function processarWebhookEvolution(barbeariaId, telefone, remoteJid, texto, pushName) {
+  try {
     console.log(`📩 [Evolution] Mensagem de ${telefone} (${pushName}): ${texto.substring(0, 100)}`);
 
-    // Registra mensagem recebida
     await query(
       `INSERT INTO whatsapp_mensagens (barbearia_id, telefone, mensagem, tipo, status)
        VALUES ($1, $2, $3, 'recebida', 'recebida')`,
       [barbeariaId, telefone, texto]
     );
 
-    // Verifica se IA está habilitada
     const { rows: wc } = await query(
       `SELECT ai_enabled, ai_prompt, provider FROM whatsapp_config WHERE barbearia_id = $1`,
       [barbeariaId]
     );
     if (!wc[0]?.ai_enabled) return;
 
-    // Busca nome da barbearia
     const { rows: barb } = await query(
       `SELECT nome FROM barbearias WHERE id = $1`,
       [barbeariaId]
     );
     const barbeariaNome = barb[0]?.nome || 'Barbearia';
 
-    // Carrega histórico da conversa
     let historico = [];
     try {
       const { rows: conv } = await query(
@@ -82,14 +83,12 @@ router.post('/webhook/evolution/:barbeariaId', async (req, res) => {
         historico = typeof conv[0].historico === 'string'
           ? JSON.parse(conv[0].historico)
           : conv[0].historico;
-        // Remove mensagens de tool e assistant com tool_calls que possam ter sido salvas
-        historico = historico.filter(m => 
+        historico = historico.filter(m =>
           m.role === 'user' || (m.role === 'assistant' && !m.tool_calls)
         );
       }
     } catch {}
 
-    // Processa com IA
     const { processarMensagem } = await import('../services/ai.js');
     const { resposta } = await processarMensagem(
       barbeariaId, barbeariaNome, texto, historico,
@@ -97,10 +96,8 @@ router.post('/webhook/evolution/:barbeariaId', async (req, res) => {
     );
 
     if (resposta) {
-      // Envia resposta via Evolution API
       await enviarMensagemEvolution(barbeariaId, telefone, resposta);
 
-      // Salva histórico (só user + assistant, tool calls são gerenciados pelo estado)
       historico.push({ role: 'user', content: texto }, { role: 'assistant', content: resposta });
       const limitado = historico.slice(-30);
 
@@ -117,7 +114,7 @@ router.post('/webhook/evolution/:barbeariaId', async (req, res) => {
   } catch (err) {
     console.error(`❌ [Evolution] Erro ao processar webhook:`, err.message);
   }
-});
+}
 
 // ============================================================
 // ROTAS AUTENTICADAS

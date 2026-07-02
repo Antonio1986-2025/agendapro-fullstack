@@ -497,6 +497,15 @@ const tools = [
       },
     },
   },
+  // ───── RECUPERAÇÃO / DIAGNÓSTICO ─────
+  {
+    type: 'function',
+    function: {
+      name: 'verificarEstadoAtual',
+      description: 'CONSULTA O ESTADO ATUAL no banco de dados e retorna o checklist completo, o progresso do goal e qual o próximo passo. Use SEMPRE que estiver em dúvida sobre o que já foi preenchido ou quando achar que o estado pode estar inconsistente. Esta tool lê direto do banco, ignorando qualquer "memória" que você tenha.',
+      parameters: { type: 'object', properties: {}, required: [], additionalProperties: false },
+    },
+  },
 ];
 
 // ============================================================
@@ -1429,6 +1438,40 @@ async function executarTool(ctx, toolName, args) {
         };
       }
       
+      // ───── RECUPERAÇÃO: verificar estado atual no banco ─────
+      case 'verificarEstadoAtual': {
+        const estadoBanco = await ws.carregarEstado(barbeariaId, telefone);
+        const progresso = ws.calcularProgresso(estadoBanco);
+        const proxSlot = ws.proximoSlot(estadoBanco);
+        const completo = ws.checklistCompleto(estadoBanco);
+
+        let resumoSlots = {};
+        for (const s of ws.ORDEM_SLOTS_AGENDAMENTO) {
+          const slot = estadoBanco.slots[s];
+          resumoSlots[s] = slot?.preenchido ? {
+            preenchido: true,
+            valor: typeof slot.valor === 'object' ? slot.valor.nome || slot.valor.hora || JSON.stringify(slot.valor) : slot.valor,
+          } : { preenchido: false };
+        }
+
+        return {
+          resultado: {
+            sucesso: true,
+            fluxo_ativo: estadoBanco.fluxo_ativo,
+            goal: estadoBanco.goal,
+            progresso: `${progresso.preenchidos}/${progresso.total} (${progresso.percentual}%)`,
+            checklist_completo: completo,
+            proximo_slot: proxSlot,
+            slots: resumoSlots,
+            ultimo_slot_preenchido: estadoBanco.ultimo_slot_preenchido,
+            mensagem: completo
+              ? 'Checklist COMPLETO. Mostre o resumo e confirme com o cliente, depois chame finalizarAgendamento.'
+              : `Faltam preencher: ${ws.ORDEM_SLOTS_AGENDAMENTO.filter(s => !estadoBanco.slots[s]?.preenchido).join(', ')}`,
+          },
+          novoEstado: estadoBanco,
+        };
+      }
+
       default:
         return { resultado: { erro: `Tool desconhecida: ${toolName}` } };
     }
@@ -1595,9 +1638,13 @@ function montarSystemPrompt(barbeariaNome, telefoneCliente, estado, promptPerson
   
   const estadoTexto = ws.formatarEstadoParaPrompt(estado);
   
-  const prompt = `[SLOT-FILLING v4.1] Você é o atendente virtual da barbearia "${barbeariaNome}".
+  const prompt = `[GOAL-ORIENTED v2.0] Você é o atendente virtual da barbearia "${barbeariaNome}".
 
-⚠️ INSTRUÇÃO CRÍTICA: Sempre que houver um fluxo ativo (agendamento, cancelamento), você DEVE usar as tools disponíveis para avançar o checklist. NUNCA responda ao cliente sem chamar a tool apropriada primeiro. O checklist abaixo mostra exatamente quais slots já foram preenchidos e qual é o próximo passo.
+⚠️⚠️⚠️ REGRA #1 — O CHECKLIST É A VERDADE ABSOLUTA ⚠️⚠️⚠️
+Você NUNCA deve confiar na sua memória. O checklist abaixo (📋) é a ÚNICA fonte da verdade sobre o que já foi preenchido. Sempre olhe ele antes de decidir o próximo passo. Se estiver em dúvida, chame verificarEstadoAtual — essa tool lê o estado real do banco.
+
+🎯⚠️ REGRA #2 — O OBJETIVO É SAGRADO ⚠️🎯
+O OBJETIVO (🎯) está explícito acima do checklist. Cada tool chamada deve ser um PASSO EM DIREÇÃO AO OBJETIVO. Se você não está avançando o checklist, está errando.
 
 ━━━━━━━━━━━━━━━━━━━━━━━━
 📞 CLIENTE ATUAL
@@ -1611,18 +1658,25 @@ ${estadoTexto}
 
 🛠️ COMO TRABALHAR:
 
-O sistema possui um CHECKLIST INTERNO que controla o fluxo. Você usa TOOLS para preenchê-lo.
+O sistema possui um CHECKLIST INTERNO persistido no banco de dados. Você usa TOOLS para preenchê-lo. O objetivo FINAL é criar o agendamento — cada slot preenchido é um passo mais perto.
 
 REGRAS DE OURO:
 1. Cliente quer agendar? → Chame iniciarAgendamento PRIMEIRO.
 2. Se cliente é NOVO (não cadastrado): peça nome COMPLETO e use cadastrarClientePrincipal.
-3. Use as tools "definir*" para registrar cada decisão. O sistema mantém o estado.
-4. NÃO pergunte sobre slots já preenchidos (✅) — eles estão no checklist acima.
+3. Use as tools "definir*" para registrar cada decisão. O sistema mantém o estado no banco.
+4. NÃO pergunte sobre slots já preenchidos (✅) — eles estão no checklist acima. Consulte ele.
 5. Para FINALIZAR, todos os slots devem estar ✅ — use finalizarAgendamento.
 6. Se cliente quiser MUDAR algo já preenchido, use a tool "definir*" novamente (sobrescreve).
 7. Se cliente desistir, use cancelarFluxoAtual.
 8. NÃO chame a mesma tool múltiplas vezes em sequência - se uma tool falhou, leia o erro e ajuste.
 9. SE O CLIENTE PERGUNTAR ALGO FORA DO TEMA (preço, endereço, horário, etc.), RESPONDA e DEPOIS VOLTAR AO FLUXO. Nunca ignore a pergunta. Nunca abandone o fluxo.
+10. ⚡ SE ESTIVER PERDIDO ou em dúvida sobre o estado, chame verificarEstadoAtual IMEDIATAMENTE.
+
+⚡ RECUPERAÇÃO DE ESTADO:
+Se você chamou uma tool e o resultado foi inesperado, ou se percebeu que o estado pode estar errado:
+→ Chame verificarEstadoAtual para ler o estado REAL do banco
+→ Depois prossiga baseado no que a ferramenta retornou
+→ NUNCA tente "adivinhar" o estado — sempre confirme com o banco
 
 ⚡ PERGUNTAS FORA DO CONTEXTO (MUITO IMPORTANTE):
 Quando o cliente perguntar algo que não é sobre agendamento (ex: "quanto custa?", "onde fica?", "que horas abrem?"):

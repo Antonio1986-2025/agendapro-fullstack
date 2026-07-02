@@ -5,6 +5,7 @@ import fs from 'fs';
 import path from 'path';
 import { fileURLToPath } from 'url';
 import QRCode from 'qrcode';
+import { enfileirar } from './message-queue.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const AUTH_DIR = path.join(__dirname, '..', '..', 'baileys_auth');
@@ -226,66 +227,72 @@ export async function conectarBaileys(barbeariaId) {
 
         if (!texto || !remetente) continue;
 
-        console.log(`📩 [Baileys] Mensagem de ${remetente}: ${texto.substring(0, 100)}`);
+        const telefoneChaveFila = remetente.replace(/[^0-9]/g, '') || remetente;
 
-        await query(
-          `INSERT INTO whatsapp_mensagens (barbearia_id, telefone, mensagem, tipo, status)
-           VALUES ($1, $2, $3, 'recebida', 'recebida')`,
-          [barbeariaId, remetente, texto]
-        );
-
-        const { rows: wc } = await query(
-          `SELECT ai_enabled, ai_prompt FROM whatsapp_config WHERE barbearia_id = $1`,
-          [barbeariaId]
-        );
-        const aiEnabled = wc[0]?.ai_enabled;
-        if (!aiEnabled) continue;
-
-        const { rows: barb } = await query(
-          `SELECT nome FROM barbearias WHERE id = $1`,
-          [barbeariaId]
-        );
-        const barbeariaNome = barb[0]?.nome || 'Barbearia';
-
-        const telefoneLimpo = remetente.replace(/[^0-9]/g, '');
-        let historico = [];
-        try {
-          const { rows: conv } = await query(
-            `SELECT historico FROM ai_conversas WHERE barbearia_id = $1 AND cliente_telefone = $2`,
-            [barbeariaId, telefoneLimpo]
-          );
-          if (conv[0]?.historico) {
-            historico = typeof conv[0].historico === 'string' ? JSON.parse(conv[0].historico) : conv[0].historico;
-          }
-        } catch {}
-
-        const { processarMensagem } = await import('./ai.js');
-        const { resposta } = await processarMensagem(
-          barbeariaId, barbeariaNome, texto, historico,
-          wc[0]?.ai_prompt || null, remetente
-        );
-
-        if (resposta) {
-          await enviarMensagemBaileys(barbeariaId, remetente, resposta);
-
-          historico.push({ role: 'user', content: texto }, { role: 'assistant', content: resposta });
-          const limitado = historico.slice(-30);
-
-          await query(
-            `INSERT INTO ai_conversas (barbearia_id, cliente_telefone, historico, ultima_interacao)
-             VALUES ($1, $2, $3, now())
-             ON CONFLICT (barbearia_id, cliente_telefone) DO UPDATE SET
-                historico = $3, ultima_interacao = now()`,
-            [barbeariaId, telefoneLimpo, JSON.stringify(limitado)]
-          );
-
-          console.log(`🤖 [Baileys] Resposta enviada para ${remetente}`);
-        }
+        enfileirar(telefoneChaveFila, () => processarMensagemBaileysUnica(barbeariaId, texto, remetente));
       }
     } catch (err) {
       console.error(`❌ Erro ao processar mensagem Baileys:`, err.message);
     }
   });
+
+  async function processarMensagemBaileysUnica(barbeariaId, texto, remetente) {
+    console.log(`📩 [Baileys] Mensagem de ${remetente}: ${texto.substring(0, 100)}`);
+
+    await query(
+      `INSERT INTO whatsapp_mensagens (barbearia_id, telefone, mensagem, tipo, status)
+       VALUES ($1, $2, $3, 'recebida', 'recebida')`,
+      [barbeariaId, remetente, texto]
+    );
+
+    const { rows: wc } = await query(
+      `SELECT ai_enabled, ai_prompt FROM whatsapp_config WHERE barbearia_id = $1`,
+      [barbeariaId]
+    );
+    const aiEnabled = wc[0]?.ai_enabled;
+    if (!aiEnabled) return;
+
+    const { rows: barb } = await query(
+      `SELECT nome FROM barbearias WHERE id = $1`,
+      [barbeariaId]
+    );
+    const barbeariaNome = barb[0]?.nome || 'Barbearia';
+
+    const telefoneLimpo = remetente.replace(/[^0-9]/g, '');
+    let historico = [];
+    try {
+      const { rows: conv } = await query(
+        `SELECT historico FROM ai_conversas WHERE barbearia_id = $1 AND cliente_telefone = $2`,
+        [barbeariaId, telefoneLimpo]
+      );
+      if (conv[0]?.historico) {
+        historico = typeof conv[0].historico === 'string' ? JSON.parse(conv[0].historico) : conv[0].historico;
+      }
+    } catch {}
+
+    const { processarMensagem } = await import('./ai.js');
+    const { resposta } = await processarMensagem(
+      barbeariaId, barbeariaNome, texto, historico,
+      wc[0]?.ai_prompt || null, remetente
+    );
+
+    if (resposta) {
+      await enviarMensagemBaileys(barbeariaId, remetente, resposta);
+
+      historico.push({ role: 'user', content: texto }, { role: 'assistant', content: resposta });
+      const limitado = historico.slice(-30);
+
+      await query(
+        `INSERT INTO ai_conversas (barbearia_id, cliente_telefone, historico, ultima_interacao)
+         VALUES ($1, $2, $3, now())
+         ON CONFLICT (barbearia_id, cliente_telefone) DO UPDATE SET
+            historico = $3, ultima_interacao = now()`,
+        [barbeariaId, telefoneLimpo, JSON.stringify(limitado)]
+      );
+
+      console.log(`🤖 [Baileys] Resposta enviada para ${remetente}`);
+    }
+  }
 
   const qrResult = await qrPromise;
   connecting.delete(barbeariaId);

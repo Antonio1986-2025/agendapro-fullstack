@@ -29,9 +29,15 @@ import { query } from '../config/database.js';
  */
 function criarEstadoInicial() {
   return {
-    fluxo_ativo: null,            // 'agendamento' | 'cancelamento' | 'reagendamento' | null
-    iniciado_em: null,            // ISO timestamp
-    
+    versao: 2,
+    fluxo_ativo: null,
+    iniciado_em: null,
+
+    goal: {
+      tipo: 'criar_agendamento',
+      descricao: 'Coletar dados e criar um agendamento completo',
+    },
+
     slots: {
       cliente: { preenchido: false, valor: null },
       servico: { preenchido: false, valor: null },
@@ -40,12 +46,25 @@ function criarEstadoInicial() {
       data: { preenchido: false, valor: null },
       horario: { preenchido: false, valor: null },
     },
-    
-    // Idempotência: evita criar mesmo agendamento duas vezes
+
+    ultimo_slot_preenchido: null,
+
     agendamento_criado_id: null,
     agendamento_criado_em: null,
-    
+
     ultima_atualizacao: null,
+  };
+}
+
+export function calcularProgresso(estado) {
+  if (estado.fluxo_ativo !== 'agendamento') return { concluido: false, percentual: 0, preenchidos: 0, total: ORDEM_SLOTS_AGENDAMENTO.length };
+  const preenchidos = ORDEM_SLOTS_AGENDAMENTO.filter(s => estado.slots[s]?.preenchido).length;
+  const total = ORDEM_SLOTS_AGENDAMENTO.length;
+  return {
+    concluido: preenchidos === total,
+    percentual: Math.round((preenchidos / total) * 100),
+    preenchidos,
+    total,
   };
 }
 
@@ -137,15 +156,21 @@ export function iniciarFluxo(estadoAtual, fluxo, clienteData = null) {
   const novo = criarEstadoInicial();
   novo.fluxo_ativo = fluxo;
   novo.iniciado_em = new Date().toISOString();
-  
-  // Se temos dados do cliente, já preenche o slot
+
+  if (fluxo === 'agendamento') {
+    novo.goal = {
+      tipo: 'criar_agendamento',
+      descricao: 'Coletar TODOS os dados (cliente, serviço, profissional, para quem, data, horário) e finalizar criando o agendamento no banco.',
+    };
+  }
+
   if (clienteData) {
     novo.slots.cliente = {
       preenchido: true,
       valor: clienteData,
     };
   }
-  
+
   return novo;
 }
 
@@ -175,6 +200,7 @@ export function definirSlot(estado, slotName, valor) {
   
   return {
     ...estado,
+    ultimo_slot_preenchido: slotName,
     slots: {
       ...estado.slots,
       [slotName]: {
@@ -286,34 +312,39 @@ Caso contrário, comece um NOVO atendimento normalmente.`;
   
   if (estado.fluxo_ativo === 'agendamento') {
     const slots = estado.slots;
+    const progresso = calcularProgresso(estado);
     const linhas = [];
-    
-    linhas.push(`🔄 FLUXO ATIVO: AGENDAMENTO em andamento`);
+
+    linhas.push(`🎯 OBJETIVO: ${estado.goal?.descricao || 'Criar um agendamento'}`);
+    linhas.push(`📊 PROGRESSO: ${progresso.preenchidos}/${progresso.total} (${progresso.percentual}%)`);
+    linhas.push('');
+
+    if (progresso.concluido) {
+      linhas.push('✅ TODOS OS DADOS COLETADOS!');
+    } else if (estado.ultimo_slot_preenchido) {
+      linhas.push(`📌 Último slot preenchido: ${estado.ultimo_slot_preenchido}`);
+    }
     linhas.push('');
     linhas.push('📋 CHECKLIST:');
     
-    // Cliente
     if (slots.cliente.preenchido) {
       linhas.push(`✅ Cliente: ${slots.cliente.valor.nome} (id: ${slots.cliente.valor.id})`);
     } else {
       linhas.push(`❌ Cliente: ainda não identificado`);
     }
     
-    // Serviço
     if (slots.servico.preenchido) {
       linhas.push(`✅ Serviço: ${slots.servico.valor.nome} - R$${slots.servico.valor.preco} (${slots.servico.valor.duracao}min)`);
     } else {
       linhas.push(`❌ Serviço: ainda não escolhido`);
     }
     
-    // Profissional
     if (slots.profissional.preenchido) {
       linhas.push(`✅ Profissional: ${slots.profissional.valor.nome}`);
     } else {
       linhas.push(`❌ Profissional: ainda não escolhido`);
     }
     
-    // Para quem
     if (slots.para_quem.preenchido) {
       const v = slots.para_quem.valor;
       if (v.tipo === 'proprio_cliente') {
@@ -325,14 +356,12 @@ Caso contrário, comece um NOVO atendimento normalmente.`;
       linhas.push(`❌ Para quem: ainda não definido`);
     }
     
-    // Data
     if (slots.data.preenchido) {
       linhas.push(`✅ Data: ${slots.data.valor.data_formatada} (${slots.data.valor.data})`);
     } else {
       linhas.push(`❌ Data: ainda não escolhida`);
     }
     
-    // Horário
     if (slots.horario.preenchido) {
       linhas.push(`✅ Horário: ${slots.horario.valor.hora}`);
     } else {
@@ -341,7 +370,6 @@ Caso contrário, comece um NOVO atendimento normalmente.`;
     
     linhas.push('');
     
-    // Próximo passo
     const prox = proximoSlot(estado);
     const proximoTexto = textoProximoPasso(prox, slots);
     linhas.push(`🎯 PRÓXIMO PASSO: ${proximoTexto}`);
