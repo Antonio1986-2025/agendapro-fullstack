@@ -557,6 +557,22 @@ const tools = [
       parameters: { type: 'object', properties: {}, required: [], additionalProperties: false },
     },
   },
+  // ───── RESPOSTA AO CLIENTE (tool de saída obrigatória) ─────
+  {
+    type: 'function',
+    function: {
+      name: 'responderCliente',
+      description: 'Envia uma mensagem de texto para o cliente. SEMPRE use esta tool para dar a resposta final depois de coletar os dados necessários nas outras tools. NUNCA responda ao cliente sem antes consultar os dados do banco com as tools apropriadas.',
+      parameters: {
+        type: 'object',
+        properties: {
+          mensagem: { type: 'string', description: 'A mensagem completa a ser enviada ao cliente. Seja natural, direto e inclua apenas informações verificadas nas tools.' },
+        },
+        required: ['mensagem'],
+        additionalProperties: false,
+      },
+    },
+  },
 ];
 
 // ============================================================
@@ -1504,6 +1520,15 @@ async function executarTool(ctx, toolName, args) {
       }
       
       // ───── RECUPERAÇÃO: verificar estado atual no banco ─────
+      case 'responderCliente': {
+        return {
+          resultado: {
+            sucesso: true,
+            mensagem: args.mensagem || '',
+          },
+        };
+      }
+
       case 'verificarEstadoAtual': {
         const estadoBanco = await ws.carregarEstado(barbeariaId, telefone);
         const progresso = ws.calcularProgresso(estadoBanco);
@@ -1706,6 +1731,16 @@ Você NUNCA deve confiar na sua memória. O checklist abaixo (📋) é a ÚNICA 
 
 🎯⚠️ REGRA #2 — O OBJETIVO É SAGRADO ⚠️🎯
 O OBJETIVO (🎯) está explícito acima do checklist. Cada tool chamada deve ser um PASSO EM DIREÇÃO AO OBJETIVO. Se você não está avançando o checklist, está errando.
+
+🚨🚨🚨 REGRA #3 — ZERO ALUCINAÇÃO (LEIA COM ATENÇÃO) 🚨🚨🚨
+Você NUNCA sabe os profissionais, serviços, preços ou horários disponíveis.
+Você DEVE chamar a tool correspondente ANTES de falar sobre qualquer um desses tópicos:
+- Profissionais → chame listarProfissionais ANTES de listar ou mencionar
+- Serviços e preços → chame listarServicos ou buscarServicoPorNome ANTES de listar
+- Horários disponíveis → chame consultarHorariosLivres ANTES de sugerir
+- Info da barbearia → chame consultarInfoBarbearia ANTES de responder
+NUNCA invente nomes, preços, quantidades ou disponibilidade.
+Se a tool retornar vazio ou não encontrar, avise o cliente honestamente.
 
 ━━━━━━━━━━━━━━━━━━━━━━━━
 📞 CLIENTE ATUAL
@@ -2059,8 +2094,8 @@ export async function processarMensagem(barbeariaId, barbeariaNome, mensagemClie
         model: MODEL_NAME,
         messages,
         tools,
-        tool_choice: ctx.estado.fluxo_ativo ? 'auto' : 'auto',
-        temperature: 0.4,
+        tool_choice: 'required',
+        temperature: 0.1,
         max_tokens: 600,
       });
       
@@ -2131,6 +2166,15 @@ export async function processarMensagem(barbeariaId, barbeariaNome, mensagemClie
         const msgPendente = '⏳ Seu horário especial foi solicitado! A barbearia vai confirmar em breve e avisamos você assim que aprovarem. Te esperamos! 💈';
         console.log(`✅ Resposta (pendente): ${msgPendente.substring(0, 80)}...`);
         return { resposta: msgPendente, toolsExecutados, toolInteractionMessages };
+      }
+
+      // SHORT-CIRCUIT: Se responderCliente foi chamada, usa a mensagem como resposta final
+      const temResponder = toolResults.find(tr => tr.name === 'responderCliente');
+      if (temResponder) {
+        await ws.salvarEstado(barbeariaId, telefoneCliente, ctx.estado);
+        const resposta = temResponder.args.mensagem || 'Desculpe, não consegui processar. Pode reformular?';
+        console.log(`✅ Resposta (responderCliente): ${resposta.substring(0, 80)}...`);
+        return { resposta, toolsExecutados, toolInteractionMessages };
       }
       
       // Atualiza system prompt com novo estado para próxima iteração
