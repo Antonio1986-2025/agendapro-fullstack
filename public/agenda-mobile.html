@@ -29,7 +29,7 @@
     .ag-cliente { font-weight: var(--font-semibold); color: var(--text-primary); letter-spacing: -0.01em; font-size: var(--text-sm); margin-bottom: 0.125rem; }
     .ag-serv { font-size: var(--text-xs); color: var(--text-secondary); }
     .ag-prof { font-size: 0.6875rem; color: var(--text-tertiary); margin-top: 0.0625rem; }
-    .ag-especial { font-size: 0.625rem; background: var(--warning); color:#fff; padding: 1px 6px; border-radius: var(--radius-full); margin-left: 4px; font-weight: var(--font-medium); }
+
     .ag-menu { position: relative; }
     .menu-btn { background: var(--bg-secondary); border: 1px solid var(--border-color); width: 32px; height: 32px; border-radius: var(--radius-md); cursor: pointer; color: var(--text-secondary); transition: all var(--transition-fast); }
     .menu-btn:hover { background: var(--bg-hover); color: var(--text-primary); border-color: var(--border-hover); }
@@ -64,7 +64,7 @@
   .agenda-nav-desktop { display: flex; align-items: center; gap: var(--space-sm); background: var(--bg-secondary); border-radius: var(--radius-lg); padding: var(--space-xs); }
   .agenda-nav-btn { background: none; border: none; padding: var(--space-sm) var(--space-md); border-radius: var(--radius-md); cursor: pointer; color: var(--text-secondary); font-weight: var(--font-medium); transition: all var(--transition-fast); }
   .agenda-nav-btn:hover { background: var(--bg-card); color: var(--text-primary); }
-  .agenda-nav-btn.especial-on { color: var(--warning); border-color: var(--warning); }
+
   .agenda-nav-hoje { color: var(--primary); font-weight: var(--font-bold); }
   .agenda-nav-data { font-weight: var(--font-semibold); color: var(--text-primary); padding: 0 var(--space-sm); }
 
@@ -146,9 +146,7 @@
             <span class="agenda-nav-data" id="data-label-desktop">--</span>
             <button class="agenda-nav-btn" onclick="irHoje()"><i class="fas fa-calendar-alt"></i></button>
             <button class="agenda-nav-btn" onclick="mudarDia(1)"><i class="fas fa-chevron-right"></i></button>
-            <button class="agenda-nav-btn" id="btn-especial" onclick="toggleEspecial()" title="Horários Especiais 19h-21h">
-              <i class="fas fa-clock"></i> <span id="especial-label">Especial</span>
-            </button>
+
             <button class="agenda-nav-btn" onclick="toggleTheme()"><i class="fas fa-moon" id="theme-icon-desk"></i></button>
           </div>
         </div>
@@ -173,9 +171,7 @@
         <button class="back-btn" onclick="irHoje()" title="Hoje"><i class="fas fa-calendar-day"></i></button>
       </div>
         <div class="resumo" id="resumo">--</div>
-        <button class="back-btn" onclick="toggleEspecial()" title="Horários Especiais 19h-21h" id="btn-especial-mobile" style="display:flex; align-items:center; gap:4px; font-size:var(--text-xs);">
-          <i class="fas fa-clock"></i> <span id="especial-label-mobile">Especial</span>
-        </button>
+
     </header>
 
     <main class="main-content">
@@ -217,10 +213,6 @@
         <div class="field"><label>Data *</label><input class="input" id="f-data" type="date"></div>
         <div class="field"><label>Hora *</label><input class="input" id="f-hora" type="time" value="09:00"></div>
       </div>
-      <div class="switch-row">
-        <label style="margin:0">Horário especial (+50%)</label>
-        <input type="checkbox" id="f-especial" style="width:20px;height:20px;">
-      </div>
       <div style="display:flex; gap: var(--space-sm); margin-top: var(--space-md);">
         <button class="btn btn-secondary btn-full" onclick="fecharModal()">Cancelar</button>
         <button class="btn btn-primary btn-full" id="btn-salvar" onclick="salvar()">Agendar</button>
@@ -254,19 +246,14 @@
 
     let dataAtual = new Date();
     let profissionais = [], servicos = [], clientes = [];
-    let mostrarEspecial = false;
+
 
     function ymd(d) {
       return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
     }
     function mudarDia(n) { dataAtual.setDate(dataAtual.getDate()+n); carregar(); }
     function irHoje() { dataAtual = new Date(); carregar(); }
-    function toggleEspecial() {
-      mostrarEspecial = !mostrarEspecial;
-      document.querySelectorAll('#btn-especial, #btn-especial-mobile').forEach(el => el.classList.toggle('especial-on', mostrarEspecial));
-      document.querySelectorAll('#especial-label, #especial-label-mobile').forEach(el => el.textContent = mostrarEspecial ? 'Especial ON' : 'Especial');
-      carregar();
-    }
+
 
     async function carregarBase() {
       [profissionais, servicos, clientes] = await Promise.all([
@@ -306,7 +293,7 @@
           <div class="ag-card st-${a.status}">
             <div class="ag-hora">${hora}</div>
             <div class="ag-info">
-              <div class="ag-cliente">${a.cliente_nome || 'Cliente'} ${a.is_especial ? '<span class="ag-especial">+50%</span>' : ''}</div>
+              <div class="ag-cliente">${a.cliente_nome || 'Cliente'}</div>
               <div class="ag-serv">${a.servico_nome || 'Atendimento'} • R$ ${Number(a.preco).toFixed(2)}</div>
               <div class="ag-prof"><i class="fas fa-user-tie"></i> ${a.profissional_nome || ''} • ${statusTexto}${statusLabel(a.status)}</div>
             </div>
@@ -348,7 +335,7 @@
       };
       addRange(7, 30, 11, 0);
       addRange(13, 0, 19, 0);
-      if (mostrarEspecial) addRange(19, 0, 21, 0);
+      addRange(19, 0, 21, 0);
       const horariosFiltrados = horarios.filter(hora => {
         if (!ehHoje) return true;
         const [hh, mm] = hora.split(':').map(Number);
@@ -436,7 +423,6 @@
         ? todosHorarios.find(h => { const [hh,mm] = h.split(':').map(Number); return hh*60+mm >= minAgora; }) || '07:30'
         : '07:30';
       document.getElementById('f-hora').value = proximaHora;
-      document.getElementById('f-especial').checked = false;
       document.getElementById('modal').classList.add('open');
     }
     function fecharModal() { document.getElementById('modal').classList.remove('open'); }
@@ -463,7 +449,6 @@
       const hora = document.getElementById('f-hora').value;
       const profId = document.getElementById('f-prof').value;
       const servId = document.getElementById('f-serv').value;
-      const especial = document.getElementById('f-especial').checked;
 
       if (!nome) { a.textContent = 'Informe o nome do cliente'; a.className = 'alert error'; return; }
       if (!profId || !data || !hora) { a.textContent = 'Profissional, data e hora são obrigatórios'; a.className = 'alert error'; return; }
@@ -477,7 +462,6 @@
           profissional_id: profId,
           servico_id: servId || null,
           data_hora: `${data}T${hora}:00`,
-          is_especial: especial,
         });
         fecharModal();
         clientes = await API.get('/clientes');
