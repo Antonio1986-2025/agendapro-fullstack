@@ -134,8 +134,82 @@ export function textoNotificacaoBarbeiro({ profissionalNome, clienteNome, client
   );
 }
 
+/**
+ * Notifica o barbeiro sobre UM NOVO AGENDAMENTO confirmado
+ * Delega para o scheduler para evitar duplicações
+ */
 export async function notificarBarbeiroNovoAgendamento(barbeariaId, agendamentoId) {
-  // Delegado para o scheduler que tem controle de duplicação
   const { notificarBarbeiroNovoAgendamento: notificar } = await import('./scheduler.js');
   return notificar(barbeariaId, agendamentoId);
+}
+
+/**
+ * Solicita CONFIRMAÇÃO do barbeiro para horário especial (pendente_barbeiro)
+ * Envia mensagem diferente pedindo aprovação
+ */
+export async function solicitarConfirmacaoBarbeiro(barbeariaId, agendamentoId) {
+  try {
+    const { rows } = await query(
+      `SELECT 
+          p.nome AS profissional_nome, 
+          p.telefone AS profissional_telefone,
+          p.notificar_whatsapp,
+          c.nome AS cliente_nome, 
+          c.telefone AS cliente_telefone,
+          s.nome AS servico_nome,
+          a.data_hora
+         FROM agendamentos a
+         JOIN profissionais p ON p.id = a.profissional_id
+         LEFT JOIN clientes c ON c.id = a.cliente_id
+         LEFT JOIN servicos s ON s.id = a.servico_id
+        WHERE a.id = $1 AND a.barbearia_id = $2`,
+      [agendamentoId, barbeariaId]
+    );
+
+    const d = rows[0];
+    if (!d) {
+      console.log(`⚠️  Agendamento ${agendamentoId} não encontrado para confirmacao`);
+      return { ok: false, motivo: 'agendamento_nao_encontrado' };
+    }
+
+    if (d.notificar_whatsapp === false) {
+      console.log(`ℹ️  Notificação desativada para ${d.profissional_nome}`);
+      return { ok: false, motivo: 'notificacao_desativada' };
+    }
+
+    if (!d.profissional_telefone) {
+      console.log(`⚠️  Profissional sem telefone para confirmacao`);
+      return { ok: false, motivo: 'sem_telefone' };
+    }
+
+    const dataFmt = formatarDataHoraBR(d.data_hora);
+    const mensagem =
+      `🌙 *Pedido de horario especial!*\n\n` +
+      `Ola, ${d.profissional_nome}! Um cliente solicitou horario especial:\n\n` +
+      `👤 Cliente: ${d.cliente_nome || 'Cliente'}\n` +
+      `📱 Contato: ${d.cliente_telefone || 'nao informado'}\n` +
+      `✂️ Servico: ${d.servico_nome || 'Atendimento'}\n` +
+      `📅 Data: ${dataFmt}\n\n` +
+      `⚠️ *Este horario esta PENDENTE de sua confirmacao.*\n` +
+      `Acesse o painel para aprovar ou recusar.`;
+
+    await enviarMensagem(barbeariaId, { telefone: d.profissional_telefone, mensagem, tipo: 'solicitacao_confirmacao' });
+
+    await query(
+      `INSERT INTO whatsapp_mensagens (barbearia_id, agendamento_id, telefone, mensagem, tipo, status)
+       VALUES ($1, $2, $3, $4, 'solicitacao_confirmacao', 'enviada')`,
+      [barbeariaId, agendamentoId, d.profissional_telefone, mensagem]
+    );
+
+    await query(
+      `UPDATE agendamentos SET notificacao_barbeiro_enviada_em = now() WHERE id = $1`,
+      [agendamentoId]
+    );
+
+    console.log(`✅ Solicitacao de confirmacao enviada para ${d.profissional_nome} (agendamento ${agendamentoId})`);
+    return { ok: true };
+  } catch (err) {
+    console.error(`❌ Erro ao solicitar confirmacao do barbeiro:`, err.message);
+    return { ok: false, erro: err.message };
+  }
 }
