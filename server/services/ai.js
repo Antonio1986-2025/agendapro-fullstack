@@ -10,7 +10,7 @@
  * Arquitetura inspirada em: Google Dialogflow CX, LangGraph, OpenAI Cookbook.
  */
 
-import OpenAI from 'openai';
+import OpenAI, { toFile } from 'openai';
 import { query } from '../config/database.js';
 import * as ws from './workflow-state.js';
 
@@ -39,6 +39,28 @@ function getOpenAI() {
   return _openai;
 }
 
+/**
+ * Transcreve áudio (Buffer) para texto usando OpenAI Whisper
+ */
+export async function transcreverAudio(buffer, mimetype = 'audio/mp4') {
+  const ai = getOpenAI();
+  if (!ai) throw new Error('OpenAI não configurado');
+
+  const ext = mimetype.includes('ogg') ? 'ogg' : mimetype.includes('webm') ? 'webm' : 'mp4';
+  console.log(`🎙️ [Whisper] Transcrevendo: ${buffer.length} bytes, mimetype: ${mimetype}, ext: ${ext}`);
+  
+  const file = await toFile(buffer, `audio.${ext}`, { type: mimetype });
+
+  const transcription = await ai.audio.transcriptions.create({
+    file,
+    model: 'whisper-1',
+    language: 'pt',
+  });
+
+  console.log(`🎙️ [Whisper] Resultado: ${transcription.text ? transcription.text.substring(0, 80) + '...' : 'vazio'}`);
+  return transcription.text || '';
+}
+
 // ============================================================
 // HELPERS DE PARSING / VALIDAÇÃO
 // ============================================================
@@ -49,7 +71,7 @@ function getOpenAI() {
 function parsearData(input) {
   if (!input) return null;
   const str = String(input).toLowerCase().trim();
-  const hoje = new Date();
+  const hoje = agoraSP();
   hoje.setHours(0, 0, 0, 0);
   
   // Hoje
@@ -118,6 +140,13 @@ function formatarDataLegivel(ymd) {
   return d.toLocaleDateString('pt-BR', { 
     weekday: 'long', day: '2-digit', month: 'long' 
   });
+}
+
+// Retorna Date ajustada para America/Sao_Paulo (evita mismatch de timezone)
+function agoraSP() {
+  const now = new Date();
+  const sp = new Date(now.toLocaleString('en-US', { timeZone: 'America/Sao_Paulo' }));
+  return sp;
 }
 
 /**
@@ -436,12 +465,13 @@ const tools = [
     type: 'function',
     function: {
       name: 'consultarHorariosLivres',
-      description: 'Consulta horários disponíveis em uma data específica (sem precisar definir nada). Útil quando cliente pergunta "tem horário disponível?".',
+      description: 'Consulta horários disponíveis em uma data específica. IMPORTANTE: passe a duração do serviço escolhido para resultados precisos. Sempre passe duracao_minutos quando o cliente já tiver escolhido um serviço.',
       parameters: {
         type: 'object',
         properties: {
           data: { type: 'string', description: 'Data em formato natural ou ISO' },
           profissional: { type: 'string', description: 'Profissional opcional (UUID, nome ou posição)' },
+          duracao_minutos: { type: 'number', description: 'Duração do serviço em minutos (ex: 30, 60). Use o valor do serviço já escolhido.' },
         },
         required: ['data'],
         additionalProperties: false,
@@ -766,7 +796,7 @@ async function executarTool(ctx, toolName, args) {
         }
         
         // Não pode ser no passado
-        const hoje = new Date();
+        const hoje = agoraSP();
         hoje.setHours(0, 0, 0, 0);
         const dataObj = new Date(dataYMD + 'T12:00:00');
         if (dataObj < hoje) {
@@ -942,24 +972,70 @@ async function executarTool(ctx, toolName, args) {
           observacoes = `Agendado por ${slots.cliente.valor.nome} para ${slots.para_quem.valor.nome_pessoa}`;
         }
         
+        // Detecta horário especial (>= 19h)
+        const horaNum = parseInt(slots.horario.valor.hora.split(':')[0], 10);
+        const isEspecial = horaNum >= 19;
+        const statusInicial = isEspecial ? 'pendente_barbeiro' : 'agendado';
+
         // CRIA O AGENDAMENTO (envia STRING para data_hora — sem conversão de TZ)
-        console.log(`   🔨 CRIANDO AGENDAMENTO: ${slots.servico.valor.nome} | ${dataHoraStr} | Cliente: ${clienteAlvoId}`);
+        console.log(`   🔨 CRIANDO AGENDAMENTO: ${slots.servico.valor.nome} | ${dataHoraStr} | Cliente: ${clienteAlvoId} | Status: ${statusInicial}`);
         const { rows } = await query(
           `INSERT INTO agendamentos
             (barbearia_id, cliente_id, servico_id, profissional_id, data_hora,
              duracao_minutos, preco, status, observacoes)
-           VALUES ($1, $2, $3, $4, $5::timestamp, $6, $7, 'agendado', $8)
+           VALUES ($1, $2, $3, $4, $5::timestamp, $6, $7, $8, $9)
            RETURNING id, data_hora`,
           [
             barbeariaId, clienteAlvoId, slots.servico.valor.id, slots.profissional.valor.id,
-            dataHoraStr, slots.servico.valor.duracao, slots.servico.valor.preco, observacoes,
+            dataHoraStr, slots.servico.valor.duracao, slots.servico.valor.preco, statusInicial, observacoes,
           ]
         );
         
         const agendamentoId = rows[0].id;
-        console.log(`   ✅ AGENDAMENTO CRIADO: ${agendamentoId} | Data/Hora: ${rows[0].data_hora}`);
+        console.log(`   ✅ AGENDAMENTO CRIADO: ${agendamentoId} | Data/Hora: ${rows[0].data_hora} | Status: ${statusInicial}`);
+
+        if (isEspecial) {
+          // Horário especial: não cria comanda, envia pedido de confirmação ao barbeiro
+          try {
+            const { solicitarConfirmacaoBarbeiro } = await import('./whatsapp.js');
+            solicitarConfirmacaoBarbeiro(barbeariaId, agendamentoId)
+              .catch(e => console.warn('Confirmacao barbeiro:', e.message));
+          } catch (e) { console.warn('Erro ao solicitar confirmacao:', e.message); }
+
+          // Avisa cliente que está pendente
+          const clienteTel = slots.cliente?.valor?.telefone || estado.clienteTel;
+          if (clienteTel) {
+            try {
+              const { enviarMensagem } = await import('./whatsapp.js');
+              enviarMensagem(barbeariaId, {
+                telefone: clienteTel,
+                mensagem: `⏳ *Seu horario especial (apos 19h) foi solicitado!*\n\nA barbearia vai confirmar em breve. Assim que aprovarmos, avisamos voce.`,
+                tipo: 'pendente_barbeiro',
+                agendamentoId,
+              }).catch(() => {});
+            } catch {}
+          }
+
+          const novoEstado = ws.resetarFluxo(estado, agendamentoId);
+          return {
+            resultado: {
+              sucesso: true,
+              agendamento_id: agendamentoId,
+              data_hora: rows[0].data_hora,
+              cliente_nome: slots.para_quem.valor.tipo === 'terceiro'
+                ? slots.para_quem.valor.nome_pessoa
+                : slots.cliente.valor.nome,
+              servico_nome: slots.servico.valor.nome,
+              profissional_nome: slots.profissional.valor.nome,
+              preco: slots.servico.valor.preco,
+              pendente_confirmacao: true,
+              mensagem: `Horário especial solicitado! Avise o cliente que o barbeiro vai confirmar em breve.`,
+            },
+            novoEstado,
+          };
+        }
         
-        // Cria comanda automaticamente
+        // Horário normal (< 19h): cria comanda, notifica normalmente
         try {
           const { rows: prox } = await query(
             `SELECT COALESCE(MAX(numero),0) + 1 AS prox FROM comandas WHERE barbearia_id = $1`,
@@ -1044,10 +1120,11 @@ async function executarTool(ctx, toolName, args) {
       
       case 'listarProfissionais': {
         const { rows } = await query(
-          `SELECT id, nome, especialidade FROM profissionais
+          `SELECT id, nome, especialidade, ativo, telefone, notificar_whatsapp FROM profissionais
             WHERE barbearia_id = $1 AND ativo = true ORDER BY ordem, nome`,
           [barbeariaId]
         );
+        console.log(`   👥 Profissionais ativos: ${rows.length}`, rows.map(p => p.nome).join(', '));
         return {
           resultado: {
             total: rows.length,
@@ -1074,7 +1151,8 @@ async function executarTool(ctx, toolName, args) {
           profId = p.id;
         }
         
-        const livres = await calcularHorariosDisponiveis(barbeariaId, dataYMD, profId);
+        const duracao = args.duracao_minutos || 30;
+        const livres = await calcularHorariosDisponiveis(barbeariaId, dataYMD, profId, duracao);
         
         return {
           resultado: {
@@ -1320,11 +1398,11 @@ async function executarTool(ctx, toolName, args) {
           };
         }
         
-        // Atualiza
+        // Atualiza — preserva status se já for pendente_barbeiro
         const { rowCount } = await query(
           `UPDATE agendamentos 
               SET data_hora = $1::timestamp,
-                  status = 'agendado',
+                  status = CASE WHEN status = 'pendente_barbeiro' THEN 'pendente_barbeiro' ELSE 'agendado' END,
                   lembrete_enviado_em = NULL
             WHERE id = $2 AND barbearia_id = $3`,
           [novaDataHoraStr, args.agendamento_id, barbeariaId]
@@ -1501,15 +1579,15 @@ function verificarSlotsConsecutivos(horaInicio, duracaoMinutos, slotsLivres, int
 async function calcularHorariosDisponiveis(barbeariaId, dataYMD, profissionalId, duracaoMinutos = 30) {
   // Config de horários da barbearia
   const { rows: barbRows } = await query(
-    `SELECT horario_config, horario_especial_ativo FROM barbearias WHERE id = $1`,
+    `SELECT horario_config FROM barbearias WHERE id = $1`,
     [barbeariaId]
   );
   const cfg = barbRows[0]?.horario_config || {
-    manha: { inicio: '08:00', fim: '12:00' },
+    manha: { inicio: '07:30', fim: '11:00' },
     tarde: { inicio: '13:00', fim: '19:00' },
+    especial: { inicio: '19:00', fim: '21:00' },
     intervalo_minutos: 30,
   };
-  const mostrarEspecial = barbRows[0]?.horario_especial_ativo || false;
   
   const intervaloMin = cfg.intervalo_minutos || 30;
   const slots = [];
@@ -1530,11 +1608,7 @@ async function calcularHorariosDisponiveis(barbeariaId, dataYMD, profissionalId,
   
   if (cfg.manha) adicionarSlots(cfg.manha.inicio, cfg.manha.fim);
   if (cfg.tarde) adicionarSlots(cfg.tarde.inicio, cfg.tarde.fim);
-  
-  // Horário especial só aparece se ativado na configuração
-  if (mostrarEspecial && cfg.especial) {
-    adicionarSlots(cfg.especial.inicio, cfg.especial.fim);
-  }
+  if (cfg.especial) adicionarSlots(cfg.especial.inicio, cfg.especial.fim);
   
   // Ocupados (incluindo slots bloqueados por serviços longos)
   const params = [barbeariaId, dataYMD];
@@ -1576,8 +1650,8 @@ async function calcularHorariosDisponiveis(barbeariaId, dataYMD, profissionalId,
   
   let livres = slots.filter(s => !setOcupados.has(s));
   
-  // Se for hoje, remove horários passados
-  const hoje = new Date();
+  // Se for hoje, remove horários passados (usando timezone America/Sao_Paulo)
+  const hoje = agoraSP();
   if (dataYMD === formatarDataYMD(hoje)) {
     const horaAtual = `${String(hoje.getHours()).padStart(2, '0')}:${String(hoje.getMinutes()).padStart(2, '0')}`;
     livres = livres.filter(s => s > horaAtual);
@@ -1683,7 +1757,7 @@ Cliente (durante agendamento, slot pendente = data): "Onde fica a barbearia?"
 ✅ "Temos na Rua XV de Novembro, 1234 — centro. Pra qual dia você quer agendar?"
 
 Cliente (durante agendamento, slot pendente = horário): "Vocês abrem que horas?"
-✅ "Funcionamos de 9h às 19h. Tem preferência de horário?"
+✅ "Funcionamos de 7h30 às 11h e de 13h às 19h (horário normal), e temos horários especiais até 21h. Tem preferência?"
 
 ❌ ERRADO: "O corte custa R$45." (respondeu e abandonou o fluxo)
 ❌ ERRADO: "Isso depois a gente vê, primeiro me diz o nome." (ignorou a pergunta)
@@ -1771,6 +1845,17 @@ Te esperamos!"
 - Use buscarServicoPorNome quando cliente mencionar uma palavra-chave específica
 - Use listarServicos quando cliente disser algo bem genérico
 
+━━━━━━━━━━━━━━━━━━━━━━━━
+🎙️ ÁUDIO E IMAGEM (MULTIMÍDIA)
+━━━━━━━━━━━━━━━━━━━━━━━━
+Você pode receber mensagens de áudio e imagens dos clientes.
+
+ÁUDIO: Já transcrito automaticamente para texto. Responda normalmente — o cliente falou, você leu. NÃO mencione "transcrição" ou "não consigo ouvir".
+
+IMAGEM: O cliente pode enviar fotos (ex: corte de cabelo que quer, estilo, referência). Descreva brevemente o que vê e use como contexto para ajudar no atendimento. Ex: "Vi a foto! Esse corte é estilo social, conseguimos fazer sim."
+
+Se não conseguir ver a imagem, diga simplesmente: "Não consegui visualizar a imagem. Pode me descrever?"
+
 📌 TOQUES DE NATURALIDADE PERMITIDOS (use moderadamente):
 - "Anotado", "Beleza", "Show", "Perfeito", "Tranquilo", "Combinado"
 - "Pra mim", "Pra você"
@@ -1785,11 +1870,15 @@ QUANDO O CHECKLIST ESTÁ COMPLETO (todos ✅):
   [Data] às [Hora]
   Confirma?"
 - Após cliente dizer "sim", chame finalizarAgendamento
-- Após criar, mensagem de confirmação CURTA: "✅ Agendado! [Data] às [Hora] com [Profissional]. Te esperamos!"
+- Horários das 7h30 às 11h e das 13h às 19h são agendamento normal.
+- Horários das 19h às 21h são ESPECIAIS (status: pendente_barbeiro). NÃO diga "Agendado!" — diga que foi solicitado e aguarda confirmação do barbeiro.
+- Se horário for < 19h, mensagem de confirmação CURTA: "✅ Agendado! [Data] às [Hora] com [Profissional]. Te esperamos!"
 
 DATA E HORA ATUAIS:
 Hoje: ${dataFmt} — ${horaFmt}
 Amanhã: ${amanhaFmt}
+
+⚠️ IMPORTANTE: Sempre passe duracao_minutos ao consultar horários livres (consultarHorariosLivres). Se o cliente já escolheu um serviço, use a duração dele. Sem duração, os resultados podem estar incorretos.
 
 ━━━━━━━━━━━━━━━━━━━━━━━━
 🔄 CANCELAMENTO E REAGENDAMENTO (LEIA COM ATENÇÃO)
@@ -1886,7 +1975,7 @@ Cliente: "pode"
 // PROCESSAR MENSAGEM (entry point principal)
 // ============================================================
 
-export async function processarMensagem(barbeariaId, barbeariaNome, mensagemCliente, historico, promptPersonalizado, telefoneCliente) {
+export async function processarMensagem(barbeariaId, barbeariaNome, mensagemCliente, historico, promptPersonalizado, telefoneCliente, imagemBase64 = null, imagemMimetype = 'image/jpeg') {
   console.log(`\n🤖 ====== PROCESSAR MENSAGEM ======`);
   console.log(`📍 ${barbeariaNome} (${barbeariaId})`);
   console.log(`📞 ${telefoneCliente}`);
@@ -1910,10 +1999,19 @@ export async function processarMensagem(barbeariaId, barbeariaNome, mensagemClie
   // Histórico suficiente para manter contexto em conversas longas
   const historicoLimitado = (historico || []).slice(-20);
   
+  // Conteúdo do user: texto puro OU array [text, image_url] se houver imagem
+  let userContentInicial = mensagemCliente;
+  if (imagemBase64) {
+    userContentInicial = [
+      { type: 'text', text: mensagemCliente || 'O cliente enviou uma imagem.' },
+      { type: 'image_url', image_url: { url: `data:${imagemMimetype};base64,${imagemBase64}` } },
+    ];
+  }
+  
   let messages = [
     { role: 'system', content: systemPrompt },
     ...historicoLimitado,
-    { role: 'user', content: mensagemCliente },
+    { role: 'user', content: userContentInicial },
   ];
   
   const ctx = { barbeariaId, telefone: telefoneCliente, estado };
@@ -1926,11 +2024,22 @@ export async function processarMensagem(barbeariaId, barbeariaNome, mensagemClie
     const MAX_ITERACOES = 6;
     
     // Base do messages: system + historico + user message
+    // Se há imagem, monta content como array [text, image_url] (Vision)
+    let userContent;
+    if (imagemBase64) {
+      userContent = [
+        { type: 'text', text: mensagemCliente || 'O cliente enviou uma imagem.' },
+        { type: 'image_url', image_url: { url: `data:${imagemMimetype};base64,${imagemBase64}` } },
+      ];
+    } else {
+      userContent = mensagemCliente;
+    }
+    
     const systemMsg = { role: 'system', content: montarSystemPrompt(barbeariaNome, telefoneCliente, ctx.estado, promptPersonalizado) };
     const baseMessages = [
       systemMsg,
       ...historicoLimitado,
-      { role: 'user', content: mensagemCliente },
+      { role: 'user', content: userContent },
     ];
     
     while (iteracao < MAX_ITERACOES) {
@@ -2011,6 +2120,16 @@ export async function processarMensagem(barbeariaId, barbeariaNome, mensagemClie
           content: JSON.stringify(tr.resultado),
         }))
       );
+      
+      // SHORT-CIRCUIT: Se finalizarAgendamento retornou pendente_confirmacao,
+      // NÃO deixa a IA gerar resposta (ela diria "✅ Agendado!" incorretamente)
+      const temPendente = toolResults.some(tr => tr.resultado?.pendente_confirmacao === true);
+      if (temPendente) {
+        await ws.salvarEstado(barbeariaId, telefoneCliente, ctx.estado);
+        const msgPendente = '⏳ Seu horário especial foi solicitado! A barbearia vai confirmar em breve e avisamos você assim que aprovarem. Te esperamos! 💈';
+        console.log(`✅ Resposta (pendente): ${msgPendente.substring(0, 80)}...`);
+        return { resposta: msgPendente, toolsExecutados, toolInteractionMessages };
+      }
       
       // Atualiza system prompt com novo estado para próxima iteração
       systemMsg.content = montarSystemPrompt(barbeariaNome, telefoneCliente, ctx.estado, promptPersonalizado);

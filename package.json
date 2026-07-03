@@ -8,7 +8,8 @@
     "start": "node server/server.js",
     "dev": "nodemon server/server.js",
     "migrate": "node server/db/migrate.js",
-    "seed": "node server/db/seed.js"
+    "seed": "node server/db/seed.js",
+    "update-horarios": "node server/db/update-horarios.js"
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.108.2",
@@ -26,6 +27,7 @@
     "qrcode": "^1.5.4"
   },
   "devDependencies": {
+    "@playwright/test": "^1.61.1",
     "nodemon": "^3.0.2"
   }
 }

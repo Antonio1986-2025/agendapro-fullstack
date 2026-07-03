@@ -18,7 +18,7 @@ CREATE TABLE IF NOT EXISTS barbearias (
     horario_config JSONB DEFAULT '{
         "manha": {"inicio": "07:30", "fim": "11:00"},
         "tarde": {"inicio": "13:00", "fim": "19:00"},
-        "especial": {"inicio": "19:00", "fim": "21:00", "acrescimo_percent": 50},
+        "especial": {"inicio": "19:00", "fim": "21:00"},
         "intervalo_minutos": 30
     }'::jsonb,
     ativo BOOLEAN DEFAULT true,
@@ -26,7 +26,7 @@ CREATE TABLE IF NOT EXISTS barbearias (
 );
 
 -- Garante colunas novas em bancos já existentes (idempotente)
-ALTER TABLE barbearias ADD COLUMN IF NOT EXISTS horario_especial_ativo BOOLEAN DEFAULT false;
+-- horario_especial_ativo removido — slots 19h+ sempre aparecem, pendente_barbeiro cuida da confirmação
 
 -- ---------- usuarios (contas de login: dono / staff) ----------
 CREATE TABLE IF NOT EXISTS usuarios (
@@ -189,10 +189,13 @@ CREATE TABLE IF NOT EXISTS agendamentos (
     duracao_minutos INTEGER NOT NULL DEFAULT 30,
     preco DECIMAL(10,2) NOT NULL DEFAULT 0,
     is_especial BOOLEAN DEFAULT false,
-    status VARCHAR(30) DEFAULT 'agendado',      -- agendado | confirmado | concluido | cancelado
+    status VARCHAR(30) DEFAULT 'agendado',      -- agendado | confirmado | concluido | cancelado | pendente_barbeiro
     observacoes TEXT,
     created_at TIMESTAMPTZ DEFAULT now()
 );
+
+ALTER TABLE agendamentos ADD COLUMN IF NOT EXISTS confirmacao_resposta_em TIMESTAMPTZ;
+ALTER TABLE agendamentos ADD COLUMN IF NOT EXISTS confirmacao_mensagem_id UUID;
 
 -- Converte data_hora para TIMESTAMP sem fuso (relogio de parede) em bancos existentes
 DO $$
@@ -214,14 +217,8 @@ ALTER TABLE comandas ADD COLUMN IF NOT EXISTS cliente_id UUID;
 ALTER TABLE comandas ADD FOREIGN KEY (cliente_id) REFERENCES clientes(id) ON DELETE SET NULL;
 
 -- ---------- horarios especiais por profissional ----------
-CREATE TABLE IF NOT EXISTS horarios_especiais (
-    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    barbearia_id UUID NOT NULL REFERENCES barbearias(id) ON DELETE CASCADE,
-    profissional_id UUID NOT NULL REFERENCES profissionais(id) ON DELETE CASCADE,
-    horario VARCHAR(5) NOT NULL,                -- ex "19:00"
-    ativo BOOLEAN DEFAULT true,
-    UNIQUE (profissional_id, horario)
-);
+-- REMOVIDO: tabela horarios_especiais não é mais necessária
+-- slots 19h+ sempre aparecem, confirmação é feita via pendente_barbeiro
 
 -- ---------- configuracao WhatsApp por barbearia ----------
 CREATE TABLE IF NOT EXISTS whatsapp_config (
