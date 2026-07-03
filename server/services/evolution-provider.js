@@ -497,6 +497,56 @@ export async function enviarMensagemEvolution(barbeariaId, telefone, texto) {
 }
 
 /**
+ * Baixa mídia (áudio/imagem) da Evolution API como base64
+ * Usa endpoint /chat/getBase64FromMediaMessage/{instance}
+ * Documentação: https://doc.evolution-api.com/v2.1.1/api/endpoints/chat#get-base64-from-media-message
+ */
+export async function baixarMediaEvolution(barbeariaId, message) {
+  const { rows } = await query(
+    `SELECT evolution_instance_name, evolution_api_key 
+       FROM whatsapp_config WHERE barbearia_id = $1`,
+    [barbeariaId]
+  );
+
+  if (!rows[0]?.evolution_instance_name) {
+    throw new Error('Instância Evolution não configurada');
+  }
+
+  const { evolution_instance_name: instanceName, evolution_api_key: instanceApiKey } = rows[0];
+  const apiKey = instanceApiKey || EVOLUTION_API_KEY;
+
+  const messageId = message?.key?.id;
+  if (!messageId) {
+    throw new Error('Message ID não encontrado no payload');
+  }
+
+  const body = {
+    message: { key: { id: messageId } },
+    convertToMp4: false,
+  };
+
+  try {
+    const client = getClient(apiKey);
+    console.log(`📥 [Evolution] Baixando mídia da instância: ${instanceName}, msgId: ${messageId}`);
+    const response = await client.post(
+      `/chat/getBase64FromMediaMessage/${instanceName}`,
+      body
+    );
+
+    const result = response.data;
+    const base64 = result?.base64 || result?.media || null;
+    console.log(`📥 [Evolution] Download: ${base64 ? 'sucesso (' + Math.round(base64.length * 0.75 / 1024) + 'KB)' : 'base64 vazio'} | status: ${response.status}`);
+    return base64;
+  } catch (err) {
+    const errMsg = err.response?.data?.message || err.response?.data?.response?.message || err.message;
+    const status = err.response?.status || 'sem status';
+    console.error(`❌ [Evolution] Erro ao baixar mídia (status ${status}): ${JSON.stringify(errMsg)}`);
+    console.error(`   Instância: ${instanceName}, msgId: ${messageId}, temKey: ${!!apiKey}`);
+    throw new Error(`Falha ao baixar mídia: ${Array.isArray(errMsg) ? errMsg.join(', ') : errMsg}`);
+  }
+}
+
+/**
  * Testa conexão com Evolution API
  */
 export async function testarEvolutionAPI() {

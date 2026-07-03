@@ -39,27 +39,66 @@ router.post('/webhook/evolution/:barbeariaId', async (req, res) => {
     const remoteJid = payload.data?.key?.remoteJid || '';
     if (remoteJid.endsWith('@g.us')) return;
 
-    const texto = payload.data?.message?.conversation
-      || payload.data?.message?.extendedTextMessage?.text
-      || '';
-    if (!texto || !remoteJid) return;
+    const msg = payload.data?.message || {};
+    const pushName = payload.data?.pushName || '';
+
+    const texto = msg.conversation || msg.extendedTextMessage?.text || '';
+    const temAudio = !!msg.audioMessage;
+    const temImagem = !!msg.imageMessage;
+
+    if (!texto && !temAudio && !temImagem) return;
+    if (!remoteJid) return;
 
     const telefone = remoteJid.replace(/[^0-9]/g, '');
 
-    await enfileirar(telefone, () => processarWebhookEvolution(barbeariaId, telefone, remoteJid, texto, payload.data?.pushName || ''));
+    await enfileirar(telefone, () => processarWebhookEvolution(barbeariaId, telefone, remoteJid, texto, pushName, msg, temAudio, temImagem, payload.data));
   } catch (err) {
     console.error(`❌ [Evolution] Erro ao processar webhook:`, err.message);
   }
 });
 
-async function processarWebhookEvolution(barbeariaId, telefone, remoteJid, texto, pushName) {
+async function processarWebhookEvolution(barbeariaId, telefone, remoteJid, texto, pushName, msg, temAudio, temImagem, payloadData) {
   try {
-    console.log(`📩 [Evolution] Mensagem de ${telefone} (${pushName}): ${texto.substring(0, 100)}`);
+    console.log(`📩 [Evolution] Mensagem de ${telefone} (${pushName}): ${texto.substring(0, 100) || (temAudio ? '[áudio]' : temImagem ? '[imagem]' : '')}`);
+
+    let mensagemParaProcessar = texto;
+
+    // ─── ÁUDIO: transcreve com Whisper ───
+    if (temAudio && msg?.audioMessage) {
+      try {
+        let base64Audio = msg.audioMessage.base64 || msg.message?.audioMessage?.base64;
+        console.log(`🔍 [Áudio] base64 direto: ${base64Audio ? 'encontrado (' + Math.round(base64Audio.length * 0.75 / 1024) + 'KB)' : 'não encontrado'}`);
+
+        if (!base64Audio) {
+          console.log(`🔍 [Áudio] Tentando baixar via Evolution API...`);
+          const { baixarMediaEvolution } = await import('../services/evolution-provider.js');
+          base64Audio = await baixarMediaEvolution(barbeariaId, payloadData || msg);
+          console.log(`🔍 [Áudio] Download Evolution: ${base64Audio ? 'sucesso (' + Math.round(base64Audio.length * 0.75 / 1024) + 'KB)' : 'falhou'}`);
+        }
+
+        if (base64Audio) {
+          const buffer = Buffer.from(base64Audio, 'base64');
+          console.log(`🔍 [Áudio] Buffer: ${buffer.length} bytes, mimetype: ${msg.audioMessage.mimetype}`);
+          const { transcreverAudio } = await import('../services/ai.js');
+          const transcricao = await transcreverAudio(buffer, msg.audioMessage.mimetype);
+          mensagemParaProcessar = transcricao || '[áudio sem conteúdo compreensível]';
+          console.log(`🎙️ Áudio transcrito: ${transcricao?.substring(0, 100)}`);
+        } else {
+          console.error('❌ [Áudio] Não foi possível obter base64 (direto + Evolution API)');
+          mensagemParaProcessar = '[não consegui processar o áudio, pode digitar?]';
+        }
+      } catch (err) {
+        console.error('❌ Erro ao transcrever áudio:', err.message);
+        mensagemParaProcessar = '[não consegui processar o áudio, pode digitar?]';
+      }
+    }
+
+
 
     await query(
       `INSERT INTO whatsapp_mensagens (barbearia_id, telefone, mensagem, tipo, status)
        VALUES ($1, $2, $3, 'recebida', 'recebida')`,
-      [barbeariaId, telefone, texto]
+      [barbeariaId, telefone, mensagemParaProcessar]
     );
 
     const { rows: wc } = await query(
@@ -92,14 +131,14 @@ async function processarWebhookEvolution(barbeariaId, telefone, remoteJid, texto
 
     const { processarMensagem } = await import('../services/ai.js');
     const { resposta } = await processarMensagem(
-      barbeariaId, barbeariaNome, texto, historico,
+      barbeariaId, barbeariaNome, mensagemParaProcessar, historico,
       wc[0]?.ai_prompt || null, remoteJid
     );
 
     if (resposta) {
       await enviarMensagemEvolution(barbeariaId, telefone, resposta);
 
-      historico.push({ role: 'user', content: texto }, { role: 'assistant', content: resposta });
+      historico.push({ role: 'user', content: mensagemParaProcessar }, { role: 'assistant', content: resposta });
       const limitado = historico.slice(-30);
 
       await query(
