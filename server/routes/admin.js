@@ -101,7 +101,6 @@ router.post('/reset-completo', async (req, res) => {
     'comandas',
     'estoque_movimentos',
     'estoque_itens',
-    'horarios_especiais',
     'agendamentos',
     'clientes',
     'servicos',

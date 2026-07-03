@@ -76,7 +76,6 @@
         <div class="nav-section">Outros</div>
         <a href="relatorios-mobile.html" class="sidebar-item"><i class="fas fa-chart-bar"></i> Relatorios</a>
         <a href="equipe.html" class="sidebar-item"><i class="fas fa-users-cog"></i> Equipe</a>
-        <a href="horarios-especiais.html" class="sidebar-item"><i class="fas fa-clock"></i> Horarios Especiais</a>
         <a href="configuracoes-mobile.html" class="sidebar-item"><i class="fas fa-cog"></i> Configuracoes</a>
       </nav>
       <div class="sidebar-footer">
@@ -199,7 +198,6 @@
         if (temPermissao('comandas')) sidebarHtml += '<a href="comanda-detalhe.html" class="sidebar-item"><i class="fas fa-receipt"></i> Comandas</a>';
         if (temPermissao('servicos')) sidebarHtml += '<a href="servicos-mobile.html" class="sidebar-item"><i class="fas fa-cut"></i> Servicos</a>';
         if (temPermissao('estoque')) sidebarHtml += '<a href="estoque-mobile.html" class="sidebar-item"><i class="fas fa-boxes"></i> Estoque</a>';
-        if (temPermissao('horarios')) sidebarHtml += '<a href="horarios-especiais.html" class="sidebar-item"><i class="fas fa-clock"></i> Horarios</a>';
         if (temPermissao('relatorios')) sidebarHtml += '<a href="relatorios-mobile.html" class="sidebar-item"><i class="fas fa-chart-bar"></i> Relatorios</a>';
         if (temPermissao('configuracoes')) sidebarHtml += '<a href="configuracoes-mobile.html" class="sidebar-item"><i class="fas fa-cog"></i> Configuracoes</a>';
         document.querySelector('.sidebar-nav').innerHTML = sidebarHtml;

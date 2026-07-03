@@ -250,7 +250,6 @@
       }
       if (temPermissao('horarios') || temPermissao('relatorios') || temPermissao('configuracoes')) {
         html += '<div class="nav-section">Outros</div>';
-        if (temPermissao('horarios')) html += '<a href="horarios-especiais.html" class="sidebar-item"><i class="fas fa-clock"></i> Horarios</a>';
         if (temPermissao('relatorios')) html += '<a href="relatorios-mobile.html" class="sidebar-item"><i class="fas fa-chart-bar"></i> Relatorios</a>';
         if (temPermissao('configuracoes')) html += '<a href="configuracoes-mobile.html" class="sidebar-item"><i class="fas fa-cog"></i> Configuracoes</a>';
       }

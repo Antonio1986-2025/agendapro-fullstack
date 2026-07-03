@@ -177,7 +177,6 @@
 
     function gerarSlots() {
       const prof = dados.profissionais.find(p => p.id === sel.profissional);
-      const profEspeciais = prof?.horarios_especiais || [];
       const slots = [];
       const addRange = (hIni, mIni, hFim, mFim) => {
         let [h, m] = [hIni, mIni];

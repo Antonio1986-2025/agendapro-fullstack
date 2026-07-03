@@ -216,9 +216,8 @@ ALTER TABLE comandas ADD FOREIGN KEY (agendamento_id) REFERENCES agendamentos(id
 ALTER TABLE comandas ADD COLUMN IF NOT EXISTS cliente_id UUID;
 ALTER TABLE comandas ADD FOREIGN KEY (cliente_id) REFERENCES clientes(id) ON DELETE SET NULL;
 
--- ---------- horarios especiais por profissional ----------
--- REMOVIDO: tabela horarios_especiais não é mais necessária
--- slots 19h+ sempre aparecem, confirmação é feita via pendente_barbeiro
+-- ---------- horarios especiais por profissional (OBSOLETO - removido) ----------
+DROP TABLE IF EXISTS horarios_especiais;
 
 -- ---------- configuracao WhatsApp por barbearia ----------
 CREATE TABLE IF NOT EXISTS whatsapp_config (
