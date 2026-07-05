@@ -73,26 +73,65 @@ function parsearData(input) {
   const str = String(input).toLowerCase().trim();
   const hoje = agoraSP();
   hoje.setHours(0, 0, 0, 0);
-  
+
   // Hoje
   if (str === 'hoje') {
     return formatarDataYMD(hoje);
   }
-  
+
   // Amanhã
   if (str === 'amanha' || str === 'amanhã') {
     const d = new Date(hoje);
     d.setDate(d.getDate() + 1);
     return formatarDataYMD(d);
   }
-  
+
   // Depois de amanhã
   if (str.includes('depois de amanha') || str.includes('depois de amanhã')) {
     const d = new Date(hoje);
     d.setDate(d.getDate() + 2);
     return formatarDataYMD(d);
   }
-  
+
+  // "daqui a X dias/semanas"
+  const daquiMatch = str.match(/daqui\s+a\s+(\d+)\s+(dia|semana|mes)/);
+  if (daquiMatch) {
+    const qtd = parseInt(daquiMatch[1], 10);
+    const unidade = daquiMatch[2];
+    const d = new Date(hoje);
+    if (unidade === 'dia') d.setDate(d.getDate() + qtd);
+    else if (unidade === 'semana') d.setDate(d.getDate() + (qtd * 7));
+    else if (unidade === 'mes') d.setMonth(d.getMonth() + qtd);
+    return formatarDataYMD(d);
+  }
+
+  // "próxima semana", "semana que vem"
+  if (str.includes('próxima semana') || str.includes('proxima semana') || str.includes('semana que vem')) {
+    const d = new Date(hoje);
+    d.setDate(d.getDate() + 7);
+    // Pega segunda-feira da próxima semana
+    const diffSegunda = (1 - d.getDay() + 7) % 7;
+    d.setDate(d.getDate() + diffSegunda);
+    return formatarDataYMD(d);
+  }
+
+  // "final de semana", "fim de semana"
+  if (str.includes('final de semana') || str.includes('fim de semana')) {
+    const d = new Date(hoje);
+    // Próximo sábado
+    const diffSabado = (6 - d.getDay() + 7) % 7 || 7;
+    d.setDate(d.getDate() + diffSabado);
+    return formatarDataYMD(d);
+  }
+
+  // "mês que vem", "mes que vem"
+  if (str.includes('mês que vem') || str.includes('mes que vem')) {
+    const d = new Date(hoje);
+    d.setMonth(d.getMonth() + 1);
+    d.setDate(1);
+    return formatarDataYMD(d);
+  }
+
   // Dias da semana
   const diasSemana = {
     'domingo': 0, 'segunda': 1, 'terca': 2, 'terça': 2,
@@ -106,10 +145,10 @@ function parsearData(input) {
       return formatarDataYMD(d);
     }
   }
-  
+
   // YYYY-MM-DD
   if (/^\d{4}-\d{2}-\d{2}$/.test(str)) return str;
-  
+
   // DD/MM/YYYY ou DD/MM
   const matchBr = str.match(/^(\d{1,2})[\/\-](\d{1,2})(?:[\/\-](\d{2,4}))?$/);
   if (matchBr) {
@@ -117,13 +156,13 @@ function parsearData(input) {
     const mes = parseInt(matchBr[2], 10);
     let ano = matchBr[3] ? parseInt(matchBr[3], 10) : hoje.getFullYear();
     if (ano < 100) ano += 2000;
-    
+
     const d = new Date(ano, mes - 1, dia);
     if (d.getDate() === dia && d.getMonth() === mes - 1) {
       return formatarDataYMD(d);
     }
   }
-  
+
   return null;
 }
 
@@ -155,7 +194,7 @@ function agoraSP() {
 function parsearHorario(input) {
   if (!input) return null;
   const str = String(input).toLowerCase().trim().replace(/\s+/g, '');
-  
+
   // "14:00", "9:30"
   let m = str.match(/^(\d{1,2}):(\d{2})$/);
   if (m) {
@@ -165,7 +204,7 @@ function parsearHorario(input) {
       return `${String(h).padStart(2, '0')}:${String(min).padStart(2, '0')}`;
     }
   }
-  
+
   // "14h30", "9h00"
   m = str.match(/^(\d{1,2})h(\d{2})$/);
   if (m) {
@@ -175,7 +214,7 @@ function parsearHorario(input) {
       return `${String(h).padStart(2, '0')}:${String(min).padStart(2, '0')}`;
     }
   }
-  
+
   // "14h", "9h"
   m = str.match(/^(\d{1,2})h$/);
   if (m) {
@@ -184,7 +223,7 @@ function parsearHorario(input) {
       return `${String(h).padStart(2, '0')}:00`;
     }
   }
-  
+
   // "14", "9" (apenas hora)
   m = str.match(/^(\d{1,2})$/);
   if (m) {
@@ -193,7 +232,19 @@ function parsearHorario(input) {
       return `${String(h).padStart(2, '0')}:00`;
     }
   }
-  
+
+  // "meio-dia" / "meiodia"
+  if (str === 'meio-dia' || str === 'meiodia' || str === 'meiop' || str === '12h') return '12:00';
+
+  // "da manhã" / "manha" (9h como padrão)
+  if (str.includes('manha') || str.includes('manhã') || str.includes('de_manha')) return '09:00';
+
+  // "da tarde" / "tarde" (14h como padrão)
+  if (str.includes('tarde') || str.includes('de_tarde')) return '14:00';
+
+  // "da noite" / "noite" (19h como padrão)
+  if (str.includes('noite') || str.includes('de_noite')) return '19:00';
+
   return null;
 }
 
@@ -203,7 +254,7 @@ function parsearHorario(input) {
 async function resolverServico(barbeariaId, valor) {
   if (!valor) return null;
   const valorStr = String(valor).trim();
-  
+
   // UUID válido?
   if (/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(valorStr)) {
     const { rows } = await query(
@@ -213,16 +264,16 @@ async function resolverServico(barbeariaId, valor) {
     );
     return rows[0] || null;
   }
-  
+
   // Lista de serviços ativos
   const { rows: lista } = await query(
     `SELECT id, nome, duracao_minutos, preco, categoria FROM servicos
       WHERE barbearia_id = $1 AND ativo = true ORDER BY categoria, nome`,
     [barbeariaId]
   );
-  
+
   if (lista.length === 0) return null;
-  
+
   // Número de posição
   if (/^\d+$/.test(valorStr)) {
     const idx = parseInt(valorStr, 10) - 1;
@@ -230,25 +281,57 @@ async function resolverServico(barbeariaId, valor) {
       return lista[idx];
     }
   }
-  
-  // Nome (match exato, depois parcial)
+
   const valorLower = valorStr.toLowerCase();
-  
+
+  // Sinônimos comuns para barbearias
+  const sinonimos = {
+    'corte': ['corte masculino', 'corte'],
+    'cabelo': ['corte masculino', 'corte'],
+    'barba': ['barba'],
+    'corte e barba': ['corte e barba'],
+    'combo': ['corte e barba'],
+    'sobrancelha': ['sobrancelha'],
+    'luzes': ['luzes'],
+    'hidratacao': ['hidratação', 'hidratacao'],
+    'hidratação': ['hidratação', 'hidratacao'],
+    'progressiva': ['progressiva'],
+    'alisamento': ['alisamento', 'progressiva'],
+    'pintura': ['pintura', 'coloração', 'coloracao'],
+    'coloracao': ['coloração', 'coloracao', 'pintura'],
+    'meia barba': ['meia barba', 'corte meia barba'],
+    'infantil': ['infantil', 'corte infantil'],
+    'tesoura': ['corte na tesoura', 'tesoura'],
+    'maquina': ['corte na máquina', 'corte na maquina', 'máquina'],
+  };
+
+  // Tenta sinônimo primeiro
+  const chavesSinonimo = Object.keys(sinonimos);
+  for (const chave of chavesSinonimo) {
+    if (valorLower.includes(chave)) {
+      const alvos = sinonimos[chave];
+      for (const alvo of alvos) {
+        const match = lista.find(s => s.nome.toLowerCase().includes(alvo));
+        if (match) return match;
+      }
+    }
+  }
+
   // Match exato
   const exato = lista.find(s => s.nome.toLowerCase() === valorLower);
   if (exato) return exato;
-  
+
   // Match parcial (nome contém valor)
   const parcial = lista.find(s => s.nome.toLowerCase().includes(valorLower));
   if (parcial) return parcial;
-  
+
   // Busca por palavra-chave (qualquer palavra do nome)
   const palavras = valorLower.split(/\s+/).filter(p => p.length > 2);
   for (const p of palavras) {
     const m = lista.find(s => s.nome.toLowerCase().includes(p));
     if (m) return m;
   }
-  
+
   return null;
 }
 
@@ -557,6 +640,31 @@ const tools = [
       parameters: { type: 'object', properties: {}, required: [], additionalProperties: false },
     },
   },
+  // ───── HISTÓRICO DO CLIENTE ─────
+  {
+    type: 'function',
+    function: {
+      name: 'buscarHistoricoCliente',
+      description: 'Busca o histórico do cliente: total de visitas, último serviço, último profissional, agendamento próximo. Use para personalizar a conversa (ex: "Vi que você já cortou com o Luiz antes!"). Chame quando o cliente for identificado.',
+      parameters: { type: 'object', properties: {}, required: [], additionalProperties: false },
+    },
+  },
+  // ───── FALLBACK PARA HUMANO ─────
+  {
+    type: 'function',
+    function: {
+      name: 'transferirParaHumano',
+      description: 'Transfere a conversa para um atendente humano. Use quando: não consegue resolver, cliente está frustrado, pergunta complexa, ou cliente pede para falar com alguém. Envia notificação ao responsável.',
+      parameters: {
+        type: 'object',
+        properties: {
+          motivo: { type: 'string', description: 'Motivo da transferência (ex: "cliente frustrado", "dúvida complexa")' },
+        },
+        required: ['motivo'],
+        additionalProperties: false,
+      },
+    },
+  },
   // ───── RESPOSTA AO CLIENTE (tool de saída obrigatória) ─────
   {
     type: 'function',
@@ -575,6 +683,13 @@ const tools = [
   },
 ];
 
+// Tools que consultam a base de dados (fonte da verdade)
+const DATA_TOOLS = [
+  'listarServicos', 'listarProfissionais', 'consultarHorariosLivres',
+  'consultarInfoBarbearia', 'buscarHistoricoCliente', 'listarMeusAgendamentos',
+  'verificarEstadoAtual',
+];
+
 // ============================================================
 // EXECUÇÃO DAS TOOLS
 // ============================================================
@@ -586,6 +701,11 @@ const tools = [
 async function executarTool(ctx, toolName, args) {
   const { barbeariaId, telefone, estado } = ctx;
   console.log(`🔧 ${toolName}`, JSON.stringify(args));
+  
+  // Marca que uma data tool foi consultada (usado pela validação do responderCliente)
+  if (DATA_TOOLS.includes(toolName)) {
+    ctx.consultouBase = true;
+  }
   
   try {
     switch (toolName) {
@@ -894,8 +1014,8 @@ async function executarTool(ctx, toolName, args) {
       
       // ───── FINALIZAR (CRIAR AGENDAMENTO) ─────
       case 'finalizarAgendamento': {
-        // Idempotência: já foi criado recentemente?
-        if (ws.temAgendamentoRecente(estado, 5)) {
+        // Idempotência: já foi criado? (verifica no banco, sem janela de tempo)
+        if (estado.agendamento_criado_id) {
           const { rows } = await query(
             `SELECT a.id, a.data_hora, c.nome AS cliente_nome,
                     s.nome AS servico_nome, p.nome AS profissional_nome, a.preco
@@ -903,7 +1023,7 @@ async function executarTool(ctx, toolName, args) {
                LEFT JOIN clientes c ON c.id = a.cliente_id
                LEFT JOIN servicos s ON s.id = a.servico_id
                LEFT JOIN profissionais p ON p.id = a.profissional_id
-              WHERE a.id = $1`,
+              WHERE a.id = $1 AND a.status NOT IN ('cancelado')`,
             [estado.agendamento_criado_id]
           );
           if (rows[0]) {
@@ -911,7 +1031,7 @@ async function executarTool(ctx, toolName, args) {
               resultado: {
                 ja_criado: true,
                 agendamento: rows[0],
-                mensagem: 'Este agendamento JÁ FOI CRIADO há poucos minutos. Não criar duplicado. Avise o cliente que o agendamento está confirmado.',
+                mensagem: 'Este agendamento JÁ FOI CRIADO. Não criar duplicado. Avise o cliente que o agendamento está confirmado.',
               },
             };
           }
@@ -944,6 +1064,22 @@ async function executarTool(ctx, toolName, args) {
           return { resultado: { erro: 'Não é possível agendar no passado.' } };
         }
         
+        // VALIDAÇÃO: dia da semana
+        const { rows: cfgRows } = await query(
+          `SELECT horario_config FROM barbearias WHERE id = $1`,
+          [barbeariaId]
+        );
+        const cfgDias = cfgRows[0]?.horario_config?.dias_funcionamento || [1,2,3,4,5,6];
+        const diaSemanaFinal = new Date(slots.data.valor.data + 'T12:00:00').getDay();
+        const nomesDias = ['domingo','segunda-feira','terça-feira','quarta-feira','quinta-feira','sexta-feira','sábado'];
+        if (!cfgDias.includes(diaSemanaFinal)) {
+          return {
+            resultado: {
+              erro: `A barbearia não abre aos ${nomesDias[diaSemanaFinal]}. Dias de funcionamento: ${cfgDias.sort().map(d => nomesDias[d]).join(', ')}. Peça ao cliente para escolher outro dia.`,
+            },
+          };
+        }
+
         // REVALIDAÇÃO DE SLOTS CONSECUTIVOS (serviços longos)
         const duracao = slots.servico.valor.duracao || 30;
         if (duracao > 30) {
@@ -964,6 +1100,29 @@ async function executarTool(ctx, toolName, args) {
           }
         }
         
+        // Determina cliente_id (próprio ou terceiro)
+        const clienteAlvoId = slots.para_quem.valor.cliente_alvo_id || slots.cliente.valor.id;
+
+        // Verifica se cliente já tem agendamento no mesmo dia
+        const { rows: mesmoDia } = await query(
+          `SELECT a.id, a.data_hora, s.nome AS servico_nome, p.nome AS profissional_nome
+             FROM agendamentos a
+             LEFT JOIN servicos s ON s.id = a.servico_id
+             LEFT JOIN profissionais p ON p.id = a.profissional_id
+            WHERE a.barbearia_id = $1 AND a.cliente_id = $2
+              AND a.data_hora::date = $3::date
+              AND a.status NOT IN ('cancelado')`,
+          [barbeariaId, clienteAlvoId, dataHoraStr]
+        );
+        if (mesmoDia[0] && mesmoDia[0].id !== estado.agendamento_criado_id) {
+          return {
+            resultado: {
+              erro: `O cliente já tem agendamento no mesmo dia: ${mesmoDia[0].servico_nome} com ${mesmoDia[0].profissional_nome} às ${mesmoDia[0].data_hora}. Se quiser reagendar, cancele o existente primeiro.`,
+              agendamento_existente: mesmoDia[0],
+            },
+          };
+        }
+        
         // Verifica conflito (passa STRING, não Date — evita conversão de TZ)
         const { rows: conflito } = await query(
           `SELECT id FROM agendamentos
@@ -978,9 +1137,6 @@ async function executarTool(ctx, toolName, args) {
             },
           };
         }
-        
-        // Determina cliente_id (próprio ou terceiro)
-        const clienteAlvoId = slots.para_quem.valor.cliente_alvo_id || slots.cliente.valor.id;
         
         // Observações para terceiro
         let observacoes = null;
@@ -1141,6 +1297,15 @@ async function executarTool(ctx, toolName, args) {
           [barbeariaId]
         );
         console.log(`   👥 Profissionais ativos: ${rows.length}`, rows.map(p => p.nome).join(', '));
+
+        const emojis = ['1️⃣','2️⃣','3️⃣','4️⃣','5️⃣','6️⃣','7️⃣','8️⃣','9️⃣','🔟'];
+        const linhasProf = rows.map((p, i) => {
+          const emoji = emojis[i] || `${i + 1}.`;
+          const esp = p.especialidade ? ` — ${p.especialidade}` : '';
+          return `${emoji} *${p.nome}*${esp}`;
+        });
+        const formatadoProf = `👇 *Escolha seu barbeiro:*\n\n${linhasProf.join('\n')}`;
+
         return {
           resultado: {
             total: rows.length,
@@ -1150,6 +1315,7 @@ async function executarTool(ctx, toolName, args) {
               nome: p.nome,
               especialidade: p.especialidade,
             })),
+            formatado: formatadoProf,
           },
         };
       }
@@ -1158,6 +1324,31 @@ async function executarTool(ctx, toolName, args) {
         const dataYMD = parsearData(args.data);
         if (!dataYMD) {
           return { resultado: { erro: `Data "${args.data}" não reconhecida.` } };
+        }
+
+        // Verifica dia de funcionamento antes
+        const { rows: hCfg } = await query(
+          `SELECT horario_config FROM barbearias WHERE id = $1`,
+          [barbeariaId]
+        );
+        const cfgHorarios = hCfg[0]?.horario_config || {};
+        const diasFunc = cfgHorarios.dias_funcionamento || [1,2,3,4,5,6];
+        const diaSem = new Date(dataYMD + 'T12:00:00').getDay();
+        const nomesD = ['domingo','segunda-feira','terça-feira','quarta-feira','quinta-feira','sexta-feira','sábado'];
+        
+        if (!diasFunc.includes(diaSem)) {
+          const diasAbertos = diasFunc.sort().map(d => nomesD[d]);
+          return {
+            resultado: {
+              data: dataYMD,
+              data_formatada: formatarDataLegivel(dataYMD),
+              horarios_livres: [],
+              total: 0,
+              fechado: true,
+              motivo: `A barbearia não abre aos ${nomesD[diaSem]}. Dias de funcionamento: ${diasAbertos.join(', ')}.`,
+              formatado: `😕 *${formatarDataLegivel(dataYMD)}* — A barbearia não abre neste dia.\n\n📅 Funcionamos de *${diasAbertos.join(' a ')}*.\nQue tal escolher outra data? 😊`,
+            },
+          };
         }
         
         let profId = null;
@@ -1170,12 +1361,46 @@ async function executarTool(ctx, toolName, args) {
         const duracao = args.duracao_minutos || 30;
         const livres = await calcularHorariosDisponiveis(barbeariaId, dataYMD, profId, duracao);
         
+        // Formata horários agrupados por período
+        let formatado = '';
+        if (livres.length === 0) {
+          formatado = `😕 *${formatarDataLegivel(dataYMD)}* — Não há horários disponíveis neste dia.\nQue tal escolher outra data? 😊`;
+        } else {
+          const periodos = [
+            { chave: 'manha', label: '🌅 Manhã', cfg: cfgHorarios.manha },
+            { chave: 'tarde', label: '☀️ Tarde', cfg: cfgHorarios.tarde },
+            { chave: 'especial', label: '🌙 Especial', cfg: cfgHorarios.especial },
+          ];
+          const linhas = [`🗓️ *${formatarDataLegivel(dataYMD)}*`];
+          for (const p of periodos) {
+            if (!p.cfg?.inicio || !p.cfg?.fim) continue;
+            const [hi, mi] = p.cfg.inicio.split(':').map(Number);
+            const [hf, mf] = p.cfg.fim.split(':').map(Number);
+            const inicioMin = hi * 60 + mi;
+            const fimMin = hf * 60 + mf;
+            const doPeriodo = livres.filter(h => {
+              const [hh, mm] = h.split(':').map(Number);
+              const totalMin = hh * 60 + mm;
+              return totalMin >= inicioMin && totalMin < fimMin;
+            });
+            if (doPeriodo.length > 0) {
+              const horariosStr = doPeriodo.map(h => {
+                const [hh, mm] = h.split(':');
+                return `${parseInt(hh)}h${mm === '00' ? '' : mm}`;
+              }).join(', ');
+              linhas.push(`${p.label}: ${horariosStr}`);
+            }
+          }
+          formatado = linhas.join('\n');
+        }
+        
         return {
           resultado: {
             data: dataYMD,
             data_formatada: formatarDataLegivel(dataYMD),
             horarios_livres: livres,
             total: livres.length,
+            formatado,
           },
         };
       }
@@ -1186,6 +1411,32 @@ async function executarTool(ctx, toolName, args) {
           [barbeariaId]
         );
         if (!rows[0]) return { resultado: { erro: 'Barbearia não encontrada' } };
+        const hc = rows[0].horario_config || {};
+        
+        // Formata horários em texto legível
+        const periodosLabels = {
+          manha: '🌅 Manhã',
+          tarde: '☀️ Tarde',
+          especial: '🌙 Especial',
+        };
+        const partesHorario = [];
+        for (const [key, label] of Object.entries(periodosLabels)) {
+          if (hc[key]?.inicio && hc[key]?.fim) {
+            const fmt = (t) => { const [h,m]=t.split(':'); return `${parseInt(h)}h${m==='00'?'':m}`; };
+            partesHorario.push(`${label}: ${fmt(hc[key].inicio)} às ${fmt(hc[key].fim)}`);
+          }
+        }
+        
+        const nomesDias = ['domingo','segunda-feira','terça-feira','quarta-feira','quinta-feira','sexta-feira','sábado'];
+        const diasFunc = hc.dias_funcionamento || [1,2,3,4,5,6];
+        const diasStr = diasFunc.sort().map(d => nomesDias[d]).join(', ');
+        
+        let formatadoInfo = `📍 *${rows[0].nome}*\n`;
+        if (rows[0].endereco) formatadoInfo += `📌 ${rows[0].endereco}\n`;
+        if (rows[0].telefone) formatadoInfo += `📞 ${rows[0].telefone}\n`;
+        formatadoInfo += `\n🕐 *Horários:*\n${partesHorario.join('\n')}\n`;
+        formatadoInfo += `📅 *Funcionamos:* ${diasStr}`;
+        
         return {
           resultado: {
             nome: rows[0].nome,
@@ -1193,6 +1444,7 @@ async function executarTool(ctx, toolName, args) {
             email: rows[0].email,
             endereco: rows[0].endereco,
             horarios: rows[0].horario_config,
+            formatado: formatadoInfo,
           },
         };
       }
@@ -1519,8 +1771,127 @@ async function executarTool(ctx, toolName, args) {
         };
       }
       
-      // ───── RECUPERAÇÃO: verificar estado atual no banco ─────
+      // ───── HISTÓRICO DO CLIENTE ─────
+      case 'buscarHistoricoCliente': {
+        const tel = String(telefone || '').replace(/\D/g, '');
+        const ultimos11 = tel.slice(-11);
+        if (ultimos11.length < 10) {
+          return { resultado: { sucesso: false, mensagem: 'Telefone não identificado.' } };
+        }
+
+        // Busca dados do cliente
+        const { rows: clienteRows } = await query(
+          `SELECT id, nome, total_visitas FROM clientes
+            WHERE barbearia_id = $1 AND REPLACE(telefone, '-', '') LIKE $2 LIMIT 1`,
+          [barbeariaId, `%${ultimos11}`]
+        );
+
+        if (!clienteRows[0]) {
+          return { resultado: { sucesso: true, novo: true, mensagem: 'Cliente novo, sem histórico.' } };
+        }
+
+        const cli = clienteRows[0];
+
+        // Último agendamento (serviço + profissional)
+        const { rows: ultimoAg } = await query(
+          `SELECT s.nome AS servico_nome, p.nome AS profissional_nome, a.data_hora
+             FROM agendamentos a
+             LEFT JOIN servicos s ON s.id = a.servico_id
+             LEFT JOIN profissionais p ON p.id = a.profissional_id
+            WHERE a.barbearia_id = $1 AND a.cliente_id = $2
+            ORDER BY a.data_hora DESC LIMIT 1`,
+          [barbeariaId, cli.id]
+        );
+
+        // Próximo agendamento futuro
+        const { rows: proxAg } = await query(
+          `SELECT s.nome AS servico_nome, p.nome AS profissional_nome, a.data_hora
+             FROM agendamentos a
+             LEFT JOIN servicos s ON s.id = a.servico_id
+             LEFT JOIN profissionais p ON p.id = a.profissional_id
+            WHERE a.barbearia_id = $1 AND a.cliente_id = $2
+              AND a.status NOT IN ('cancelado', 'concluido')
+              AND a.data_hora >= NOW()
+            ORDER BY a.data_hora LIMIT 1`,
+          [barbeariaId, cli.id]
+        );
+
+        const resultado = {
+          sucesso: true,
+          nome: cli.nome,
+          total_visitas: cli.total_visitas,
+          ultimo_servico: ultimoAg[0]?.servico_nome || null,
+          ultimo_profissional: ultimoAg[0]?.profissional_nome || null,
+          agendamento_proximo: proxAg[0]
+            ? `${proxAg[0].servico_nome} com ${proxAg[0].profissional_nome} em ${new Date(proxAg[0].data_hora).toLocaleDateString('pt-BR')} às ${new Date(proxAg[0].data_hora).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })}`
+            : null,
+        };
+
+        console.log(`   📋 Histórico: ${cli.nome} | ${cli.total_visitas} visitas | Último: ${resultado.ultimo_servico || 'N/A'}`);
+        return { resultado };
+      }
+
+      // ───── FALLBACK PARA HUMANO ─────
+      case 'transferirParaHumano': {
+        console.log(`   🤝 TRANSFERÊNCIA PARA HUMANO: ${args.motivo}`);
+
+        // Busca responsável
+        const { rows: responsaveis } = await query(
+          `SELECT id, nome, telefone FROM profissionais
+            WHERE barbearia_id = $1 AND eh_responsavel = true AND ativo = true AND telefone IS NOT NULL`,
+          [barbeariaId]
+        );
+
+        const clienteData = await buscarClientePorTelefone(barbeariaId, telefone);
+        const clienteNome = clienteData?.nome || 'Cliente';
+        const clienteTelefone = String(telefone || '').replace(/\D/g, '');
+
+        let notificados = 0;
+        for (const resp of responsaveis) {
+          try {
+            const msg = `🤝 *Transferência de atendimento\n\n` +
+              `Cliente: ${clienteNome}\n` +
+              `📱 Contato: ${clienteTelefone}\n` +
+              `📝 Motivo: ${args.motivo}\n\n` +
+              `Por favor, entre em contato com o cliente.`;
+
+            const { enviarMensagemBaileys } = await import('./baileys-provider.js');
+            await enviarMensagemBaileys(barbeariaId, resp.telefone, msg);
+
+            await query(
+              `INSERT INTO whatsapp_mensagens (barbearia_id, telefone, mensagem, tipo, status)
+               VALUES ($1, $2, $3, 'transferencia_humano', 'enviada')`,
+              [barbeariaId, resp.telefone, msg]
+            );
+
+            notificados++;
+            console.log(`   ✅ Responsável ${resp.nome} notificado`);
+          } catch (err) {
+            console.error(`   ❌ Falha ao notificar ${resp.nome}:`, err.message);
+          }
+        }
+
+        return {
+          resultado: {
+            sucesso: true,
+            responsaveis_notificados: notificados,
+            mensagem_cliente: 'Vou chamar o responsável para te atender melhor! Ele vai entrar em contato em breve. 😊',
+          },
+        };
+      }
+
+      // ───── RESPOSTA AO CLIENTE ─────
       case 'responderCliente': {
+        // 🛡️ VALIDAÇÃO: Nunca deixar responder sem consultar a base
+        const ehPrimeiraInteracao = !ctx.toolInteractionMessages || ctx.toolInteractionMessages.length === 0;
+        if (!ctx.consultouBase && !ehPrimeiraInteracao) {
+          console.warn(`   🛑 BLOQUEADO: LLM tentou responder sem consultar a base`);
+          return {
+            resultado: {
+              erro: 'BLOQUEADO: Você precisa consultar a base de dados antes de responder. Chame a tool de consulta primeiro (listarServicos, consultarInfoBarbearia, etc) e DEPOIS use responderCliente.',
+            },
+          };
+        }
         return {
           resultado: {
             sucesso: true,
@@ -1613,6 +1984,13 @@ async function calcularHorariosDisponiveis(barbeariaId, dataYMD, profissionalId,
     especial: { inicio: '19:00', fim: '21:00' },
     intervalo_minutos: 30,
   };
+
+  // VALIDAÇÃO: dia da semana
+  const diasFuncionamento = cfg.dias_funcionamento || [1,2,3,4,5,6]; // 0=domingo, 1=segunda...
+  const diaSemana = new Date(dataYMD + 'T12:00:00').getDay();
+  if (!diasFuncionamento.includes(diaSemana)) {
+    return []; // Fechado neste dia
+  }
   
   const intervaloMin = cfg.intervalo_minutos || 30;
   const slots = [];
@@ -1711,308 +2089,234 @@ function sugerirHorariosProximos(disponiveis, alvo) {
 // SYSTEM PROMPT DINÂMICO
 // ============================================================
 
-function montarSystemPrompt(barbeariaNome, telefoneCliente, estado, promptPersonalizado) {
+function montarSystemPrompt(barbeariaNome, telefoneCliente, estado, promptPersonalizado, dadosCliente = null, pushName = null) {
   const dataAgora = new Date();
   const amanha = new Date(Date.now() + 86400000);
-  const dataFmt = dataAgora.toLocaleDateString('pt-BR', { 
-    weekday: 'long', day: '2-digit', month: 'long', year: 'numeric' 
+  const dataFmt = dataAgora.toLocaleDateString('pt-BR', {
+    weekday: 'long', day: '2-digit', month: 'long', year: 'numeric'
   });
   const horaFmt = dataAgora.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
-  const amanhaFmt = amanha.toLocaleDateString('pt-BR', { 
-    weekday: 'long', day: '2-digit', month: '2-digit' 
+  const amanhaFmt = amanha.toLocaleDateString('pt-BR', {
+    weekday: 'long', day: '2-digit', month: '2-digit'
   });
-  
+
   const estadoTexto = ws.formatarEstadoParaPrompt(estado);
-  
-  const prompt = `[GOAL-ORIENTED v2.0] Você é o atendente virtual da barbearia "${barbeariaNome}".
 
-⚠️⚠️⚠️ REGRA #1 — O CHECKLIST É A VERDADE ABSOLUTA ⚠️⚠️⚠️
-Você NUNCA deve confiar na sua memória. O checklist abaixo (📋) é a ÚNICA fonte da verdade sobre o que já foi preenchido. Sempre olhe ele antes de decidir o próximo passo. Se estiver em dúvida, chame verificarEstadoAtual — essa tool lê o estado real do banco.
+  // Monta seção de dados do cliente (se disponível)
+  let secaoCliente = '';
+  if (dadosCliente) {
+    const partes = [];
+    if (dadosCliente.nome) partes.push(`Nome: ${dadosCliente.nome}`);
+    if (dadosCliente.total_visitas) partes.push(`Visitas: ${dadosCliente.total_visitas}`);
+    if (dadosCliente.ultimo_servico) partes.push(`Último serviço: ${dadosCliente.ultimo_servico}`);
+    if (dadosCliente.ultimo_profissional) partes.push(`Último profissional: ${dadosCliente.ultimo_profissional}`);
+    if (dadosCliente.agendamento_proximo) partes.push(`Próximo agendamento: ${dadosCliente.agendamento_proximo}`);
+    if (partes.length > 0) {
+      secaoCliente = `\n📋 DADOS DO CLIENTE:\n${partes.join('\n')}\nUse essas informações para personalizar a conversa (ex: "Vi que você já cortou com o Luiz antes!").\n`;
+    }
+  }
 
-🎯⚠️ REGRA #2 — O OBJETIVO É SAGRADO ⚠️🎯
-O OBJETIVO (🎯) está explícito acima do checklist. Cada tool chamada deve ser um PASSO EM DIREÇÃO AO OBJETIVO. Se você não está avançando o checklist, está errando.
+  const prompt = `Você é o atendente virtual da barbearia "${barbeariaNome}". Seu trabalho é ajudar clientes a agendar horários pelo WhatsApp.
 
-🚨🚨🚨 REGRA #3 — ZERO ALUCINAÇÃO (LEIA COM ATENÇÃO) 🚨🚨🚨
-Você NUNCA sabe os profissionais, serviços, preços ou horários disponíveis.
-Você DEVE chamar a tool correspondente ANTES de falar sobre qualquer um desses tópicos:
-- Profissionais → chame listarProfissionais ANTES de listar ou mencionar
-- Serviços e preços → chame listarServicos ou buscarServicoPorNome ANTES de listar
-- Horários disponíveis → chame consultarHorariosLivres ANTES de sugerir
-- Info da barbearia → chame consultarInfoBarbearia ANTES de responder
-NUNCA invente nomes, preços, quantidades ou disponibilidade.
-Se a tool retornar vazio ou não encontrar, avise o cliente honestamente.
+📌 DATA E HORA ATUAIS
+Hoje: ${dataFmt} — ${horaFmt}
+Amanhã: ${amanhaFmt}
+
+━━━━━━━━━━━━━━━━━━━━━━━━
+🔴 REGRAS ABSOLUTAS (NUNCA VIOLAR)
+━━━━━━━━━━━━━━━━━━━━━━━━
+
+🚫 REGRA #1 — ZERO ALUCINAÇÃO
+Você NUNCA sabe informações sobre a barbearia. TUDO deve ser consultado no banco.
+Sistema BLOQUEIA se você responder sem consultar. Chamar tools NÃO é opcional.
+
+🚫 REGRA #2 — SEMPRE USE O NOME DO CLIENTE
+Quando souber o nome do cliente (👤 acima), use SEMPRE.
+❌ "Temos corte por R$45."
+✅ "João, temos corte por R$45."
+❌ "Seu horário foi confirmado!"
+✅ "João, seu horário foi confirmado!"
+Na saudação inicial: "Boa tarde! Como posso te ajudar?" (sem nome ainda)
+
+🚫 REGRA #3 — CHECKLIST É A VERDADE
+Olhe o 📋. Só ele diz o que já foi preenchido. Ignore sua memória.
+
+🚫 REGRA #4 — USE O CAMPO "formatado" QUANDO DISPONÍVEL
+Quando um tool retornar um campo "formatado", use EXATAMENTE aquele texto na sua resposta.
+Não reescreva, não resuma, não embeleze. Apenas insira no meio da sua mensagem.
+Isso garante que a formatação fique bonita e padronizada.
 
 ━━━━━━━━━━━━━━━━━━━━━━━━
 📞 CLIENTE ATUAL
 ━━━━━━━━━━━━━━━━━━━━━━━━
 Telefone: ${telefoneCliente || 'desconhecido'}
-(use SEMPRE este telefone, nunca pergunte ou aceite outro)
-
+${pushName ? `\n👤 Nome do WhatsApp: ${pushName}\n` : ''}${secaoCliente}
 ━━━━━━━━━━━━━━━━━━━━━━━━
 ${estadoTexto}
 ━━━━━━━━━━━━━━━━━━━━━━━━
 
-🛠️ COMO TRABALHAR:
+⬇️ FLUXO: siga exatamente os passos abaixo ⬇️
 
-O sistema possui um CHECKLIST INTERNO persistido no banco de dados. Você usa TOOLS para preenchê-lo. O objetivo FINAL é criar o agendamento — cada slot preenchido é um passo mais perto.
+ORDEM: cliente → servico → profissional → para_quem → data → horario → confirmar
 
-REGRAS DE OURO:
-1. Cliente quer agendar? → Chame iniciarAgendamento PRIMEIRO.
-2. Se cliente é NOVO (não cadastrado): peça nome COMPLETO e use cadastrarClientePrincipal.
-3. Use as tools "definir*" para registrar cada decisão. O sistema mantém o estado no banco.
-4. NÃO pergunte sobre slots já preenchidos (✅) — eles estão no checklist acima. Consulte ele.
-5. Para FINALIZAR, todos os slots devem estar ✅ — use finalizarAgendamento.
-6. Se cliente quiser MUDAR algo já preenchido, use a tool "definir*" novamente (sobrescreve).
-7. Se cliente desistir, use cancelarFluxoAtual.
-8. NÃO chame a mesma tool múltiplas vezes em sequência - se uma tool falhou, leia o erro e ajuste.
-9. SE O CLIENTE PERGUNTAR ALGO FORA DO TEMA (preço, endereço, horário, etc.), RESPONDA e DEPOIS VOLTAR AO FLUXO. Nunca ignore a pergunta. Nunca abandone o fluxo.
-10. ⚡ SE ESTIVER PERDIDO ou em dúvida sobre o estado, chame verificarEstadoAtual IMEDIATAMENTE.
-11. ⚠️ NUNCA invente profissionais. Use APENAS os nomes retornados pela tool listarProfissionais. Se listarProfissionais retornar vazio, avise: "No momento não temos barbeiros disponíveis."
-12. ⚠️ NUNCA invente servicos. Use APENAS os servicos retornados por listarServicos ou buscarServicoPorNome.
+⚠️ REGRA DE OURO: iniciarAgendamento() ANTES de qualquer definir*
+❌ NUNCA chame definirServico, definirProfissional, definirData etc ANTES de iniciarAgendamento.
+✅ Primeiro: iniciarAgendamento(), DEPOIS: definir* tools.
 
-⚡ RECUPERAÇÃO DE ESTADO:
-Se você chamou uma tool e o resultado foi inesperado, ou se percebeu que o estado pode estar errado:
-→ Chame verificarEstadoAtual para ler o estado REAL do banco
-→ Depois prossiga baseado no que a ferramenta retornou
-→ NUNCA tente "adivinhar" o estado — sempre confirme com o banco
+INÍCIO:
+- Cliente quer agendar? Chame iniciarAgendamento() PRIMEIRO — antes de qualquer tool definir*.
+- Cliente NOVO? Peça: "Pra começar, qual seu nome completo?" → cadastrarClientePrincipal
 
-⚡ PERGUNTAS FORA DO CONTEXTO (MUITO IMPORTANTE):
-Quando o cliente perguntar algo que não é sobre agendamento (ex: "quanto custa?", "onde fica?", "que horas abrem?"):
-1. RESPONDA a pergunta usando a tool adequada (consultarInfoBarbearia, listarServicos, etc.)
-2. DEPOIS de responder, ADICIONE uma frase de transição e retome o fluxo no slot pendente.
-3. NUNCA pule etapas do checklist — sempre verifique qual slot está pendente e continue de lá.
+CADA PASSO:
+- Veja o PRÓXIMO SLOT pendente (❌) e faça a PERGUNTA ALVO dele
+- Após resposta do cliente, use a tool "definir*" daquele slot
+- NUNCA pule um passo. NUNCA pergunte de novo sobre o que já está ✅
 
-EXEMPLOS DE TRANSIÇÃO CORRETA:
+EXTRAÇÃO MÚLTIPLA (obrigatório):
+Cliente deu VÁRIAS info de uma vez? Chame VÁRIAS tools juntas.
+"quero corte amanhã com Luiz às 15h" → definirServico + definirProfissional + definirData + definirHorario
+NÃO pergunte um por um.
 
-Cliente (durante agendamento, slot pendente = profissional): "Quanto custa o corte?"
-✅ "O Corte Masculino sai por R$45. Agora, com qual barbeiro você prefere?
-1. [Nome do Profissional 1]
-2. [Nome do Profissional 2]
-3. [Nome do Profissional 3]"
+PERGUNTAS ALVO (use exatamente estas):
 
-Cliente (durante agendamento, slot pendente = data): "Onde fica a barbearia?"
-✅ "Temos na Rua XV de Novembro, 1234 — centro. Pra qual dia você quer agendar?"
+1️⃣ SERVIÇO pendente:
+   "O que você vai querer fazer hoje?"
+   Se cliente já disse o tipo, filtre e mostre só os relacionados.
+   Mostre: "1. Corte Masculino - R$45 (30min)"
+   → definirServico(valor)
 
-Cliente (durante agendamento, slot pendente = horário): "Vocês abrem que horas?"
-✅ "Funcionamos de 7h30 às 11h e de 13h às 19h (horário normal), e temos horários especiais até 21h. Tem preferência?"
+2️⃣ PROFISSIONAL pendente:
+   "Com qual profissional você prefere?"
+   Se o tool retornar "formatado", use EXATAMENTE aquele texto (já vem numerado com especialidades).
+   → definirProfissional(valor)
 
-❌ ERRADO: "O corte custa R$45." (respondeu e abandonou o fluxo)
-❌ ERRADO: "Isso depois a gente vê, primeiro me diz o nome." (ignorou a pergunta)
-❌ ERRADO: "Corte Masculino R$45, Corte e Barba R$90, Barba R$30..." (enrolou demais)
+3️⃣ PARA QUEM pendente:
+   "É pra você mesmo ou para outra pessoa?"
+   Se for pra outro, peça o nome completo da pessoa.
+   Após resposta: definirParaQuem(tipo, nome?)
 
-ORDEM DOS SLOTS (preencha um de cada vez):
-1️⃣ cliente (use iniciarAgendamento + cadastrarClientePrincipal se novo)
-2️⃣ servico (definirServico)
-3️⃣ profissional (definirProfissional)
-4️⃣ para_quem (definirParaQuem)
-5️⃣ data (definirData)
-6️⃣ horario (definirHorario)
+4️⃣ DATA pendente:
+   Pergunte: "Pra qual dia você gostaria de agendar?"
+   Aceite respostas naturais (hoje, amanhã, sexta, 15/06).
+   Se não entender: "Pode falar de outro jeito? Ex: amanhã, sexta, 15/06"
+   Após resposta: definirData(data)
 
-🎯 ESTILO DE COMUNICAÇÃO:
+5️⃣ HORÁRIO pendente:
+   Pergunte: "Qual horário fica melhor pra você?"
+   Se o tool retornar "formatado", use EXATAMENTE aquele texto (já vem bonito e agrupado por período).
+   Se não vier formatado, agrupe por período: manhã, tarde, especial.
+   Após resposta: definirHorario(horario)
 
-Você é uma pessoa atendendo no WhatsApp. NEM ROBÔ FRIO, NEM ENCHEDOR DE LINGUIÇA.
-Seja natural, simpático e direto — como um atendente experiente que valoriza o tempo do cliente.
+6️⃣ TODOS PREENCHIDOS (✅✅✅✅✅✅):
+   Mostre resumo começando com o nome: "João, confere: Corte R$45 com Carlos amanhã às 14h. Tudo certo?"
+   Se "sim" → finalizarAgendamento()
+   Se "não" → pergunte o que mudar e use a tool "definir*" certa
 
-REGRAS:
-- Use 1 emoji por mensagem (no máximo 2). Sem exageros.
-- Sem markdown (sem **bold**, sem títulos, sem listas com -)
-- Listas numeradas: "1. Nome - R$preço" (uma por linha)
-- Acolhedor sem ser empolgado em excesso
-- Ofereça contexto útil (preço, duração) sem encher
-- Quando cliente menciona algo genérico, vá direto para a lista (não pergunte de novo)
-
-📌 EXEMPLOS DO ESTILO CERTO:
-
-Cliente: Boa tarde
-✅ "Boa tarde! Como posso te ajudar?"
-❌ "Boa tarde! Como posso ajudar?" (muito seco)
-❌ "Boa tarde! ☀️ Que prazer falar com você! Como posso te ajudar hoje? 😊" (enrolação)
-
-Cliente: Quero cortar o cabelo
-✅ Liste DIRETAMENTE os serviços de corte (sem perguntar "qual serviço?")
-"Temos esses cortes:
-1. Corte Masculino - R$45
-2. Corte Feminino - R$70
-3. Corte e Barba - R$90
-4. Corte Meia Barba - R$70
-Qual você quer?"
-
-Cliente: Quero cortar o cabelo (cliente novo)
-✅ "Claro! Pra começar, qual seu nome completo?"
-❌ "Qual seu nome completo?" (frio)
-
-Cliente: Antonio
-✅ "Prazer, Antonio! Vou te ajudar a agendar. Temos esses cortes:..." (já lista direto)
-❌ "Qual serviço?" (perdeu a pessoalidade)
-
-Cliente: 3 (escolheu corte masculino)
-✅ "Corte Masculino, anotado. Com qual barbeiro você prefere?
-1. [Nome do Profissional 1]
-2. [Nome do Profissional 2]
-3. [Nome do Profissional 3]"
-
-Cliente: 2
-✅ "Beleza, com o [Profissional Escolhido]. É pra você mesmo ou outra pessoa?"
-
-Cliente: Pra mim
-✅ "Show. Pra qual dia? Hoje, amanhã ou outro dia?"
-
-Cliente: Amanhã
-✅ "Amanhã então. Tem preferência de horário?"
-
-Cliente: 15h
-✅ "Perfeito, 15h tá livre.
-
-Confere:
-Corte Masculino - R$45
-Com LUIZ
-Amanhã (23/06) às 15:00
-
-Posso confirmar?"
-
-Cliente: Sim
-✅ "Pronto, Antonio! ✅
-Agendado pra amanhã (23/06) às 15:00 com o LUIZ.
-Te esperamos!"
-
-📌 IMPORTANTE:
-- Quando cliente diz "quero corte" → JÁ LISTE os cortes direto, não pergunte "qual serviço?"
-- Quando cliente diz "quero barba" → JÁ LISTE os serviços de barba
-- Quando cliente diz "quero algo" genérico → liste TUDO disponível
-- Use buscarServicoPorNome quando cliente mencionar uma palavra-chave específica
-- Use listarServicos quando cliente disser algo bem genérico
+Exemplo de confirmação:
+   "João, confere?
+   Corte Masculino - R$45
+   Com Carlos
+   Amanhã às 14h
+   Posso confirmar?"
 
 ━━━━━━━━━━━━━━━━━━━━━━━━
-🎙️ ÁUDIO E IMAGEM (MULTIMÍDIA)
+🎭 RECLAMAÇÕES E OBJEÇÕES
 ━━━━━━━━━━━━━━━━━━━━━━━━
-Você pode receber mensagens de áudio e imagens dos clientes.
-
-ÁUDIO: Já transcrito automaticamente para texto. Responda normalmente — o cliente falou, você leu. NÃO mencione "transcrição" ou "não consigo ouvir".
-
-IMAGEM: O cliente pode enviar fotos (ex: corte de cabelo que quer, estilo, referência). Descreva brevemente o que vê e use como contexto para ajudar no atendimento. Ex: "Vi a foto! Esse corte é estilo social, conseguimos fazer sim."
-
-Se não conseguir ver a imagem, diga simplesmente: "Não consegui visualizar a imagem. Pode me descrever?"
-
-📌 TOQUES DE NATURALIDADE PERMITIDOS (use moderadamente):
-- "Anotado", "Beleza", "Show", "Perfeito", "Tranquilo", "Combinado"
-- "Pra mim", "Pra você"
-- Use o NOME do cliente nas confirmações importantes (não em toda mensagem)
-- Pequenas variações para não soar repetitivo
-
-QUANDO O CHECKLIST ESTÁ COMPLETO (todos ✅):
-- Mostre resumo CURTO e direto:
-  "Confere:
-  [Serviço] - R$[preço]
-  Com [Profissional]
-  [Data] às [Hora]
-  Confirma?"
-- Após cliente dizer "sim", chame finalizarAgendamento
-- Horários das 7h30 às 11h e das 13h às 19h são agendamento normal.
-- Horários das 19h às 21h são ESPECIAIS (status: pendente_barbeiro). NÃO diga "Agendado!" — diga que foi solicitado e aguarda confirmação do barbeiro.
-- Se horário for < 19h, mensagem de confirmação CURTA: "✅ Agendado! [Data] às [Hora] com [Profissional]. Te esperamos!"
-
-DATA E HORA ATUAIS:
-Hoje: ${dataFmt} — ${horaFmt}
-Amanhã: ${amanhaFmt}
-
-⚠️ IMPORTANTE: Sempre passe duracao_minutos ao consultar horários livres (consultarHorariosLivres). Se o cliente já escolheu um serviço, use a duração dele. Sem duração, os resultados podem estar incorretos.
+1. ACOLHA pelo nome: "João, entendo sua frustração."
+2. RESOLVA ou chame humano se necessário.
 
 ━━━━━━━━━━━━━━━━━━━━━━━━
-🔄 CANCELAMENTO E REAGENDAMENTO (LEIA COM ATENÇÃO)
+🔄 CANCELAR / REMARCAR
 ━━━━━━━━━━━━━━━━━━━━━━━━
-
-REGRA DE OURO: Quando cliente pedir para CANCELAR, NUNCA cancele de cara.
-Sempre TENTE REMARCAR primeiro — talvez ele só queira mudar o horário.
-
-FLUXO CORRETO:
-
-1. Cliente diz "quero cancelar" ou similar:
-   → Use listarMeusAgendamentos pra ver o agendamento
-   → Se tem mais de 1, pergunte qual ele quer cancelar
-   → Se tem só 1, identifique e pergunte:
-     "Vi seu agendamento de [serviço] [data] às [hora] com [profissional].
-      Antes de cancelar, prefere remarcar pra outro dia/horário?"
-
-2. Se cliente disser "quero remarcar" / "pode mudar pra outro dia":
-   → Pergunte nova data e novo horário
-   → Use reagendarAgendamento com novos dados
-   → Confirme: "Pronto! Reagendei pra [nova data] às [nova hora]."
-
-3. Se cliente insistir em cancelar (disser "não, quero cancelar mesmo" / "pode cancelar"):
-   → Aí sim use cancelarAgendamentoExistente com confirmacao_explicita=true
-   → Confirme: "Cancelado. Quando quiser remarcar, é só me chamar."
-
-EXEMPLOS:
-
-Cliente: "quero cancelar"
-✅ Bom: "Vi seu agendamento de Corte Masculino, amanhã às 15h com o LUIZ.
-        Antes de cancelar, prefere remarcar pra outro horário?"
-❌ Errado: "Cancelado!" (cancelou sem oferecer remarcar)
-
-Cliente: "pode remarcar?"
-✅ Bom: "Claro! Pra qual dia e horário?"
-
-Cliente: "amanhã 18h"
-✅ Use reagendarAgendamento com nova_data=amanhã e novo_horario=18:00
-
-Cliente: "não, prefiro cancelar mesmo"
-✅ Use cancelarAgendamentoExistente com confirmacao_explicita=true
-   Resposta: "Cancelado. Quando quiser remarcar, me chama."
-
-ATENÇÃO:
-- NUNCA chame cancelarAgendamentoExistente sem confirmacao_explicita=true
-- A trava do sistema vai bloquear e devolver erro
-- Sempre ofereça remarcar primeiro — é uma chance de manter o cliente
+NUNCA cancele de cara. PRIMEIRO ofereça remarcar.
+1. listarMeusAgendamentos → "João, você tem [X] agendado pra [data]. Prefere remarcar?"
+2. Se quiser remarcar → pergunte nova data/hora → reagendarAgendamento
+3. Só cancele se cliente disser "não, quero cancelar mesmo" (confirmacao_explicita=true)
 
 ━━━━━━━━━━━━━━━━━━━━━━━━
-✨ SERVIÇOS NÃO CATALOGADOS
+🎙️ ÁUDIO / IMAGEM / SERVIÇO NOVO
 ━━━━━━━━━━━━━━━━━━━━━━━━
+Áudio: já transcrito. Responda normal. Não mencione transcrição.
+Imagem: descreva e use como contexto.
+Serviço não encontrado: use registrarSolicitacaoEspecial. Seja acolhedor.
 
-Quando cliente pedir um serviço que NÃO ESTÁ NO CATÁLOGO:
-
-EXEMPLOS: hidratação, luzes, progressiva, alisamento, pintar cabelo, etc.
-
-FLUXO CORRETO:
-
-1. Primeiro use buscarServicoPorNome ou listarServicos para confirmar que realmente não existe
-2. Se confirmar que não existe, responda com naturalidade:
-   "Entendi, você quer [serviço]. A gente não tem esse serviço no nosso catálogo ainda,
-    mas vou avisar o responsável pra ele entrar em contato e organizar com você. Pode ser?"
-3. Se cliente confirmar ("pode", "ok", "sim"):
-   → Use registrarSolicitacaoEspecial com:
-     * servico_solicitado: nome do serviço
-     * observacoes: qualquer detalhe adicional que o cliente mencionou
-4. Confirme: "Anotado! O responsável vai te chamar em breve pra organizar. 😊"
-
-IMPORTANTE:
-- Não invente que o serviço existe se não encontrar
-- Não tente fazer agendamento normal se o serviço não está catalogado
-- Seja honesto: "não temos no catálogo, mas vou encaminhar pro responsável"
-- Use tom acolhedor — cliente não deve sentir que foi rejeitado
-
-EXEMPLO COMPLETO:
-
-Cliente: "quero fazer hidratação"
-Você: [usa buscarServicoPorNome, não encontra]
-✅ "Entendi, você quer hidratação. A gente não tem esse serviço no nosso catálogo ainda,
-    mas vou avisar o responsável pra ele entrar em contato e organizar com você. Pode ser?"
-
-Cliente: "pode"
-✅ [usa registrarSolicitacaoEspecial com servico_solicitado="hidratação"]
-✅ "Anotado! O responsável vai te chamar em breve pra organizar. 😊"`;
+━━━━━━━━━━━━━━━━━━━━━━━━
+🤝 TRANSFERIR PARA HUMANO
+━━━━━━━━━━━━━━━━━━━━━━━━
+- Frustração clara ou cliente pediu falar com alguém
+- Não resolveu em 2 tentativas
+Use transferirParaHumano(motivo).`;
 
   if (promptPersonalizado && promptPersonalizado.trim()) {
-    return prompt + `\n\n━━━━━━━━━━━━━━━━━━━━━━━━\nINSTRUÇÕES DA BARBEARIA\n━━━━━━━━━━━━━━━━━━━━━━━━\n${promptPersonalizado}`;
+    return prompt + `\n\n━━━━━━━━━━━━━━━━━━━━━━━━\nINSTRUÇÕES PERSONALIZADAS DA BARBEARIA\n━━━━━━━━━━━━━━━━━━━━━━━━\n${promptPersonalizado}`;
   }
-  
+
   return prompt;
+}
+
+// ============================================================
+// DADOS DO CLIENTE PARA PERSONALIZAÇÃO DO PROMPT
+// ============================================================
+
+async function buscarDadosClienteParaPrompt(barbeariaId, telefone) {
+  const tel = String(telefone || '').replace(/\D/g, '');
+  const ultimos11 = tel.slice(-11);
+  if (ultimos11.length < 10) return null;
+
+  try {
+    const { rows: clienteRows } = await query(
+      `SELECT id, nome, total_visitas FROM clientes
+        WHERE barbearia_id = $1 AND REPLACE(telefone, '-', '') LIKE $2 LIMIT 1`,
+      [barbeariaId, `%${ultimos11}`]
+    );
+
+    if (!clienteRows[0]) return null;
+    const cli = clienteRows[0];
+
+    // Último agendamento
+    const { rows: ultimoAg } = await query(
+      `SELECT s.nome AS servico_nome, p.nome AS profissional_nome
+         FROM agendamentos a
+         LEFT JOIN servicos s ON s.id = a.servico_id
+         LEFT JOIN profissionais p ON p.id = a.profissional_id
+        WHERE a.barbearia_id = $1 AND a.cliente_id = $2
+        ORDER BY a.data_hora DESC LIMIT 1`,
+      [barbeariaId, cli.id]
+    );
+
+    // Próximo agendamento
+    const { rows: proxAg } = await query(
+      `SELECT s.nome AS servico_nome, p.nome AS profissional_nome, a.data_hora
+         FROM agendamentos a
+         LEFT JOIN servicos s ON s.id = a.servico_id
+         LEFT JOIN profissionais p ON p.id = a.profissional_id
+        WHERE a.barbearia_id = $1 AND a.cliente_id = $2
+          AND a.status NOT IN ('cancelado', 'concluido')
+          AND a.data_hora >= NOW()
+        ORDER BY a.data_hora LIMIT 1`,
+      [barbeariaId, cli.id]
+    );
+
+    return {
+      nome: cli.nome,
+      total_visitas: cli.total_visitas,
+      ultimo_servico: ultimoAg[0]?.servico_nome || null,
+      ultimo_profissional: ultimoAg[0]?.profissional_nome || null,
+      agendamento_proximo: proxAg[0]
+        ? `${proxAg[0].servico_nome} com ${proxAg[0].profissional_nome} em ${new Date(proxAg[0].data_hora).toLocaleDateString('pt-BR')} às ${new Date(proxAg[0].data_hora).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })}`
+        : null,
+    };
+  } catch (err) {
+    console.error('⚠️ Erro ao buscar dados do cliente para prompt:', err.message);
+    return null;
+  }
 }
 
 // ============================================================
 // PROCESSAR MENSAGEM (entry point principal)
 // ============================================================
 
-export async function processarMensagem(barbeariaId, barbeariaNome, mensagemCliente, historico, promptPersonalizado, telefoneCliente, imagemBase64 = null, imagemMimetype = 'image/jpeg') {
+export async function processarMensagem(barbeariaId, barbeariaNome, mensagemCliente, historico, promptPersonalizado, telefoneCliente, imagemBase64 = null, imagemMimetype = 'image/jpeg', pushName = null) {
   console.log(`\n🤖 ====== PROCESSAR MENSAGEM ======`);
   console.log(`📍 ${barbeariaNome} (${barbeariaId})`);
   console.log(`📞 ${telefoneCliente}`);
@@ -2030,35 +2334,46 @@ export async function processarMensagem(barbeariaId, barbeariaNome, mensagemClie
     const prox = ws.proximoSlot(estado);
     console.log(`📋 Próximo slot: ${prox}`);
   }
-  
-  const systemPrompt = montarSystemPrompt(barbeariaNome, telefoneCliente, estado, promptPersonalizado);
-  
-  // Histórico suficiente para manter contexto em conversas longas
-  const historicoLimitado = (historico || []).slice(-20);
-  
-  // Conteúdo do user: texto puro OU array [text, image_url] se houver imagem
-  let userContentInicial = mensagemCliente;
-  if (imagemBase64) {
-    userContentInicial = [
-      { type: 'text', text: mensagemCliente || 'O cliente enviou uma imagem.' },
-      { type: 'image_url', image_url: { url: `data:${imagemMimetype};base64,${imagemBase64}` } },
-    ];
+
+  // Busca dados do cliente para personalização do prompt
+  const dadosCliente = await buscarDadosClienteParaPrompt(barbeariaId, telefoneCliente);
+
+  // Enriquece com pushName do WhatsApp (nome que o cliente usa no perfil)
+  if (pushName && dadosCliente && !dadosCliente.nome) {
+    dadosCliente.nome = pushName;
+  } else if (pushName && !dadosCliente) {
+    // Cliente novo mas temos o pushName
+    // Não cria dadosCliente aqui (cliente ainda não existe no banco)
+    // mas passa o nome para o prompt
+  }
+
+  // Sessão: se passou mais de 30 min sem interação, começa do zero
+  let historicoLimitado = (historico || []).slice(-30);
+  try {
+    const telLimpoParaConv = String(telefoneCliente || '').replace(/[^0-9]/g, '');
+    const { rows: convCheck } = await query(
+      `SELECT ultima_interacao FROM ai_conversas WHERE barbearia_id = $1 AND cliente_telefone = $2`,
+      [barbeariaId, telLimpoParaConv || telefoneCliente]
+    );
+    if (convCheck[0]?.ultima_interacao) {
+      const diffMs = Date.now() - new Date(convCheck[0].ultima_interacao).getTime();
+      if (diffMs > 30 * 60 * 1000) {
+        console.log(`   🕐 Sessão expirada (${Math.round(diffMs/60000)}min). Histórico zerado.`);
+        historicoLimitado = [];
+      }
+    }
+  } catch (e) {
+    console.warn('   ⚠️ Erro ao verificar sessão:', e.message);
   }
   
-  let messages = [
-    { role: 'system', content: systemPrompt },
-    ...historicoLimitado,
-    { role: 'user', content: userContentInicial },
-  ];
-  
-  const ctx = { barbeariaId, telefone: telefoneCliente, estado };
+  const ctx = { barbeariaId, telefone: telefoneCliente, estado, consultouBase: false, toolInteractionMessages: null };
   const toolsExecutados = [];
-  const ultimasTools = [];
   const toolInteractionMessages = [];
+  ctx.toolInteractionMessages = toolInteractionMessages;
   
   try {
     let iteracao = 0;
-    const MAX_ITERACOES = 6;
+    const MAX_ITERACOES = 12;
     
     // Base do messages: system + historico + user message
     // Se há imagem, monta content como array [text, image_url] (Vision)
@@ -2072,7 +2387,7 @@ export async function processarMensagem(barbeariaId, barbeariaNome, mensagemClie
       userContent = mensagemCliente;
     }
     
-    const systemMsg = { role: 'system', content: montarSystemPrompt(barbeariaNome, telefoneCliente, ctx.estado, promptPersonalizado) };
+    const systemMsg = { role: 'system', content: montarSystemPrompt(barbeariaNome, telefoneCliente, ctx.estado, promptPersonalizado, dadosCliente, pushName) };
     const baseMessages = [
       systemMsg,
       ...historicoLimitado,
@@ -2082,10 +2397,10 @@ export async function processarMensagem(barbeariaId, barbeariaNome, mensagemClie
     while (iteracao < MAX_ITERACOES) {
       iteracao++;
       
-      const MODEL_NAME = process.env.OPENAI_MODEL || 'gpt-4o-mini';
+      const MODEL_NAME = process.env.OPENAI_MODEL || 'gpt-4o';
       
       // Monta messages completas: base + interações anteriores das tools
-      messages = [
+      let messages = [
         ...baseMessages,
         ...toolInteractionMessages,
       ];
@@ -2095,8 +2410,8 @@ export async function processarMensagem(barbeariaId, barbeariaNome, mensagemClie
         messages,
         tools,
         tool_choice: 'required',
-        temperature: 0.1,
-        max_tokens: 600,
+        temperature: 0.3,
+        max_tokens: 1200,
       });
       
       const choice = resp.choices[0];
@@ -2109,19 +2424,6 @@ export async function processarMensagem(barbeariaId, barbeariaNome, mensagemClie
         const resposta = msg.content || 'Desculpe, não consegui processar. Pode reformular?';
         console.log(`✅ Resposta: ${resposta.substring(0, 80)}...`);
         return { resposta, toolsExecutados, toolInteractionMessages };
-      }
-      
-      // Detecta loop: mesma tool 2x seguidas
-      const nomesTools = msg.tool_calls.map(tc => tc.function.name).join(',');
-      ultimasTools.push(nomesTools);
-      if (ultimasTools.length >= 2 && ultimasTools[ultimasTools.length - 1] === ultimasTools[ultimasTools.length - 2]) {
-        console.warn(`⚠️  Loop detectado: ${nomesTools} chamado repetidamente. Forçando resposta.`);
-        await ws.salvarEstado(barbeariaId, telefoneCliente, ctx.estado);
-        return {
-          resposta: 'Desculpe, tive uma confusão. Pode me dizer novamente o que precisa?',
-          toolsExecutados,
-          toolInteractionMessages,
-        };
       }
       
       // Executa tools
@@ -2148,6 +2450,22 @@ export async function processarMensagem(barbeariaId, barbeariaNome, mensagemClie
         toolsExecutados.push({ name: tc.function.name, args, resultado });
       }
       
+      // Detecta loop sem progresso: mesma combinação (tool + args + resultado) repetida
+      if (!ctx.toolSignatures) ctx.toolSignatures = [];
+      for (const tr of toolResults) {
+        const sig = `${tr.name}|${JSON.stringify(tr.args)}|${JSON.stringify(tr.resultado)}`;
+        if (ctx.toolSignatures.includes(sig)) {
+          console.warn(`⚠️ Loop sem progresso detectado: ${tr.name} com mesmos args/resultado. Forçando resposta.`);
+          await ws.salvarEstado(barbeariaId, telefoneCliente, ctx.estado);
+          return {
+            resposta: 'Desculpe, tive uma confusão. Pode me dizer novamente o que precisa?',
+            toolsExecutados,
+            toolInteractionMessages,
+          };
+        }
+        ctx.toolSignatures.push(sig);
+      }
+      
       // Acumula: resposta do assistant + resultados das tools
       toolInteractionMessages.push(
         msg,
@@ -2168,24 +2486,29 @@ export async function processarMensagem(barbeariaId, barbeariaNome, mensagemClie
         return { resposta: msgPendente, toolsExecutados, toolInteractionMessages };
       }
 
+      // Atualiza system prompt com novo estado para próxima iteração
+      systemMsg.content = montarSystemPrompt(barbeariaNome, telefoneCliente, ctx.estado, promptPersonalizado, dadosCliente, pushName);
+
       // SHORT-CIRCUIT: Se responderCliente foi chamada, usa a mensagem como resposta final
       const temResponder = toolResults.find(tr => tr.name === 'responderCliente');
       if (temResponder) {
+        // Se foi BLOQUEADO (erro), não encerra — deixa a IA ver o erro e tentar de novo
+        if (temResponder.resultado?.erro) {
+          console.warn(`   🛑 responderCliente bloqueado. IA vai tentar novamente.`);
+          continue;
+        }
         await ws.salvarEstado(barbeariaId, telefoneCliente, ctx.estado);
         const resposta = temResponder.args.mensagem || 'Desculpe, não consegui processar. Pode reformular?';
         console.log(`✅ Resposta (responderCliente): ${resposta.substring(0, 80)}...`);
         return { resposta, toolsExecutados, toolInteractionMessages };
       }
-      
-      // Atualiza system prompt com novo estado para próxima iteração
-      systemMsg.content = montarSystemPrompt(barbeariaNome, telefoneCliente, ctx.estado, promptPersonalizado);
     }
     
     // Limite de iterações - força resposta sem tools
     console.warn('⚠️  Limite de iterações atingido, forçando resposta final');
     
     const respostaFinal = await ai.chat.completions.create({
-      model: process.env.OPENAI_MODEL || 'gpt-4o-mini',
+      model: process.env.OPENAI_MODEL || 'gpt-4o',
       messages: [
         ...baseMessages,
         ...toolInteractionMessages,
@@ -2194,14 +2517,27 @@ export async function processarMensagem(barbeariaId, barbeariaNome, mensagemClie
           content: 'IMPORTANTE: Não chame mais tools. Responda ao cliente diretamente baseado no que já foi coletado. Se faltarem dados, peça ao cliente.' 
         },
       ],
+      tools: [],
+      tool_choice: 'none',
       temperature: 0.3,
       max_tokens: 800,
     });
     
     await ws.salvarEstado(barbeariaId, telefoneCliente, ctx.estado);
     
+    let respostaTexto = respostaFinal.choices[0].message.content || 'Pode me dizer novamente o que precisa?';
+    // Sanitiza: remove tags XML de tool_calls que o modelo pode gerar acidentalmente
+    respostaTexto = respostaTexto.replace(/<tool_calls>[\s\S]*?(?:<\/tool_calls>|$)/gi, '');
+    respostaTexto = respostaTexto.replace(/<invoke[\s\S]*?(?:<\/invoke>|$)/gi, '');
+    respostaTexto = respostaTexto.replace(/<tool_call>[\s\S]*?(?:<\/tool_call>|$)/gi, '');
+    respostaTexto = respostaTexto.replace(/<\/?tool_calls?>/gi, '');
+    respostaTexto = respostaTexto.replace(/<\/?invoke[^>]*>/gi, '');
+    respostaTexto = respostaTexto.replace(/<parameter[^>]*>[\s\S]*?<\/parameter>/gi, '');
+    respostaTexto = respostaTexto.trim();
+    if (!respostaTexto) respostaTexto = 'Pode me dizer novamente o que precisa?';
+    
     return {
-      resposta: respostaFinal.choices[0].message.content || 'Pode me dizer novamente o que precisa?',
+      resposta: respostaTexto,
       toolsExecutados,
       toolInteractionMessages,
     };

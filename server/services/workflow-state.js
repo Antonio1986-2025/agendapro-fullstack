@@ -303,11 +303,17 @@ export function formatarEstadoParaPrompt(estado) {
   if (!estado.fluxo_ativo) {
     if (temAgendamentoRecente(estado, 5)) {
       const minutos = Math.round((Date.now() - new Date(estado.agendamento_criado_em).getTime()) / 60000);
-      return `🔔 ATENÇÃO: Cliente acabou de criar um agendamento (há ${minutos} min, ID: ${estado.agendamento_criado_id}).
-Se cliente disser "sim" ou repetir confirmação, isso é redundante - já foi criado.
-Caso contrário, comece um NOVO atendimento normalmente.`;
+      return `🔔 ATENÇÃO: Cliente acabou de criar um agendamento (há ${minutos} min).
+Se cliente disser "sim" ou repetir: avise que já está confirmado.
+Caso contrário: escute o que ele quer e comece um novo fluxo.`;
     }
-    return 'NENHUM FLUXO ATIVO. Aguardando intenção do cliente.';
+    return `📋 NENHUM FLUXO ATIVO.
+
+Aguardando o cliente falar o que precisa.
+- Se ele quiser AGENDAR → iniciarAgendamento()
+- Se ele quiser CANCELAR → listarMeusAgendamentos()
+- Se for PERGUNTA → consultarInfoBarbearia() ou listarServicos()
+- Se for SAUDAÇÃO → cumprimente de volta e pergunte como ajudar`;
   }
   
   if (estado.fluxo_ativo === 'agendamento') {
@@ -315,6 +321,10 @@ Caso contrário, comece um NOVO atendimento normalmente.`;
     const progresso = calcularProgresso(estado);
     const linhas = [];
 
+    // Nome do cliente em destaque no topo
+    if (slots.cliente.preenchido && slots.cliente.valor.nome) {
+      linhas.push(`👤 Cliente: ${slots.cliente.valor.nome} ← CHAME PELO NOME`);
+    }
     linhas.push(`🎯 OBJETIVO: ${estado.goal?.descricao || 'Criar um agendamento'}`);
     linhas.push(`📊 PROGRESSO: ${progresso.preenchidos}/${progresso.total} (${progresso.percentual}%)`);
     linhas.push('');
@@ -369,10 +379,13 @@ Caso contrário, comece um NOVO atendimento normalmente.`;
     }
     
     linhas.push('');
+    linhas.push('━━━━━━━━━━━━━━━━━━━━━━━━');
     
     const prox = proximoSlot(estado);
     const proximoTexto = textoProximoPasso(prox, slots);
-    linhas.push(`🎯 PRÓXIMO PASSO: ${proximoTexto}`);
+    linhas.push(`⬇️ PRÓXIMO PASSO:`);
+    linhas.push(`${proximoTexto}`);
+    linhas.push('━━━━━━━━━━━━━━━━━━━━━━━━');
     
     return linhas.join('\n');
   }
@@ -381,23 +394,60 @@ Caso contrário, comece um NOVO atendimento normalmente.`;
 }
 
 /**
- * Retorna instrução clara do que fazer no próximo passo
+ * FLUXO COMPLETO E PERGUNTAS ALVO
+ * 
+ * Cada passo tem:
+ * - PERGUNTA ALVO: o texto EXATO que deve ser usado (pode adaptar)
+ * - REGRA: como se comportar
+ * - PRÓXIMO: o que fazer com a resposta
  */
 function textoProximoPasso(slot, slots) {
   const instrucoes = {
-    cliente: 'Cliente NÃO está cadastrado. Peça o NOME COMPLETO de forma simpática (ex: "Pra começar, qual seu nome completo?") e use cadastrarClientePrincipal(nome).',
-    
-    servico: 'IMPORTANTE: Se o cliente já mencionou tipo de serviço (ex: "quero corte", "quero barba"), JÁ LISTE direto os serviços relacionados sem perguntar "qual serviço?". Use buscarServicoPorNome com o termo. Se a palavra for genérica ou cliente não disse, use listarServicos. Apresente lista numerada e pergunte qual escolhe.',
-    
-    profissional: 'Liste profissionais (listarProfissionais) e pergunte com qual prefere. Forma natural: "Com qual barbeiro você prefere?". Use definirProfissional após escolha.',
-    
-    para_quem: 'Pergunte naturalmente: "É pra você mesmo ou outra pessoa?". Use definirParaQuem para registrar.',
-    
-    data: 'Pergunte data de forma simpática: "Pra qual dia? Hoje, amanhã ou outro dia?". Use definirData.',
-    
-    horario: 'Pergunte horário: "Tem preferência de horário?". Quando cliente disser, use definirHorario - ele valida disponibilidade. Se ocupado, sugere alternativas próximas.',
-    
-    completo: 'TODOS OS DADOS COLETADOS! Mostre resumo curto e simpático, peça confirmação. Após "sim", use finalizarAgendamento.',
+
+    cliente: `[PERGUNTA ALVO] "Pra começar, qual seu nome completo?"
+[REGRA] Cliente não está cadastrado. Seja simpático e peça o nome completo (nome + sobrenome).
+[PRÓXIMO] Após cliente responder, chame cadastrarClientePrincipal(nome).`,
+
+    servico: `[PERGUNTA ALVO] "O que você vai querer fazer hoje? Temos [lista de serviços]."
+[REGRA 1] Se cliente já disse o tipo (ex: "quero corte", "barba", "cabelo"), NÃO pergunte "qual serviço?".
+           Já filtre: Use buscarServicoPorNome com o termo que ele disse e mostre só os relacionados.
+[REGRA 2] Se cliente falou algo genérico ou não disse nada, use listarServicos e mostre TUDO.
+[FORMATO] Mostre numerado:
+  1. Corte Masculino - R$45 (30min)
+  2. Corte e Barba - R$90 (50min)
+[PRÓXIMO] Após cliente escolher (número ou nome), chame definirServico(valor).`,
+
+    profissional: `[PERGUNTA ALVO] "Com qual profissional você prefere?"
+[REGRA] Liste (listarProfissionais) numerado com especialidade:
+  1. Carlos - Cortes clássicos
+  2. Pedro - Degradê e barba
+[PRÓXIMO] Após escolha, chame definirProfissional(valor).`,
+
+    para_quem: `[PERGUNTA ALVO] "É pra você mesmo ou para outra pessoa?"
+[REGRA] Aguarde a resposta do cliente.
+[PRÓXIMO] Se for pra ele: definirParaQuem("proprio_cliente")
+          Se for pra outro: definirParaQuem("terceiro", nome_da_pessoa)`,
+
+    data: `[PERGUNTA ALVO] "Pra qual dia você gostaria de agendar?"
+[REGRA] Aceite respostas naturais: "hoje", "amanhã", "sexta", "dia 15".
+[PRÓXIMO] Após resposta, chame definirData(data).
+          Se não entender: "Não consegui entender a data. Pode falar de outro jeito? Ex: amanhã, sexta, 15/06"`,
+
+    horario: `[PERGUNTA ALVO] "Qual horário fica melhor pra você?"
+[REGRA] Se tiver horários livres, já liste: "Tenho disponível: 9h, 9h30, 10h, 14h..."
+        Se cliente pedir horário ocupado, o sistema já sugere alternativos automaticamente.
+[PRÓXIMO] Após resposta, chame definirHorario(horario).`,
+
+    completo: `[CHECKLIST COMPLETO] Todos os dados coletados!
+[PERGUNTA ALVO] Mostre o resumo e pergunte:
+"Tudo certo? Posso confirmar?"
+[FORMATO]
+  Corte Masculino - R$45
+  Com Carlos
+  Amanhã às 14h
+  Confirma?
+[PRÓXIMO] Se cliente disser "sim" → finalizarAgendamento()
+          Se cliente disser "não" → pergunte o que quer mudar e use a tool "definir*" correspondente.`,
   };
   
   return instrucoes[slot] || 'Continue o fluxo normalmente.';

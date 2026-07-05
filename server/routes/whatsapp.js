@@ -17,6 +17,7 @@ import {
   desconectarInstancia,
   deletarInstancia,
   enviarMensagemEvolution,
+  enviarDigitandoEvolution,
 } from '../services/evolution-provider.js';
 import { processarMensagem, getConversa, salvarConversa } from '../services/ai.js';
 import { enfileirar } from '../services/message-queue.js';
@@ -129,10 +130,13 @@ async function processarWebhookEvolution(barbeariaId, telefone, remoteJid, texto
       }
     } catch {}
 
+    // Mostra "digitando..." enquanto processa
+    enviarDigitandoEvolution(barbeariaId, telefone).catch(() => {});
+
     const { processarMensagem } = await import('../services/ai.js');
     const { resposta } = await processarMensagem(
       barbeariaId, barbeariaNome, mensagemParaProcessar, historico,
-      wc[0]?.ai_prompt || null, remoteJid
+      wc[0]?.ai_prompt || null, remoteJid, null, 'image/jpeg', pushName
     );
 
     if (resposta) {

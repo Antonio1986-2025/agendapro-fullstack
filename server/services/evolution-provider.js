@@ -547,6 +547,38 @@ export async function baixarMediaEvolution(barbeariaId, message) {
 }
 
 /**
+ * Envia indicador de digitação ("digitando...") via Evolution API
+ * Presence: "composing" (digitando), "recording" (gravando áudio), "paused" (parou)
+ */
+export async function enviarDigitandoEvolution(barbeariaId, telefone) {
+  const { rows } = await query(
+    `SELECT evolution_instance_name, evolution_api_key 
+       FROM whatsapp_config WHERE barbearia_id = $1`,
+    [barbeariaId]
+  );
+  
+  if (!rows[0]?.evolution_instance_name) {
+    console.log(`⌨️ [Digitando] Instância não configurada para ${barbeariaId}`);
+    return;
+  }
+  
+  const { evolution_instance_name: instanceName, evolution_api_key: instanceApiKey } = rows[0];
+  const apiKey = instanceApiKey || EVOLUTION_API_KEY;
+  const numero = telefone.replace(/\D/g, '').replace(/^@.*/, '');
+  
+  try {
+    const client = getClient(apiKey);
+    console.log(`⌨️ [Digitando] Enviando presence para ${numero} na instância ${instanceName}...`);
+    await client.post(`/chat/sendPresence/${instanceName}`, {
+      number: numero,
+      presence: 'composing',
+    });
+  } catch (err) {
+    console.error(`⌨️ [Digitando] Falha ao enviar presence:`, err.response?.data || err.message);
+  }
+}
+
+/**
  * Testa conexão com Evolution API
  */
 export async function testarEvolutionAPI() {
