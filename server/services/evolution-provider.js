@@ -102,7 +102,29 @@ export async function criarInstancia(barbeariaId) {
 }
 
 /**
- * Recupera dados de uma instância existente
+ * Atualiza o webhook de uma instância existente para o SISTEMA_URL atual
+ */
+async function atualizarWebhook(barbeariaId, instanceName) {
+  const webhookUrl = `${SISTEMA_URL}/api/whatsapp/webhook/evolution/${barbeariaId}`;
+  try {
+    const client = getClient();
+    await client.post(`/webhook/set/${instanceName}`, {
+      webhook: {
+        url: webhookUrl,
+        enabled: true,
+        webhookByEvents: false,
+        webhookBase64: true,
+        events: ['MESSAGES_UPSERT', 'CONNECTION_UPDATE', 'QRCODE_UPDATED'],
+      },
+    });
+    console.log(`   Webhook atualizado: ${webhookUrl}`);
+  } catch (err) {
+    console.warn(`   ⚠️  Falha ao atualizar webhook: ${err.message}`);
+  }
+}
+
+/**
+ * Recupera dados de uma instância existente e atualiza o webhook
  */
 export async function recuperarInstancia(barbeariaId) {
   const instanceName = getInstanceName(barbeariaId);
@@ -118,6 +140,9 @@ export async function recuperarInstancia(barbeariaId) {
     if (!instance) {
       throw new Error('Instância não encontrada');
     }
+    
+    // Atualiza webhook para o SISTEMA_URL atual
+    await atualizarWebhook(barbeariaId, instanceName);
     
     return {
       instanceName,
