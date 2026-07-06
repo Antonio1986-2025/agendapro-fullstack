@@ -2397,7 +2397,7 @@ export async function processarMensagem(barbeariaId, barbeariaNome, mensagemClie
     while (iteracao < MAX_ITERACOES) {
       iteracao++;
       
-      const MODEL_NAME = process.env.OPENAI_MODEL || 'gpt-4o';
+      const MODEL_NAME = process.env.OPENAI_MODEL || 'gpt-4o-mini';
       
       // Monta messages completas: base + interações anteriores das tools
       let messages = [
@@ -2508,7 +2508,7 @@ export async function processarMensagem(barbeariaId, barbeariaNome, mensagemClie
     console.warn('⚠️  Limite de iterações atingido, forçando resposta final');
     
     const respostaFinal = await ai.chat.completions.create({
-      model: process.env.OPENAI_MODEL || 'gpt-4o',
+      model: process.env.OPENAI_MODEL || 'gpt-4o-mini',
       messages: [
         ...baseMessages,
         ...toolInteractionMessages,
