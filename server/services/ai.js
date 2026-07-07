@@ -2149,6 +2149,29 @@ Quando um tool retornar um campo "formatado", use EXATAMENTE aquele texto na sua
 Não reescreva, não resuma, não embeleze. Apenas insira no meio da sua mensagem.
 Isso garante que a formatação fique bonita e padronizada.
 
+🚫 REGRA #5 — FOCO NO OBJETIVO PRINCIPAL (NUNCA PERDER O FOCO)
+Seu TRABALHO é ajudar clientes a gerenciar horários na barbearia. PONTO FINAL.
+
+Se o cliente fizer uma pergunta FORA do escopo (ex: "que horas são?", "qual a capital do Brasil?", "quem ganhou o jogo?"):
+1. Responda de forma RÁPIDA e SIMPLES (1 frase no máximo)
+2. IMEDIATAMENTE VOLTE ao objetivo principal:
+   "Fora isso, como posso ajudar na barbearia? Quer agendar um horário?"
+
+Se o cliente responder algo ALEATÓRIO durante o fluxo de agendamento:
+1. Anote a pergunta aleatória se necessário, responda em 1 frase
+2. VOLTE IMEDIATAMENTE para o SLOT PENDENTE que estava sendo preenchido
+   "Sobre sua pergunta: [resposta rápida]. Voltando aqui, você ia me dizer [próximo passo pendente]..."
+
+🚫 REGRA #6 — NUNCA PERGUNTE O QUE JÁ FOI RESPONDIDO
+Se o cliente já disse o nome, JÁ chame cadastrarClientePrincipal.
+Se o cliente já disse o serviço, JÁ chame definirServico.
+NUNCA finja que não ouviu. NUNCA repita a mesma pergunta.
+
+🚫 REGRA #7 — FIM DA CONVERSA = PERGUNTE SE PRECISA DE + ALGO
+Depois de finalizar agendamento, cancelar, ou resolver um pedido,
+SEMPRE pergunte "Precisa de mais alguma coisa?" antes de encerrar.
+Não dê ghosting no cliente.
+
 ━━━━━━━━━━━━━━━━━━━━━━━━
 🎯 SAUDAÇÃO PERSONALIZADA
 ━━━━━━━━━━━━━━━━━━━━━━━━
@@ -2530,7 +2553,61 @@ export async function processarMensagem(barbeariaId, barbeariaNome, mensagemClie
         ctx.toolSignatures.push(sig);
       }
       
-      // Acumula: resposta do assistant + resultados das tools
+      // ===== PROTEÇÃO ANTI-PERDA DE CONTEXTO =====
+      // Detecta se a IA está perdendo tempo com tools de consulta sem avançar o checklist
+      if (!ctx.ferramentaModificadoraChamada) ctx.ferramentaModificadoraChamada = false;
+      if (!ctx.iteracoesSemProgresso) ctx.iteracoesSemProgresso = 0;
+      
+      const STATE_TOOLS = [
+        'iniciarAgendamento', 'cadastrarClientePrincipal', 'definirServico',
+        'definirProfissional', 'definirParaQuem', 'definirData',
+        'definirHorario', 'finalizarAgendamento', 'cancelarFluxoAtual',
+        'cancelarAgendamentoExistente', 'reagendarAgendamento',
+        'registrarSolicitacaoEspecial', 'responderCliente',
+      ];
+      
+      const chamouStateTool = toolResults.some(tr => STATE_TOOLS.includes(tr.name));
+      const chamouResponder = toolResults.some(tr => tr.name === 'responderCliente');
+      
+      if (chamouStateTool && !chamouResponder) {
+        // Avançou o estado (chamou definir*, finalizar*, etc) — progresso real
+        ctx.ferramentaModificadoraChamada = true;
+        ctx.iteracoesSemProgresso = 0;
+      } else if (!chamouStateTool && iteracao >= 2) {
+        // Só chamou consultas (listar*, consultar*) sem modificar estado
+        ctx.iteracoesSemProgresso++;
+        
+        if (ctx.iteracoesSemProgresso >= 2 && !chamouResponder) {
+          console.warn(`⚠️ Re-rail: ${ctx.iteracoesSemProgresso} iterações só com consultas. Injetando redirecionamento.`);
+          
+          // Injeta mensagem do sistema para reorientar a IA
+          const estadoAtual = ws.formatarEstadoParaPrompt(ctx.estado);
+          toolInteractionMessages.push({
+            role: 'system',
+            content: `⚠️ RE-RAIL: Você está perdendo tempo com consultas sem avançar o agendamento.
+📋 CHECKLIST ATUAL:
+${estadoAtual}
+🎯 OBJETIVO: Preencha os slots pendentes (❌) ou finalize se completo.
+❌ Não consulte mais informações a menos que ESSENCIAL.
+✅ Chame a tool certa para o próximo slot pendente AGORA.`,
+          });
+          ctx.iteracoesSemProgresso = 0;
+        }
+      }
+
+      // Detecta ferramenta chamada mas erro bloqueou — força re-rail na próxima
+      const algumaToolComErro = toolResults.some(tr => tr.resultado?.erro);
+      if (algumaToolComErro && iteracao >= 2) {
+        console.warn('⚠️ Re-rail: tool retornou erro, reorientando IA.');
+        const estadoAtual = ws.formatarEstadoParaPrompt(ctx.estado);
+        // Injeta mensagem do sistema para corrigir o rumo
+        toolInteractionMessages.push({
+          role: 'system',
+          content: `⚠️ CORREÇÃO DE ROTA: Uma tool retornou erro. Revise o 📋 checklist e o erro acima.
+🎯 OBJETIVO: Preencha os slots pendentes (❌) ou peça ao cliente o que está faltando.
+✅ Chame a tool certa com os parâmetros CORRETOS.`,
+        });
+      }
       toolInteractionMessages.push(
         msg,
         ...toolResults.map(tr => ({
@@ -2578,7 +2655,10 @@ export async function processarMensagem(barbeariaId, barbeariaNome, mensagemClie
         ...toolInteractionMessages,
         { 
           role: 'system', 
-          content: 'IMPORTANTE: Não chame mais tools. Responda ao cliente diretamente baseado no que já foi coletado. Se faltarem dados, peça ao cliente.' 
+          content: `Você atingiu o limite de chamadas de ferramenta.
+NÃO chame mais ferramentas. Responda DIRETAMENTE ao cliente em texto natural.
+Se ainda faltarem dados, PEÇA educadamente. Se estiver tudo ok, CONFIRME.
+🎯 Foco: complete o que falta ou confirme o que já tem.` 
         },
       ],
       tools: [],
