@@ -2,92 +2,103 @@
 <html lang="pt-BR">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
   <title>AgendaPro - Sistema de Agendamentos para Barbearias</title>
   <meta name="description" content="Sistema completo de agendamentos, comandas e gestão financeira para barbearias. Experimente grátis!">
   <link rel="stylesheet" href="design-system.css?v=20260623">
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
   <style>
     * { margin: 0; padding: 0; box-sizing: border-box; }
-    body { font-family: 'Segoe UI', system-ui, -apple-system, sans-serif; background: #fff; color: #1a1a2e; overflow-x: hidden; }
+    body { font-family: var(--font-family); background: var(--bg-primary); color: var(--text-primary); overflow-x: hidden; }
     .container { max-width: 1100px; margin: 0 auto; padding: 0 24px; }
     a { text-decoration: none; color: inherit; }
 
     /* HEADER */
-    .header { position: fixed; top: 0; left: 0; right: 0; z-index: 100; background: rgba(255,255,255,0.95); backdrop-filter: blur(10px); border-bottom: 1px solid #eee; }
+    .header { position: fixed; top: 0; left: 0; right: 0; z-index: 100; background: rgba(255,255,255,0.95); backdrop-filter: blur(10px); border-bottom: 1px solid var(--border-color); }
+    [data-theme="dark"] .header { background: rgba(9,9,11,0.95); }
     .header .container { display: flex; align-items: center; justify-content: space-between; height: 70px; }
-    .logo { display: flex; align-items: center; gap: 10px; font-size: 1.3rem; font-weight: 800; color: #1a1a2e; }
-    .logo i { color: #6c5ce7; font-size: 1.5rem; }
+    .logo { display: flex; align-items: center; gap: 10px; font-size: 1.3rem; font-weight: var(--font-extrabold); color: var(--text-primary); }
+    .logo i { color: var(--primary-600); font-size: 1.5rem; }
     .header-actions { display: flex; align-items: center; gap: 16px; }
-    .header-actions a { font-size: 0.9rem; font-weight: 600; padding: 8px 20px; border-radius: 8px; transition: all 0.2s; }
-    .btn-outline { border: 2px solid #6c5ce7; color: #6c5ce7; }
-    .btn-outline:hover { background: #6c5ce7; color: #fff; }
-    .btn-primary-lp { background: #6c5ce7; color: #fff; }
-    .btn-primary-lp:hover { background: #5a4bd1; transform: translateY(-1px); }
-    .btn-secondary-lp { background: #f0f0ff; color: #6c5ce7; }
-    .btn-secondary-lp:hover { background: #e0e0ff; }
+    .header-actions a { font-size: 0.9rem; font-weight: var(--font-semibold); padding: 8px 20px; border-radius: var(--radius-md); transition: all var(--transition-fast); }
+    .btn-outline { border: 2px solid var(--primary-600); color: var(--primary-600); }
+    .btn-outline:hover { background: var(--primary-600); color: #fff; }
+    .btn-primary-lp { background: var(--primary-600); color: #fff; }
+    .btn-primary-lp:hover { background: var(--primary-700); transform: translateY(-1px); }
+    .btn-primary-lp:active { transform: translateY(0); }
+    .btn-secondary-lp { background: var(--primary-50); color: var(--primary-700); }
+    .btn-secondary-lp:hover { background: var(--primary-100); }
+    .btn-secondary-lp:active { background: var(--primary-200); }
 
     /* HERO */
-    .hero { padding: 140px 0 80px; text-align: center; background: linear-gradient(180deg, #f8f7ff 0%, #fff 100%); }
-    .hero-badge { display: inline-block; background: #f0f0ff; color: #6c5ce7; font-size: 0.8rem; font-weight: 700; padding: 6px 16px; border-radius: 50px; margin-bottom: 24px; }
-    .hero h1 { font-size: clamp(2.2rem, 5vw, 3.5rem); font-weight: 900; line-height: 1.15; margin-bottom: 20px; }
-    .hero h1 span { background: linear-gradient(135deg, #6c5ce7, #a29bfe); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
-    .hero p { font-size: 1.15rem; color: #666; max-width: 600px; margin: 0 auto 36px; line-height: 1.6; }
+    .hero { padding: 140px 0 80px; text-align: center; background: linear-gradient(180deg, var(--primary-50) 0%, var(--bg-primary) 100%); }
+    .hero-badge { display: inline-block; background: var(--primary-50); color: var(--primary-700); font-size: 0.8rem; font-weight: var(--font-bold); padding: 6px 16px; border-radius: 50px; margin-bottom: 24px; }
+    .hero h1 { font-size: clamp(2.2rem, 5vw, 3.5rem); font-weight: var(--font-extrabold); line-height: 1.15; margin-bottom: 20px; color: var(--text-primary); }
+    .hero h1 span { background: linear-gradient(135deg, var(--primary-600), var(--primary-400)); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
+    .hero p { font-size: 1.15rem; color: var(--text-secondary); max-width: 600px; margin: 0 auto 36px; line-height: 1.6; }
     .hero-buttons { display: flex; gap: 12px; justify-content: center; flex-wrap: wrap; }
-    .hero-buttons .btn { padding: 14px 32px; font-size: 1rem; font-weight: 700; border-radius: 10px; border: none; cursor: pointer; transition: all 0.2s; display: inline-flex; align-items: center; gap: 8px; }
-    .hero-image { margin-top: 60px; border-radius: 16px; box-shadow: 0 30px 80px rgba(108,92,231,0.15); max-width: 100%; border: 1px solid #eee; }
+    .hero-buttons .btn { padding: 14px 32px; font-size: 1rem; font-weight: var(--font-bold); border-radius: var(--radius-lg); border: none; cursor: pointer; transition: all var(--transition-fast); display: inline-flex; align-items: center; gap: 8px; }
+    .hero-image { margin-top: 60px; border-radius: var(--radius-xl); box-shadow: var(--shadow-2xl); max-width: 100%; border: 1px solid var(--border-color); }
 
     /* SEÇÕES */
     section { padding: 80px 0; }
-    .section-title { text-align: center; font-size: clamp(1.6rem, 3vw, 2.2rem); font-weight: 800; margin-bottom: 12px; }
-    .section-sub { text-align: center; color: #666; font-size: 1.05rem; max-width: 540px; margin: 0 auto 48px; }
+    .section-title { text-align: center; font-size: clamp(1.6rem, 3vw, 2.2rem); font-weight: var(--font-extrabold); margin-bottom: 12px; color: var(--text-primary); }
+    .section-sub { text-align: center; color: var(--text-secondary); font-size: 1.05rem; max-width: 540px; margin: 0 auto 48px; }
 
     /* RECURSOS */
     .features-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 24px; }
-    .feature-card { padding: 32px; border-radius: 16px; border: 1px solid #eee; transition: all 0.3s; }
-    .feature-card:hover { border-color: #6c5ce7; box-shadow: 0 8px 30px rgba(108,92,231,0.08); transform: translateY(-2px); }
-    .feature-icon { width: 52px; height: 52px; border-radius: 14px; display: flex; align-items: center; justify-content: center; font-size: 1.3rem; margin-bottom: 16px; }
-    .feature-card h3 { font-size: 1.05rem; font-weight: 700; margin-bottom: 8px; }
-    .feature-card p { font-size: 0.92rem; color: #666; line-height: 1.5; }
+    .feature-card { padding: 32px; border-radius: var(--radius-xl); border: 1px solid var(--border-color); transition: all var(--transition-normal); background: var(--bg-card); }
+    .feature-card:hover { border-color: var(--primary-300); box-shadow: var(--shadow-lg); transform: translateY(-2px); }
+    .feature-card:active { transform: translateY(0); }
+    .feature-icon { width: 52px; height: 52px; border-radius: var(--radius-lg); display: flex; align-items: center; justify-content: center; font-size: 1.3rem; margin-bottom: 16px; }
+    .feature-card h3 { font-size: 1.05rem; font-weight: var(--font-bold); margin-bottom: 8px; color: var(--text-primary); }
+    .feature-card p { font-size: 0.92rem; color: var(--text-secondary); line-height: 1.5; }
 
     /* COMO FUNCIONA */
     .steps { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 32px; counter-reset: step; }
     .step-card { text-align: center; padding: 32px 16px; }
-    .step-num { width: 48px; height: 48px; border-radius: 50%; background: #f0f0ff; color: #6c5ce7; font-size: 1.2rem; font-weight: 800; display: flex; align-items: center; justify-content: center; margin: 0 auto 16px; }
-    .step-card h3 { font-size: 1.05rem; font-weight: 700; margin-bottom: 8px; }
-    .step-card p { font-size: 0.9rem; color: #666; line-height: 1.5; }
+    .step-num { width: 48px; height: 48px; border-radius: 50%; background: var(--primary-50); color: var(--primary-700); font-size: 1.2rem; font-weight: var(--font-extrabold); display: flex; align-items: center; justify-content: center; margin: 0 auto 16px; }
+    .step-card h3 { font-size: 1.05rem; font-weight: var(--font-bold); margin-bottom: 8px; color: var(--text-primary); }
+    .step-card p { font-size: 0.9rem; color: var(--text-secondary); line-height: 1.5; }
 
     /* PREÇO */
-    .pricing-card { max-width: 400px; margin: 0 auto; border: 2px solid #eee; border-radius: 20px; padding: 40px; text-align: center; transition: all 0.3s; }
-    .pricing-card:hover { border-color: #6c5ce7; box-shadow: 0 12px 40px rgba(108,92,231,0.1); }
-    .pricing-card.featured { border-color: #6c5ce7; position: relative; }
-    .pricing-badge { position: absolute; top: -14px; left: 50%; transform: translateX(-50%); background: #6c5ce7; color: #fff; padding: 6px 20px; border-radius: 50px; font-size: 0.8rem; font-weight: 700; }
-    .price { font-size: 3rem; font-weight: 900; color: #1a1a2e; margin: 16px 0; }
-    .price span { font-size: 1rem; font-weight: 400; color: #999; }
+    .pricing-card { max-width: 400px; margin: 0 auto; border: 2px solid var(--border-color); border-radius: var(--radius-2xl); padding: 40px; text-align: center; transition: all var(--transition-normal); background: var(--bg-card); }
+    .pricing-card:hover { border-color: var(--primary-300); box-shadow: var(--shadow-xl); }
+    .pricing-card.featured { border-color: var(--primary-500); position: relative; }
+    .pricing-badge { position: absolute; top: -14px; left: 50%; transform: translateX(-50%); background: linear-gradient(135deg, var(--primary-600), var(--primary-500)); color: #fff; padding: 6px 20px; border-radius: 50px; font-size: 0.8rem; font-weight: var(--font-bold); }
+    .price { font-size: 3rem; font-weight: var(--font-extrabold); color: var(--text-primary); margin: 16px 0; }
+    .price span { font-size: 1rem; font-weight: var(--font-normal); color: var(--text-tertiary); }
     .pricing-card ul { list-style: none; text-align: left; margin: 24px 0; }
-    .pricing-card li { padding: 8px 0; font-size: 0.92rem; color: #444; display: flex; align-items: center; gap: 10px; }
-    .pricing-card li i { color: #6c5ce7; width: 18px; }
-    .pricing-card .btn { width: 100%; padding: 14px; font-size: 1rem; font-weight: 700; border-radius: 10px; border: none; cursor: pointer; transition: all 0.2s; }
+    .pricing-card li { padding: 8px 0; font-size: 0.92rem; color: var(--text-primary); display: flex; align-items: center; gap: 10px; }
+    .pricing-card li i { color: var(--success); width: 18px; }
+    .pricing-card .btn { width: 100%; padding: 14px; font-size: 1rem; font-weight: var(--font-bold); border-radius: var(--radius-lg); border: none; cursor: pointer; transition: all var(--transition-fast); }
 
     /* FAQ */
     .faq-list { max-width: 700px; margin: 0 auto; }
-    .faq-item { border-bottom: 1px solid #eee; }
-    .faq-question { width: 100%; padding: 18px 0; display: flex; justify-content: space-between; align-items: center; background: none; border: none; font-size: 1rem; font-weight: 600; cursor: pointer; text-align: left; color: #1a1a2e; }
-    .faq-question i { transition: transform 0.3s; color: #999; }
+    .faq-item { border-bottom: 1px solid var(--border-color); }
+    .faq-question { width: 100%; padding: 18px 0; display: flex; justify-content: space-between; align-items: center; background: none; border: none; font-size: 1rem; font-weight: var(--font-semibold); cursor: pointer; text-align: left; color: var(--text-primary); }
+    .faq-question i { transition: transform var(--transition-fast); color: var(--text-muted); }
     .faq-item.open .faq-question i { transform: rotate(180deg); }
-    .faq-answer { padding: 0 0 18px; font-size: 0.92rem; color: #666; line-height: 1.6; display: none; }
-    .faq-item.open .faq-answer { display: block; }
+    .faq-answer { padding: 0 0 18px; font-size: 0.92rem; color: var(--text-secondary); line-height: 1.6; display: none; }
+    .faq-item.open .faq-answer { display: block; animation: slideDown 0.2s ease-out; }
 
     /* CTA FINAL */
-    .cta { text-align: center; background: linear-gradient(135deg, #6c5ce7, #a29bfe); color: #fff; }
-    .cta h2 { font-size: clamp(1.6rem, 3vw, 2.2rem); font-weight: 800; }
+    .cta { text-align: center; background: linear-gradient(135deg, var(--primary-700), var(--primary-500)); color: #fff; }
+    .cta h2 { font-size: clamp(1.6rem, 3vw, 2.2rem); font-weight: var(--font-extrabold); }
     .cta p { opacity: 0.9; max-width: 500px; margin: 12px auto 32px; font-size: 1.05rem; }
-    .cta .btn-white { background: #fff; color: #6c5ce7; padding: 14px 36px; font-size: 1rem; font-weight: 700; border-radius: 10px; border: none; cursor: pointer; transition: all 0.2s; }
+    .cta .btn-white { background: #fff; color: var(--primary-700); padding: 14px 36px; font-size: 1rem; font-weight: var(--font-bold); border-radius: var(--radius-lg); border: none; cursor: pointer; transition: all var(--transition-fast); }
     .cta .btn-white:hover { transform: translateY(-2px); box-shadow: 0 8px 24px rgba(0,0,0,0.15); }
+    .cta .btn-white:active { transform: translateY(0); }
 
     /* FOOTER */
-    .footer { padding: 40px 0; border-top: 1px solid #eee; text-align: center; font-size: 0.85rem; color: #999; }
-    .footer a { color: #6c5ce7; font-weight: 600; }
+    .footer { padding: 40px 0; border-top: 1px solid var(--border-color); text-align: center; font-size: 0.85rem; color: var(--text-tertiary); background: var(--bg-secondary); }
+    .footer a { color: var(--primary-600); font-weight: var(--font-semibold); }
+
+    /* ANIMAÇÕES GLOBAIS */
+    @keyframes slideUp { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
+    @keyframes slideDown { from { opacity: 0; transform: translateY(-10px); } to { opacity: 1; transform: translateY(0); } }
+    @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+    .hero, section:not(.cta) { animation: slideUp 0.6s cubic-bezier(0.4, 0, 0.2, 1); }
 
     @media (max-width: 768px) {
       .hero { padding: 110px 0 50px; }
@@ -96,6 +107,11 @@
       .steps { grid-template-columns: 1fr; gap: 16px; }
       .header-actions a:first-child { display: none; }
     }
+
+    @supports (padding: env(safe-area-inset-top)) {
+      .header { padding-top: env(safe-area-inset-top); }
+      .hero { padding-top: calc(110px + env(safe-area-inset-top)); }
+    }
   </style>
 </head>
 <body>
@@ -103,7 +119,7 @@
     <div class="container">
       <a href="/" class="logo"><i class="fas fa-calendar-check"></i> AgendaPro</a>
       <div class="header-actions">
-        <a href="login.html">Entrar</a>
+        <a href="login.html" class="btn-outline">Entrar</a>
         <a href="login.html" class="btn-primary-lp" onclick="event.preventDefault(); localStorage.setItem('tab','registro'); location.href='login.html';">Começar grátis</a>
       </div>
     </div>
@@ -119,8 +135,8 @@
         <a href="login.html" class="btn btn-primary-lp" onclick="event.preventDefault(); localStorage.setItem('tab','registro'); location.href='login.html';"><i class="fas fa-rocket"></i> Começar grátis</a>
         <a href="#recursos" class="btn btn-secondary-lp"><i class="fas fa-play-circle"></i> Ver recursos</a>
       </div>
-      <img src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='800' height='450' viewBox='0 0 800 450'%3E%3Crect width='800' height='450' fill='%23f0f0ff' rx='12'/%3E%3Ctext x='400' y='220' text-anchor='middle' fill='%236c5ce7' font-family='system-ui' font-size='22' font-weight='600'%3E📱 Preview do Sistema%3C/text%3E%3Ctext x='400' y='260' text-anchor='middle' fill='%23999' font-family='system-ui' font-size='14'%3EAgenda, Comandas e Gestão Financeira%3C/text%3E%3C/svg%3E"
-           alt="Preview do AgendaPro" class="hero-image" loading="lazy">
+      <img src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='800' height='450' viewBox='0 0 800 450'%3E%3Crect width='800' height='450' fill='%23dbeafe' rx='12'/%3E%3Ctext x='400' y='220' text-anchor='middle' fill='%232563eb' font-family='system-ui' font-size='22' font-weight='600'%3E📱 Preview do Sistema%3C/text%3E%3Ctext x='400' y='260' text-anchor='middle' fill='%23666' font-family='system-ui' font-size='14'%3EAgenda, Comandas e Gestão Financeira%3C/text%3E%3C/svg%3E"
+           alt="Preview do AgendaPro" class="hero-image" loading="lazy" style="animation: slideUp 0.8s 0.2s both;">
     </div>
   </section>
 
@@ -131,32 +147,32 @@
       <p class="section-sub">Um sistema completo que substitui planilhas, cadernos e apps avulsos</p>
       <div class="features-grid">
         <div class="feature-card">
-          <div class="feature-icon" style="background:#f0f0ff;color:#6c5ce7;"><i class="fas fa-calendar-alt"></i></div>
+          <div class="feature-icon" style="background:var(--primary-50);color:var(--primary-700);"><i class="fas fa-calendar-alt"></i></div>
           <h3>Agenda Online</h3>
           <p>Agendamentos por profissional com grade visual de horários. Clientes marcam pelo celular.</p>
         </div>
         <div class="feature-card">
-          <div class="feature-icon" style="background:#fff0f0;color:#e74c3c;"><i class="fas fa-receipt"></i></div>
+          <div class="feature-icon" style="background:var(--error-light);color:var(--error);"><i class="fas fa-receipt"></i></div>
           <h3>Comandas</h3>
           <p>Controle tudo que cada cliente consumiu. Adicione serviços e produtos com um clique.</p>
         </div>
         <div class="feature-card">
-          <div class="feature-icon" style="background:#f0fff4;color:#27ae60;"><i class="fas fa-cash-register"></i></div>
+          <div class="feature-icon" style="background:var(--success-light);color:var(--success);"><i class="fas fa-cash-register"></i></div>
           <h3>Caixa</h3>
           <p>Abra e feche o caixa do dia. Todas as entradas e saídas registradas automaticamente.</p>
         </div>
         <div class="feature-card">
-          <div class="feature-icon" style="background:#fffdf0;color:#f39c12;"><i class="fas fa-boxes"></i></div>
+          <div class="feature-icon" style="background:var(--warning-light);color:var(--warning);"><i class="fas fa-boxes"></i></div>
           <h3>Estoque</h3>
           <p>Controle de produtos com alerta de estoque baixo. Saída automática ao vender.</p>
         </div>
         <div class="feature-card">
-          <div class="feature-icon" style="background:#f0f5ff;color:#3498db;"><i class="fas fa-chart-line"></i></div>
+          <div class="feature-icon" style="background:var(--info-light);color:var(--info);"><i class="fas fa-chart-line"></i></div>
           <h3>Relatórios</h3>
           <p>Veja o faturamento, ticket médio, formas de pagamento e muito mais em tempo real.</p>
         </div>
         <div class="feature-card">
-          <div class="feature-icon" style="background:#f5f0ff;color:#8e44ad;"><i class="fas fa-users"></i></div>
+          <div class="feature-icon" style="background:#f0f0ff;color:#8e44ad;"><i class="fas fa-users"></i></div>
           <h3>Clientes</h3>
           <p>Cadastro completo com histórico de atendimentos e agendamentos anteriores.</p>
         </div>
@@ -165,7 +181,7 @@
   </section>
 
   <!-- COMO FUNCIONA -->
-  <section style="background:#f8f7ff;">
+  <section style="background:var(--bg-secondary);">
     <div class="container">
       <h2 class="section-title">Comece em 3 passos</h2>
       <p class="section-sub">Em menos de 5 minutos sua barbearia já está no ar</p>
@@ -196,9 +212,9 @@
       <p class="section-sub">Sem planos confusos. Uma assinatura, tudo incluso.</p>
       <div class="pricing-card featured">
         <div class="pricing-badge">Mais popular</div>
-        <h3 style="font-size:1.1rem;color:#666;font-weight:600;">AgendaPro Completo</h3>
+        <h3 style="font-size:1.1rem;color:var(--text-secondary);font-weight:var(--font-semibold);">AgendaPro Completo</h3>
         <div class="price">R$ 47 <span>/mês</span></div>
-        <p style="color:#999;font-size:0.9rem;">1 barbearia, usuários ilimitados</p>
+        <p style="color:var(--text-tertiary);font-size:0.9rem;">1 barbearia, usuários ilimitados</p>
         <ul>
           <li><i class="fas fa-check"></i> Agenda online</li>
           <li><i class="fas fa-check"></i> Comandas digitais</li>
@@ -209,13 +225,13 @@
           <li><i class="fas fa-check"></i> Suporte via WhatsApp</li>
         </ul>
         <a href="login.html" class="btn btn-primary-lp" onclick="event.preventDefault(); localStorage.setItem('tab','registro'); location.href='login.html';">Começar grátis</a>
-        <p style="font-size:0.8rem;color:#999;margin-top:12px;">7 dias grátis. Cancele quando quiser.</p>
+        <p style="font-size:0.8rem;color:var(--text-tertiary);margin-top:12px;">7 dias grátis. Cancele quando quiser.</p>
       </div>
     </div>
   </section>
 
   <!-- FAQ -->
-  <section style="background:#f8f7ff;">
+  <section style="background:var(--bg-secondary);">
     <div class="container">
       <h2 class="section-title">Dúvidas frequentes</h2>
       <p class="section-sub">Tire suas dúvidas sobre o AgendaPro</p>
@@ -256,21 +272,10 @@
   </footer>
 
   <script>
-    // Se já logado, vai pro dashboard
     if (localStorage.getItem('agendapro_token')) window.location.href = 'dashboard-mobile.html';
-
-    // FAQ toggle
-    function toggleFaq(el) {
-      el.closest('.faq-item').classList.toggle('open');
-    }
-
-    // Scroll suave
+    function toggleFaq(el) { el.closest('.faq-item').classList.toggle('open'); }
     document.querySelectorAll('a[href^="#"]').forEach(a => {
-      a.addEventListener('click', e => {
-        e.preventDefault();
-        const el = document.querySelector(a.getAttribute('href'));
-        if (el) el.scrollIntoView({ behavior: 'smooth' });
-      });
+      a.addEventListener('click', e => { e.preventDefault(); const el = document.querySelector(a.getAttribute('href')); if (el) el.scrollIntoView({ behavior: 'smooth' }); });
     });
   </script>
 </body>
