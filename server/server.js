@@ -2,6 +2,7 @@ import 'express-async-errors';
 import express from 'express';
 import cors from 'cors';
 import helmet from 'helmet';
+import rateLimit from 'express-rate-limit';
 import path from 'path';
 import { fileURLToPath } from 'url';
 import dotenv from 'dotenv';
@@ -47,6 +48,28 @@ app.use(
 );
 app.use(cors());
 app.use(express.json({ limit: '1mb' }));
+
+// ─── RATE LIMITING ───
+// Global: 200 req/min por IP (API geral)
+const apiLimiter = rateLimit({
+  windowMs: 60 * 1000,
+  max: 200,
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: { erro: 'Muitas requisições. Tente novamente em instantes.' },
+});
+
+// Webhook: 30 req/min por IP (Evolution/Baileys pode floodar)
+const webhookLimiter = rateLimit({
+  windowMs: 60 * 1000,
+  max: 30,
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: { erro: 'Muitas requisições no webhook. Tente novamente em instantes.' },
+});
+
+app.use('/api', apiLimiter);
+app.use('/api/whatsapp/webhook', webhookLimiter);
 
 // ---------- HEALTH ----------
 app.get('/api/health', async (req, res) => {

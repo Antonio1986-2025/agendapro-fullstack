@@ -33,6 +33,16 @@ router.post('/webhook/evolution/:barbeariaId', async (req, res) => {
 
   try {
     const { barbeariaId } = req.params;
+
+    // Valida se barbearia existe e tem Evolution configurado
+    const { rows: configs } = await query(
+      `SELECT 1 FROM whatsapp_config WHERE barbearia_id = $1 AND provider = 'evolution' AND enabled = true`,
+      [barbeariaId]
+    );
+    if (!configs.length) {
+      console.warn(`[whatsapp] Webhook ignorado: barbearia ${barbeariaId} sem Evolution ativo`);
+      return;
+    }
     const payload = req.body;
 
     if (payload.event !== 'messages.upsert') return;
@@ -128,7 +138,9 @@ async function processarWebhookEvolution(barbeariaId, telefone, remoteJid, texto
           m.role === 'user' || (m.role === 'assistant' && !m.tool_calls)
         );
       }
-    } catch {}
+    } catch (err) {
+      console.warn(`[whatsapp/ai] Erro ao carregar histórico da conversa: ${err?.message}`);
+    }
 
     // Mostra "digitando..." enquanto processa
     enviarDigitandoEvolution(barbeariaId, telefone).catch(() => {});
@@ -187,14 +199,18 @@ router.get('/config', async (req, res) => {
       cfg.session_status = stat.status;
       if (stat.telefone) cfg.telefone = stat.telefone;
       if (stat.qrCode) cfg.qr_code = stat.qrCode;
-    } catch {}
+    } catch (err) {
+      console.warn(`[whatsapp/config] Erro ao buscar status da instância: ${err?.message}`);
+    }
 
     try {
       await query(
         `UPDATE whatsapp_config SET session_status = $1 WHERE barbearia_id = $2`,
         [cfg.session_status, req.barbeariaId]
       );
-    } catch {}
+    } catch (err) {
+      console.warn(`[whatsapp/config] Erro ao atualizar session_status: ${err?.message}`);
+    }
 
     res.json(cfg);
   } catch (e) {
@@ -322,7 +338,9 @@ router.get('/status', async (req, res) => {
         `UPDATE whatsapp_config SET session_status = $1 WHERE barbearia_id = $2`,
         [stat.status, req.barbeariaId]
       );
-    } catch {}
+    } catch (err) {
+      console.warn(`[whatsapp/status] Erro ao persistir status: ${err?.message}`);
+    }
     res.json({ status: stat.status, telefone: stat.telefone, provider });
   } catch (err) {
     res.status(500).json({ erro: err.message });
@@ -376,7 +394,9 @@ router.get('/diagnostico', async (req, res) => {
     try {
       const { getStatusScheduler } = await import('../services/scheduler.js');
       schedulerStatus = getStatusScheduler();
-    } catch {}
+    } catch (err) {
+      console.warn(`[whatsapp/diagnostico] Erro ao obter status do scheduler: ${err?.message}`);
+    }
 
     res.json({
       barbearia_id: req.barbeariaId,

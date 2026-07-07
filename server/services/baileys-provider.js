@@ -136,7 +136,9 @@ export async function conectarBaileys(barbeariaId) {
       try {
         const qrBase64 = await QRCode.toDataURL(qr, { width: 300, margin: 2 });
         connectionState.qrCodeBase64 = qrBase64;
-      } catch {}
+      } catch (err) {
+        console.warn(`[baileys] Erro ao gerar QR Code base64: ${err?.message}`);
+      }
 
       await query(
         `UPDATE whatsapp_config SET session_status = 'connecting', qr_code = $1, updated_at = now() WHERE barbearia_id = $2`,
@@ -268,7 +270,9 @@ export async function conectarBaileys(barbeariaId) {
       if (conv[0]?.historico) {
         historico = typeof conv[0].historico === 'string' ? JSON.parse(conv[0].historico) : conv[0].historico;
       }
-    } catch {}
+    } catch (err) {
+      console.warn(`[baileys] Erro ao carregar histórico AI: ${err?.message}`);
+    }
 
     const { processarMensagem } = await import('./ai.js');
     const { resposta } = await processarMensagem(
@@ -329,7 +333,9 @@ export async function desconectarBaileys(barbeariaId) {
     try {
       conn.socket?.end(undefined);
       conn.socket?.ws?.close();
-    } catch {}
+    } catch (err) {
+      console.warn(`[baileys] Erro ao fechar socket: ${err?.message}`);
+    }
     connections.delete(barbeariaId);
   }
 

@@ -1,6 +1,15 @@
 import jwt from 'jsonwebtoken';
+import crypto from 'crypto';
 
-const JWT_SECRET = process.env.JWT_SECRET || 'troque-este-segredo-em-producao';
+// Se JWT_SECRET não estiver definido, gera uma chave aleatória forte a cada restart
+// AVISO: tokens emitidos com chave anterior serão invalidados!
+const JWT_SECRET = process.env.JWT_SECRET || (() => {
+  const fallback = crypto.randomBytes(32).toString('hex');
+  console.warn('⚠️  ATENÇÃO: JWT_SECRET não configurado!');
+  console.warn('⚠️  Use uma chave fixa no Railway para manter sessões entre deploys.');
+  console.warn(`⚠️  Chave temporária gerada: ${fallback.substring(0, 8)}...`);
+  return fallback;
+})();
 const JWT_EXPIRATION = process.env.JWT_EXPIRATION || '7d';
 
 export function gerarToken(usuario) {
@@ -13,6 +22,21 @@ export function gerarToken(usuario) {
     },
     JWT_SECRET,
     { expiresIn: JWT_EXPIRATION }
+  );
+}
+
+// Gera token de curta duração para refresh (15 min)
+export function gerarTokenCurto(usuario) {
+  return jwt.sign(
+    {
+      sub: usuario.id,
+      barbearia_id: usuario.barbearia_id,
+      role: usuario.role,
+      nome: usuario.nome,
+      tipo: 'refresh',
+    },
+    JWT_SECRET,
+    { expiresIn: '15m' }
   );
 }
 

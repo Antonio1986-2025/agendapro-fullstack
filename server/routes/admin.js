@@ -88,7 +88,7 @@ router.post('/reset-completo', async (req, res) => {
   // 1. Limpar tabelas do banco (na ordem correta de dependências)
   console.log(`\n🗄️  Limpando banco de dados...`);
   
-  const tabelas = [
+  const tabelasPermitidas = new Set([
     'ai_conversas',
     'whatsapp_mensagens',
     'whatsapp_config',
@@ -107,9 +107,9 @@ router.post('/reset-completo', async (req, res) => {
     'profissionais',
     'usuarios',
     'barbearias',
-  ];
-  
-  for (const tabela of tabelas) {
+  ]);
+
+  for (const tabela of tabelasPermitidas) {
     try {
       const { rowCount } = await query(`DELETE FROM ${tabela}`);
       resultado.tabelas_limpas[tabela] = rowCount;

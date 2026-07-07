@@ -86,7 +86,7 @@ export async function criarInstancia(barbeariaId) {
     
     return {
       instanceName,
-      apiKey: instanceApiKey,
+      apiKey: instanceApiKey || EVOLUTION_API_KEY,
       status: 'created',
     };
   } catch (err) {
@@ -146,7 +146,7 @@ export async function recuperarInstancia(barbeariaId) {
     
     return {
       instanceName,
-      apiKey: instance.token || EVOLUTION_API_KEY,
+      apiKey: instanceApiKey || EVOLUTION_API_KEY,
       status: instance.connectionStatus || 'unknown',
     };
   } catch (err) {
@@ -374,7 +374,9 @@ export async function getStatusInstancia(barbeariaId) {
          WHERE barbearia_id = $2 AND session_status != $1`,
         [status, barbeariaId]
       );
-    } catch {}
+    } catch (err) {
+      console.warn(`[evolution] Erro ao atualizar session_status: ${err?.message}`);
+    }
     
     // Tenta pegar o número
     let telefone = null;
@@ -385,7 +387,9 @@ export async function getStatusInstancia(barbeariaId) {
           ? info.data.find(i => i.name === instanceName || i.instance?.instanceName === instanceName)
           : info.data;
         telefone = instance?.ownerJid?.split('@')[0] || instance?.number || null;
-      } catch {}
+      } catch (err) {
+        console.warn(`[evolution] Erro ao buscar info da instância: ${err?.message}`);
+      }
     }
     
     return { status, telefone, state };
@@ -453,7 +457,9 @@ export async function deletarInstancia(barbeariaId) {
     // Tenta logout primeiro
     try {
       await client.delete(`/instance/logout/${instanceName}`);
-    } catch {}
+    } catch (err) {
+      console.warn(`[evolution] Erro ao fazer logout (ignorado): ${err?.message}`);
+    }
     
     // Depois deleta
     await client.delete(`/instance/delete/${instanceName}`);

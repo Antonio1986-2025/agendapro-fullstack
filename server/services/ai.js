@@ -29,7 +29,7 @@ function getOpenAI() {
   const nomeProvedor = baseURL ? new URL(baseURL).hostname : 'OpenAI';
   
   try {
-    _openai = new OpenAI({ apiKey: key, baseURL, timeout: 30000, maxRetries: 2 });
+    _openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY, baseURL: baseURL, timeout: 30000, maxRetries: 2 });
     console.log(`✅ ${nomeProvedor} cliente inicializado`);
   } catch (err) {
     console.error(`❌ Erro ao inicializar ${nomeProvedor}:`, err.message);
@@ -1185,7 +1185,9 @@ async function executarTool(ctx, toolName, args) {
                 tipo: 'pendente_barbeiro',
                 agendamentoId,
               }).catch(() => {});
-            } catch {}
+            } catch (err) {
+              console.warn(`[ai] Erro ao notificar cliente sobre horário especial: ${err?.message}`);
+            }
           }
 
           const novoEstado = ws.resetarFluxo(estado, agendamentoId);
@@ -1237,7 +1239,9 @@ async function executarTool(ctx, toolName, args) {
           const { notificarBarbeiroNovoAgendamento } = await import('./whatsapp.js');
           notificarBarbeiroNovoAgendamento(barbeariaId, agendamentoId)
             .catch(e => console.warn('Notificação:', e.message));
-        } catch {}
+        } catch (err) {
+          console.warn(`[ai] Erro ao importar notificação: ${err?.message}`);
+        }
         
         // RESETA o fluxo (mantém apenas o ID criado para idempotência)
         const novoEstado = ws.resetarFluxo(estado, agendamentoId);
@@ -2432,7 +2436,9 @@ export async function processarMensagem(barbeariaId, barbeariaNome, mensagemClie
         let args = {};
         try {
           args = JSON.parse(tc.function.arguments || '{}');
-        } catch {}
+        } catch (err) {
+          console.warn(`[ai] JSON inválido nos argumentos da tool "${tc.function.name}": ${err?.message}`);
+        }
         
         const { resultado, novoEstado } = await executarTool(ctx, tc.function.name, args);
         

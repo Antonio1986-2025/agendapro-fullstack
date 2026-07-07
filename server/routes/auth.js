@@ -1,4 +1,5 @@
 import { Router } from 'express';
+import jwt from 'jsonwebtoken';
 import bcrypt from 'bcryptjs';
 import { query } from '../config/database.js';
 import { gerarToken, autenticar, exigirRole } from '../middleware/auth.js';
@@ -126,6 +127,33 @@ router.post('/login', async (req, res) => {
       permissoes,
     },
   });
+});
+
+// POST /api/auth/refresh  -> renova o token (válido por mais 7 dias)
+router.post('/refresh', async (req, res) => {
+  const header = req.headers.authorization || '';
+  const token = header.startsWith('Bearer ') ? header.slice(7) : null;
+  if (!token) return res.status(401).json({ erro: 'Token nao fornecido' });
+
+  try {
+    const { gerarToken } = await import('../middleware/auth.js');
+    const jwtSecret = process.env.JWT_SECRET;
+    const payload = jwt.verify(token, jwtSecret || 'fallback-key');
+    if (!payload.sub) return res.status(401).json({ erro: 'Token invalido' });
+
+    const { rows } = await query(
+      `SELECT u.*, b.nome AS barbearia_nome, b.slug AS barbearia_slug
+         FROM usuarios u JOIN barbearias b ON b.id = u.barbearia_id
+        WHERE u.id = $1 AND u.ativo = true`,
+      [payload.sub]
+    );
+    if (!rows[0]) return res.status(401).json({ erro: 'Usuario nao encontrado ou inativo' });
+
+    const novoTokem = gerarToken(rows[0]);
+    res.json({ token: novoTokem });
+  } catch (err) {
+    return res.status(401).json({ erro: 'Token invalido ou expirado' });
+  }
 });
 
 // GET /api/auth/me  -> dados do usuario logado (inclui permissoes do profissional)

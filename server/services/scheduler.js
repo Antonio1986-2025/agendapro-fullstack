@@ -462,8 +462,8 @@ export async function iniciarScheduler() {
       console.log(`⚠️  Scheduler não iniciado - nenhuma barbearia com WhatsApp ativo`);
       return;
     }
-  } catch {
-    console.log(`⚠️  Scheduler não iniciado - erro ao verificar WhatsApp`);
+  } catch (err) {
+    console.log(`⚠️  Scheduler não iniciado - erro ao verificar WhatsApp: ${err?.message}`);
     return;
   }
   

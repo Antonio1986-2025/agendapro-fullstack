@@ -311,6 +311,13 @@ CREATE INDEX IF NOT EXISTS idx_clientes_barbearia ON clientes(barbearia_id);
 CREATE INDEX IF NOT EXISTS idx_agendamentos_barbearia ON agendamentos(barbearia_id);
 CREATE INDEX IF NOT EXISTS idx_agendamentos_data ON agendamentos(data_hora);
 CREATE INDEX IF NOT EXISTS idx_agendamentos_prof ON agendamentos(profissional_id);
+
+-- Impede agendamento duplicado no mesmo horario com o mesmo profissional
+-- (exceto cancelados - podem coexistir como historico)
+CREATE UNIQUE INDEX IF NOT EXISTS idx_agendamentos_prof_data_unico
+  ON agendamentos(profissional_id, data_hora)
+  WHERE status <> 'cancelado';
+
 CREATE INDEX IF NOT EXISTS idx_wa_msg_barbearia ON whatsapp_mensagens(barbearia_id);
 CREATE INDEX IF NOT EXISTS idx_comandas_barbearia ON comandas(barbearia_id);
 CREATE INDEX IF NOT EXISTS idx_comandas_status ON comandas(status);

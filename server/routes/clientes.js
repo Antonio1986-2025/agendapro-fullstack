@@ -44,18 +44,25 @@ router.post('/', requerPermissao('clientes'), async (req, res) => {
 router.put('/:id', requerPermissao('clientes'), async (req, res) => {
   const { nome, telefone, email, observacoes } = req.body;
   const telLimpo = telefone ? String(telefone).replace(/\D/g, '') : undefined;
-  const { rows } = await query(
-    `UPDATE clientes
-        SET nome = COALESCE($1, nome),
-            telefone = COALESCE($2, telefone),
-            email = COALESCE($3, email),
-            observacoes = COALESCE($4, observacoes)
-      WHERE id = $5 AND barbearia_id = $6
-      RETURNING *`,
-    [nome, telLimpo, email, observacoes, req.params.id, req.barbeariaId]
-  );
-  if (!rows[0]) return res.status(404).json({ erro: 'Cliente nao encontrado' });
-  res.json(rows[0]);
+  try {
+    const { rows } = await query(
+      `UPDATE clientes
+          SET nome = COALESCE($1, nome),
+              telefone = COALESCE($2, telefone),
+              email = COALESCE($3, email),
+              observacoes = COALESCE($4, observacoes)
+        WHERE id = $5 AND barbearia_id = $6
+        RETURNING *`,
+      [nome, telLimpo, email, observacoes, req.params.id, req.barbeariaId]
+    );
+    if (!rows[0]) return res.status(404).json({ erro: 'Cliente nao encontrado' });
+    res.json(rows[0]);
+  } catch (err) {
+    if (err.code === '23505') {
+      return res.status(409).json({ erro: 'Ja existe outro cliente com este telefone' });
+    }
+    throw err;
+  }
 });
 
 // DELETE /api/clientes/:id

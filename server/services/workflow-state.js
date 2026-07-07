@@ -271,7 +271,8 @@ export function temAgendamentoRecente(estado, minutosLimite = 5) {
     const criadoEm = new Date(estado.agendamento_criado_em).getTime();
     const agora = Date.now();
     return (agora - criadoEm) < (minutosLimite * 60 * 1000);
-  } catch {
+  } catch (err) {
+    console.warn(`[workflow] verificarFluxoNaoExpirado erro: ${err?.message}`);
     return false;
   }
 }
@@ -287,7 +288,8 @@ export function fluxoEstagnado(estado, minutosLimite = 30) {
     const ultima = new Date(estado.ultima_atualizacao).getTime();
     const agora = Date.now();
     return (agora - ultima) > (minutosLimite * 60 * 1000);
-  } catch {
+  } catch (err) {
+    console.warn(`[workflow] verificarFluxoEstagnado erro: ${err?.message}`);
     return false;
   }
 }
