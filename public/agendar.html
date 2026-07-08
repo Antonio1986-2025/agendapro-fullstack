@@ -10,7 +10,7 @@
     .mobile-app { max-width: 480px; margin: 0 auto; min-height: 100vh; background: var(--bg-primary); }
     /* Mantem o formulario de agendamento compacto tambem no desktop */
     @media (min-width: 768px) { .mobile-app { max-width: 480px !important; border: none !important; box-shadow: none !important; } }
-    .topo { background: linear-gradient(135deg, var(--primary), var(--primary-dark)); color: #fff; padding: var(--space-xl) var(--space-lg); text-align: center; }
+    .topo { background: linear-gradient(135deg, var(--primary), var(--primary-dark)); color: #fff; padding: var(--space-xl) var(--space-lg); padding-top: calc(var(--space-xl) + env(safe-area-inset-top, 0px)); text-align: center; }
     .topo h1 { font-size: var(--text-2xl); font-weight: var(--font-bold); }
     .topo p { opacity: .9; font-size: var(--text-sm); margin-top: var(--space-xs); }
     .conteudo { padding: var(--space-lg); padding-bottom: 120px; }
@@ -24,13 +24,15 @@
     .opcao .nome { font-weight: var(--font-medium); }
     .opcao .meta { font-size: var(--text-sm); color: var(--text-secondary); }
     .grid-horarios { display: grid; grid-template-columns: repeat(4, 1fr); gap: var(--space-sm); }
+    @media (max-width: 400px) { .grid-horarios { grid-template-columns: repeat(3, 1fr); } }
+    @media (max-width: 340px) { .grid-horarios { grid-template-columns: repeat(2, 1fr); } }
     .slot { border: 2px solid var(--border-color); border-radius: var(--radius-md); padding: var(--space-sm); text-align: center; cursor: pointer; font-size: var(--text-sm); font-weight: var(--font-medium); }
     .slot:hover { border-color: var(--primary); }
     .slot.sel { background: var(--primary); color: #fff; border-color: var(--primary); }
     .slot.ocupado { background: var(--gray-200); color: var(--text-muted); cursor: not-allowed; text-decoration: line-through; }
     .slot.especial { border-color: var(--warning); color: var(--warning); }
     .slot.especial.sel { background: var(--warning); color: #fff; }
-    .barra { position: fixed; bottom: 0; left: 50%; transform: translateX(-50%); width: 100%; max-width: 480px; background: var(--bg-card); border-top: 1px solid var(--border-color); padding: var(--space-md); }
+    .barra { position: fixed; bottom: 0; left: 50%; transform: translateX(-50%); width: 100%; max-width: 480px; background: var(--bg-card); border-top: 1px solid var(--border-color); padding: var(--space-md); padding-bottom: calc(var(--space-md) + env(safe-area-inset-bottom, 0px)); }
     .alert { padding: var(--space-sm) var(--space-md); border-radius: var(--radius-md); font-size: var(--text-sm); margin-bottom: var(--space-md); display: none; }
     .alert.error { background: var(--error-light); color: var(--error); display: block; }
     .sucesso-box { text-align: center; padding: var(--space-2xl) var(--space-lg); }

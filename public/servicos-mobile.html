@@ -239,29 +239,31 @@
           <button class="btn btn-primary btn-sm" onclick="abrirModal()"><i class="fas fa-plus"></i> Novo</button>
         </div>
         <div class="section-card-body" style="padding:0;">
+          <div class="table-responsive">
           <table class="data-table">
             <thead>
               <tr>
-                <th>Nome</th>
-                <th>Categoria</th>
-                <th>Duração</th>
-                <th>Preço</th>
-                <th style="text-align:right;">Ações</th>
+                <th data-label="NOME">Nome</th>
+                <th data-label="CATEGORIA">Categoria</th>
+                <th data-label="DURAÇÃO">Duração</th>
+                <th data-label="PREÇO">Preço</th>
+                <th data-label="AÇÕES" style="text-align:right;">Ações</th>
               </tr>
             </thead>
             <tbody>
               ${lista.map(s => `<tr>
-                <td><strong>${s.nome}</strong></td>
-                <td>${s.categoria || 'Geral'}</td>
-                <td>${s.duracao_minutos} min</td>
-                <td><strong style="color:var(--success)">R$ ${Number(s.preco).toFixed(2)}</strong></td>
-                <td class="cell-actions">
-                  <button class="icon-btn" onclick='editar(${JSON.stringify(s)})' title="Editar"><i class="fas fa-pen"></i></button>
-                  <button class="icon-btn danger" onclick="excluir('${s.id}','${s.nome.replace(/'/g,"")}')" title="Excluir"><i class="fas fa-trash"></i></button>
+                <td data-label="Nome"><strong>${s.nome}</strong></td>
+                <td data-label="Categoria">${s.categoria || 'Geral'}</td>
+                <td data-label="Duração">${s.duracao_minutos} min</td>
+                <td data-label="Preço"><strong style="color:var(--success)">R$ ${Number(s.preco).toFixed(2)}</strong></td>
+                <td data-label="Ações" class="cell-actions">
+                  <button class="action-icon-btn edit" onclick='editar(${JSON.stringify(s)})' title="Editar"><i class="fas fa-pen"></i></button>
+                  <button class="action-icon-btn delete" onclick="excluir('${s.id}','${s.nome.replace(/'/g,"")}')" title="Excluir"><i class="fas fa-trash"></i></button>
                 </td>
               </tr>`).join('')}
             </tbody>
           </table>
+          </div>
         </div>
       </div>`;
     }

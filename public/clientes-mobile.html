@@ -249,30 +249,32 @@
             <button class="btn btn-primary btn-sm" onclick="abrirModal()"><i class="fas fa-plus"></i> Novo</button>
           </div>
           <div class="section-card-body" style="padding:0;">
+            <div class="table-responsive">
             <table class="data-table">
               <thead>
                 <tr>
-                  <th>Nome</th>
-                  <th>Telefone</th>
-                  <th>Email</th>
-                  <th>Visitas</th>
-                  <th style="text-align:right;">Acoes</th>
+                  <th data-label="NOME">Nome</th>
+                  <th data-label="TELEFONE">Telefone</th>
+                  <th data-label="EMAIL">Email</th>
+                  <th data-label="VISITAS">Visitas</th>
+                  <th data-label="AÇÕES" style="text-align:right;">Acoes</th>
                 </tr>
               </thead>
               <tbody>
                 ${lista.map(c => `<tr>
-                  <td><strong>${c.nome}</strong></td>
-                  <td>${c.telefone || '-'}</td>
-                  <td>${c.email || '-'}</td>
-                  <td>${c.total_visitas || 0}</td>
-                  <td class="cell-actions">
-                    ${c.telefone ? `<button class="icon-btn wa" onclick="abrirWhats('${c.telefone}')" title="WhatsApp"><i class="fab fa-whatsapp" style="color:var(--success)"></i></button>` : ''}
-                    <button class="icon-btn" onclick='editar(${JSON.stringify(c)})' title="Editar"><i class="fas fa-pen"></i></button>
-                    <button class="icon-btn danger" onclick="excluir('${c.id}','${c.nome.replace(/'/g,"")}')" title="Excluir"><i class="fas fa-trash"></i></button>
+                  <td data-label="Nome"><strong>${c.nome}</strong></td>
+                  <td data-label="Telefone">${c.telefone || '-'}</td>
+                  <td data-label="Email">${c.email || '-'}</td>
+                  <td data-label="Visitas">${c.total_visitas || 0}</td>
+                  <td data-label="Ações" class="cell-actions">
+                    ${c.telefone ? `<button class="action-icon-btn edit" onclick="abrirWhats('${c.telefone}')" title="WhatsApp"><i class="fab fa-whatsapp" style="color:var(--success)"></i></button>` : ''}
+                    <button class="action-icon-btn edit" onclick='editar(${JSON.stringify(c)})' title="Editar"><i class="fas fa-pen"></i></button>
+                    <button class="action-icon-btn delete" onclick="excluir('${c.id}','${c.nome.replace(/'/g,"")}')" title="Excluir"><i class="fas fa-trash"></i></button>
                   </td>
                 </tr>`).join('')}
               </tbody>
             </table>
+            </div>
           </div>
         </div>`;
       } else {
@@ -347,6 +349,7 @@
     }
 
     carregar();
+    initMobilePage();
   </script>
 </body>
 </html>

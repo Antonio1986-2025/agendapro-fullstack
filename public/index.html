@@ -14,7 +14,7 @@
     a { text-decoration: none; color: inherit; }
 
     /* HEADER */
-    .header { position: fixed; top: 0; left: 0; right: 0; z-index: 100; background: rgba(255,255,255,0.95); backdrop-filter: blur(10px); border-bottom: 1px solid var(--border-color); }
+    .header { position: fixed; top: 0; left: 0; right: 0; z-index: 100; background: rgba(255,255,255,0.95); backdrop-filter: blur(10px); border-bottom: 1px solid var(--border-color); padding-top: env(safe-area-inset-top, 0px); }
     [data-theme="dark"] .header { background: rgba(9,9,11,0.95); }
     .header .container { display: flex; align-items: center; justify-content: space-between; height: 70px; }
     .logo { display: flex; align-items: center; gap: 10px; font-size: 1.3rem; font-weight: var(--font-extrabold); color: var(--text-primary); }

@@ -1179,5 +1179,315 @@ input::placeholder, textarea::placeholder { color: var(--text-muted); }
 @keyframes spin { to { transform: rotate(360deg); } }
 
 /* ════════════════════════════════════════════════════════════════
+   TABELAS RESPONSIVAS - MOBILE FIRST
+   ════════════════════════════════════════════════════════════════ */
+.table-responsive {
+  width: 100%;
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+  margin-bottom: var(--space-md);
+}
+
+.table-responsive table {
+  width: 100%;
+  min-width: 500px; /* força scroll em mobile para tabelas largas */
+  border-collapse: collapse;
+}
+
+.table-responsive table th,
+.table-responsive table td {
+  padding: 0.625rem 0.75rem;
+  font-size: var(--text-sm);
+  text-align: left;
+  border-bottom: 1px solid var(--border-color);
+  white-space: nowrap;
+}
+
+.table-responsive table th {
+  font-weight: var(--font-semibold);
+  color: var(--text-tertiary);
+  font-size: var(--text-xs);
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+  background: var(--bg-secondary);
+  position: sticky;
+  top: 0;
+}
+
+.table-responsive table tr:hover {
+  background: var(--bg-hover);
+}
+
+/* Cards de lista para mobile (substitui tabelas em telas pequenas) */
+.list-cards-mobile {
+  display: none;
+}
+
+@media (max-width: 640px) {
+  .table-responsive table {
+    min-width: auto;
+  }
+  .table-responsive table thead {
+    display: none;
+  }
+  .table-responsive table tr {
+    display: block;
+    background: var(--bg-card);
+    border: 1px solid var(--border-color);
+    border-radius: var(--radius-lg);
+    padding: var(--space-md);
+    margin-bottom: var(--space-sm);
+    box-shadow: var(--shadow-xs);
+  }
+  .table-responsive table td {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0.375rem 0;
+    border: none;
+    white-space: normal;
+    font-size: var(--text-sm);
+  }
+  .table-responsive table td:last-child {
+    padding-top: var(--space-sm);
+    margin-top: var(--space-sm);
+    border-top: 1px solid var(--border-color);
+    justify-content: flex-start;
+    gap: var(--space-sm);
+  }
+  /* Mostra o nome da coluna como label */
+  .table-responsive table td::before {
+    content: attr(data-label);
+    font-size: var(--text-xs);
+    font-weight: var(--font-medium);
+    color: var(--text-tertiary);
+    text-transform: uppercase;
+    letter-spacing: 0.02em;
+    margin-right: var(--space-sm);
+    flex-shrink: 0;
+  }
+  .table-responsive table td:last-child::before {
+    display: none; /* Oculta label na coluna de ações */
+  }
+  
+  .list-cards-mobile {
+    display: block;
+  }
+}
+
+/* ════════════════════════════════════════════════════════════════
+   MOBILE APP SHELL PADRÃO
+   ════════════════════════════════════════════════════════════════ */
+.mobile-app {
+  max-width: 430px;
+  margin: 0 auto;
+  min-height: 100vh;
+  background: var(--bg-primary);
+  position: relative;
+}
+
+.mobile-header {
+  position: sticky;
+  top: 0;
+  z-index: var(--z-sticky);
+  background: var(--bg-card);
+  border-bottom: 1px solid var(--border-color);
+  padding: var(--space-md);
+  padding-top: calc(var(--space-md) + env(safe-area-inset-top, 0px));
+}
+
+.mobile-header-content {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.mobile-header-title {
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm);
+  font-size: var(--text-lg);
+  font-weight: var(--font-bold);
+  color: var(--text-primary);
+}
+
+.mobile-back-btn {
+  background: none;
+  border: none;
+  padding: var(--space-sm);
+  border-radius: var(--radius-md);
+  cursor: pointer;
+  color: var(--text-secondary);
+  transition: all var(--transition-fast);
+  min-width: 44px;
+  min-height: 44px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.mobile-back-btn:hover {
+  background: var(--bg-hover);
+  color: var(--text-primary);
+}
+
+.mobile-content {
+  padding: var(--space-md);
+  padding-bottom: calc(80px + env(safe-area-inset-bottom, 0px));
+  animation: fadeIn var(--transition-normal);
+}
+
+/* FAB (Floating Action Button) padrão */
+.mobile-fab {
+  position: fixed;
+  bottom: calc(90px + env(safe-area-inset-bottom, 0px));
+  right: 24px;
+  width: 56px;
+  height: 56px;
+  background: var(--primary-600);
+  color: #fff;
+  border: none;
+  border-radius: var(--radius-full);
+  box-shadow: var(--shadow-lg);
+  cursor: pointer;
+  font-size: var(--text-xl);
+  z-index: var(--z-fixed);
+  transition: all var(--transition-fast);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.mobile-fab:hover {
+  background: var(--primary-700);
+  transform: scale(1.05);
+  box-shadow: var(--shadow-xl);
+}
+
+.mobile-fab:active {
+  transform: scale(0.95);
+}
+
+/* ════════════════════════════════════════════════════════════════
+   CARDS DE LISTA MOBILE (alternativa a tabelas)
+   ════════════════════════════════════════════════════════════════ */
+.mobile-list-card {
+  background: var(--bg-card);
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-lg);
+  padding: var(--space-md);
+  margin-bottom: var(--space-sm);
+  display: flex;
+  align-items: center;
+  gap: var(--space-md);
+  transition: all var(--transition-fast);
+  cursor: pointer;
+}
+
+.mobile-list-card:hover {
+  border-color: var(--border-hover);
+  box-shadow: var(--shadow-sm);
+}
+
+.mobile-list-card:active {
+  transform: scale(0.99);
+}
+
+.mobile-list-icon {
+  width: 44px;
+  height: 44px;
+  background: var(--primary-light);
+  color: var(--primary);
+  border-radius: var(--radius-md);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: var(--text-lg);
+  flex-shrink: 0;
+}
+
+[data-theme="dark"] .mobile-list-icon {
+  background: rgba(59, 130, 246, 0.15);
+  color: var(--primary-400);
+}
+
+.mobile-list-info {
+  flex: 1;
+  min-width: 0;
+}
+
+.mobile-list-title {
+  font-weight: var(--font-semibold);
+  color: var(--text-primary);
+  font-size: var(--text-sm);
+  letter-spacing: -0.01em;
+}
+
+.mobile-list-subtitle {
+  font-size: var(--text-xs);
+  color: var(--text-secondary);
+  margin-top: 0.125rem;
+}
+
+.mobile-list-meta {
+  font-size: var(--text-sm);
+  font-weight: var(--font-semibold);
+  color: var(--text-primary);
+  text-align: right;
+  flex-shrink: 0;
+}
+
+.mobile-list-actions {
+  display: flex;
+  gap: var(--space-xs);
+  flex-shrink: 0;
+}
+
+/* ════════════════════════════════════════════════════════════════
+   TRANSIÇÃO DE PÁGINA
+   ════════════════════════════════════════════════════════════════ */
+@keyframes pageEnter {
+  from { opacity: 0; transform: translateX(20px); }
+  to { opacity: 1; transform: translateX(0); }
+}
+
+.page-enter {
+  animation: pageEnter 250ms cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+/* ════════════════════════════════════════════════════════════════
+   ÍCONES DE AÇÃO EM TABELAS (touch-friendly)
+   ════════════════════════════════════════════════════════════════ */
+.action-icon-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+  border: none;
+  border-radius: var(--radius-md);
+  background: transparent;
+  color: var(--text-secondary);
+  cursor: pointer;
+  transition: all var(--transition-fast);
+  font-size: var(--text-sm);
+}
+
+.action-icon-btn:hover {
+  background: var(--bg-hover);
+  color: var(--text-primary);
+}
+
+.action-icon-btn.edit:hover {
+  background: var(--primary-light);
+  color: var(--primary);
+}
+
+.action-icon-btn.delete:hover {
+  background: var(--error-light);
+  color: var(--error);
+}
+
+/* ════════════════════════════════════════════════════════════════
    FIM - DESIGN SYSTEM AGENDAPRO v2.0
    ════════════════════════════════════════════════════════════════ */

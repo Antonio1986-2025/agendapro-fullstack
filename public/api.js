@@ -99,3 +99,31 @@ const API = (() => {
     },
   };
 })();
+
+// ─────────────────────────────────────────────────────────────────────
+// INICIALIZAÇÃO COMPARTILHADA (chamado ao final de cada página)
+// ─────────────────────────────────────────────────────────────────────
+window.initMobilePage = function() {
+  // Animação de entrada da página
+  const app = document.querySelector('.mobile-app');
+  if (app) {
+    app.classList.add('page-enter');
+    // Remove a classe após a animação para não conflitar com interações
+    setTimeout(() => app.classList.remove('page-enter'), 300);
+  }
+
+  // Toggle de tema com ícone consistente
+  const savedTheme = localStorage.getItem('theme');
+  if (savedTheme === 'dark') {
+    document.documentElement.setAttribute('data-theme', 'dark');
+  }
+
+  // Ajusta o ícone do tema em todos os botões
+  const moonIcons = document.querySelectorAll('.theme-toggle i, #theme-icon, #theme-icon-desk');
+  if (moonIcons.length) {
+    const isDark = document.documentElement.getAttribute('data-theme') === 'dark';
+    moonIcons.forEach(el => {
+      el.className = 'fas ' + (isDark ? 'fa-sun' : 'fa-moon');
+    });
+  }
+};
