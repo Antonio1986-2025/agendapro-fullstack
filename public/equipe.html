@@ -12,17 +12,22 @@
     .header-content { display: flex; align-items: center; justify-content: space-between; margin-bottom: var(--space-md); }
     .header-title { display: flex; align-items: center; gap: var(--space-sm); font-size: var(--text-lg); font-weight: var(--font-bold); color: var(--text-primary); }
     .main-content { padding: var(--space-md); padding-bottom: 80px; }
-    .team-card { background: var(--bg-card); border: 1px solid var(--border-color); border-radius: var(--radius-lg); padding: var(--space-md); margin-bottom: var(--space-sm); display: flex; align-items: center; justify-content: space-between; }
-    .team-info { display: flex; align-items: center; gap: var(--space-md); }
-    .team-avatar { width: 44px; height: 44px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-weight: var(--font-bold); font-size: var(--text-lg); }
+    .team-card { background: var(--bg-card); border: 1px solid var(--border-color); border-radius: var(--radius-lg); padding: var(--space-md); margin-bottom: var(--space-sm); }
+    .team-card-top { display: flex; align-items: center; justify-content: space-between; margin-bottom: var(--space-sm); }
+    .team-info { display: flex; align-items: center; gap: var(--space-md); flex:1; min-width:0; }
+    .team-avatar { width: 44px; height: 44px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-weight: var(--font-bold); font-size: var(--text-lg); flex-shrink:0; }
     .team-avatar.owner { background: var(--primary-light); color: var(--primary); }
     .team-avatar.staff { background: var(--warning-light); color: var(--warning); }
-    .team-name { font-weight: var(--font-semibold); color: var(--text-primary); }
+    .team-name { font-weight: var(--font-semibold); color: var(--text-primary); font-size: var(--text-sm); }
     .team-role { font-size: var(--text-xs); color: var(--text-muted); margin-top: 2px; }
-    .team-email { font-size: var(--text-xs); color: var(--text-secondary); }
-    .team-status { font-size: var(--text-xs); padding: 2px 8px; border-radius: var(--radius-full); }
+    .team-email { font-size: var(--text-xs); color: var(--text-secondary); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .team-status { font-size: var(--text-xs); padding: 2px 8px; border-radius: var(--radius-full); white-space:nowrap; }
     .team-status.ativo { background: var(--success-light); color: var(--success); }
     .team-status.inativo { background: var(--error-light); color: var(--error); }
+    .team-actions { display: flex; gap: var(--space-sm); flex-wrap: wrap; padding-top: var(--space-sm); border-top: 1px solid var(--border-color); }
+    .team-actions .btn { font-size: var(--text-xs); padding: 6px 12px; min-height:36px; display:inline-flex; align-items:center; gap:4px; }
+    .team-vinculo { font-size: var(--text-xs); color: var(--text-muted); margin-top: 2px; display:flex; align-items:center; gap:4px; }
+    .team-vinculo i { font-size:10px; }
     .empty-state { text-align: center; padding: var(--space-2xl); color: var(--text-muted); }
     .section { margin-bottom: var(--space-lg); }
     .section-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: var(--space-md); }
@@ -186,22 +191,24 @@
         }
         el.innerHTML = '<div class="team-grid">' + data.map(u => `
           <div class="team-card">
-            <div class="team-info">
-              <div class="team-avatar ${u.role}">${(u.nome || '?').charAt(0).toUpperCase()}</div>
-              <div>
-                <div class="team-name">${u.nome}</div>
-                <div class="team-email">${u.email}</div>
-                <div class="team-role">${u.role === 'owner' ? 'Proprietário' : 'Barbeiro'}</div>
-                ${u.role !== 'owner' ? `<div style="font-size:var(--text-xs);color:var(--text-muted);margin-top:2px;">${u.profissional_nome ? 'Vinculado a: ' + u.profissional_nome : 'Sem vínculo'}</div>` : ''}
+            <div class="team-card-top">
+              <div class="team-info">
+                <div class="team-avatar ${u.role}">${(u.nome || '?').charAt(0).toUpperCase()}</div>
+                <div>
+                  <div class="team-name">${u.nome}</div>
+                  <div class="team-email">${u.email}</div>
+                  <div class="team-role">${u.role === 'owner' ? 'Proprietário' : 'Barbeiro'}</div>
+                </div>
               </div>
-            </div>
-            <div style="text-align:right;">
               <div class="team-status ${u.ativo ? 'ativo' : 'inativo'}">${u.ativo ? 'Ativo' : 'Inativo'}</div>
-              ${u.role !== 'owner' ? `
-                <button class="btn btn-sm btn-secondary" style="margin-top:4px;font-size:var(--text-xs);padding:2px 8px;" onclick="vincularProf('${u.id}', '${u.profissional_id || ''}')">Vincular</button>
-                <button class="btn btn-sm ${u.ativo ? 'btn-secondary' : 'btn-primary'}" style="margin-top:4px;font-size:var(--text-xs);padding:2px 8px;" onclick="toggleStatus('${u.id}')">${u.ativo ? 'Desativar' : 'Ativar'}</button>
-              ` : ''}
             </div>
+            ${u.role !== 'owner' ? `
+              <div class="team-vinculo"><i class="fas fa-link"></i> ${u.profissional_nome || 'Sem vínculo com profissional'}</div>
+              <div class="team-actions">
+                <button class="btn btn-secondary" onclick="vincularProf('${u.id}', '${u.profissional_id || ''}')"><i class="fas fa-user-tie"></i> Vincular</button>
+                <button class="btn ${u.ativo ? 'btn-secondary' : 'btn-primary'}" onclick="toggleStatus('${u.id}')">${u.ativo ? 'Desativar' : 'Ativar'}</button>
+              </div>
+            ` : ''}
           </div>
         `).join('') + '</div>';
       } catch (e) {
