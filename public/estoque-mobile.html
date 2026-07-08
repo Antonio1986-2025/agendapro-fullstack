@@ -125,11 +125,13 @@
     </header>
 
     <main class="main-content">
-      <div class="filtro-row" id="filtros">
-        <button class="filtro-btn active" onclick="filtrar('todos', this)">Todos</button>
-        <button class="filtro-btn" onclick="filtrar('baixo', this)">Estoque Baixo</button>
+      <div class="mobile-only">
+        <div class="filtro-row" id="filtros">
+          <button class="filtro-btn active" onclick="filtrar('todos', this)">Todos</button>
+          <button class="filtro-btn" onclick="filtrar('baixo', this)">Estoque Baixo</button>
+        </div>
+        <div id="lista"><div class="empty"><i class="fas fa-spinner fa-spin"></i> Carregando...</div></div>
       </div>
-      <div id="lista"><div class="empty"><i class="fas fa-spinner fa-spin"></i> Carregando...</div></div>
     </main>
 
     <button class="fab" onclick="abrirModal()" title="Adicionar item"><i class="fas fa-plus"></i></button>
