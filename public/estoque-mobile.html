@@ -294,7 +294,7 @@
           </div>
           <div class="est-actions">
             <button class="icon-btn" onclick='detalhes("${i.id}")' title="Detalhes"><i class="fas fa-eye"></i></button>
-            <button class="icon-btn" onclick='movimentar("${i.id}","${i.nome.replace(/["]/g,"")}")' title="Movimentar"><i class="fas fa-arrows-up-down"></i></button>
+            <button class="icon-btn" onclick='movimentar("${i.id}","${i.nome.replace(/[\"]/g,"")}")' title="Movimentar"><i class="fas fa-arrows-up-down"></i></button>
             <button class="icon-btn" onclick='editar(${JSON.stringify(i)})' title="Editar"><i class="fas fa-pen"></i></button>
             <button class="icon-btn danger" onclick="excluir('${i.id}','${i.nome.replace(/'/g,"")}')" title="Excluir"><i class="fas fa-trash"></i></button>
           </div>
@@ -319,16 +319,17 @@
           <button class="btn btn-primary btn-sm" onclick="abrirModal()"><i class="fas fa-plus"></i> Novo</button>
         </div>
         <div class="section-card-body" style="padding:0;">
+          <div class="table-responsive">
           <table class="data-table">
             <thead>
               <tr>
-                <th>Nome</th>
-                <th>Un</th>
-                <th>Quantidade</th>
-                <th>Mínimo</th>
-                <th>Custo</th>
-                <th>Venda</th>
-                <th style="text-align:right;">Ações</th>
+                <th data-label="NOME">Nome</th>
+                <th data-label="UN">Un</th>
+                <th data-label="QUANTIDADE">Quantidade</th>
+                <th data-label="MÍNIMO">Mínimo</th>
+                <th data-label="CUSTO">Custo</th>
+                <th data-label="VENDA">Venda</th>
+                <th data-label="AÇÕES" style="text-align:right;">Ações</th>
               </tr>
             </thead>
             <tbody>
@@ -337,22 +338,23 @@
                 const min = parseFloat(i.minimo);
                 const baixo = min > 0 && qtd <= min;
                 return `<tr${baixo ? ' style="background:var(--warning-light)"' : ''}>
-                  <td><strong>${i.nome}</strong></td>
-                  <td>${i.unidade || 'un'}</td>
-                  <td><strong style="color:${baixo ? 'var(--warning)' : 'var(--success)'}">${qtd.toFixed(qtd % 1 === 0 ? 0 : 2)}</strong></td>
-                  <td>${min.toFixed(min % 1 === 0 ? 0 : 2)}</td>
-                  <td>R$ ${Number(i.custo || 0).toFixed(2)}</td>
-                  <td>R$ ${Number(i.preco_venda || 0).toFixed(2)}</td>
-                  <td class="cell-actions">
-                    <button class="icon-btn" onclick='detalhes("${i.id}")' title="Detalhes"><i class="fas fa-eye"></i></button>
-                    <button class="icon-btn" onclick='movimentar("${i.id}","${i.nome.replace(/["]/g,"")}")' title="Movimentar"><i class="fas fa-arrows-up-down"></i></button>
-                    <button class="icon-btn" onclick='editar(${JSON.stringify(i)})' title="Editar"><i class="fas fa-pen"></i></button>
-                    <button class="icon-btn danger" onclick="excluir('${i.id}','${i.nome.replace(/'/g,"")}')" title="Excluir"><i class="fas fa-trash"></i></button>
+                  <td data-label="Nome"><strong>${i.nome}</strong></td>
+                  <td data-label="Un">${i.unidade || 'un'}</td>
+                  <td data-label="Quantidade"><strong style="color:${baixo ? 'var(--warning)' : 'var(--success)'}">${qtd.toFixed(qtd % 1 === 0 ? 0 : 2)}</strong></td>
+                  <td data-label="Mínimo">${min.toFixed(min % 1 === 0 ? 0 : 2)}</td>
+                  <td data-label="Custo">R$ ${Number(i.custo || 0).toFixed(2)}</td>
+                  <td data-label="Venda">R$ ${Number(i.preco_venda || 0).toFixed(2)}</td>
+                  <td data-label="Ações" class="cell-actions">
+                    <button class="action-icon-btn edit" onclick='detalhes("${i.id}")' title="Detalhes"><i class="fas fa-eye"></i></button>
+                    <button class="action-icon-btn edit" onclick='movimentar("${i.id}","${i.nome.replace(/[\"]/g,"")}")' title="Movimentar"><i class="fas fa-arrows-up-down"></i></button>
+                    <button class="action-icon-btn edit" onclick='editar(${JSON.stringify(i)})' title="Editar"><i class="fas fa-pen"></i></button>
+                    <button class="action-icon-btn delete" onclick="excluir('${i.id}','${i.nome.replace(/'/g,"")}')" title="Excluir"><i class="fas fa-trash"></i></button>
                   </td>
                 </tr>`;
               }).join('')}
             </tbody>
           </table>
+          </div>
         </div>
       </div>`;
     }
@@ -476,6 +478,7 @@
     }
 
     carregar();
+    initMobilePage();
   </script>
 </body>
 </html>
