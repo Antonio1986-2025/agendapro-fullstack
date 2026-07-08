@@ -176,52 +176,77 @@ export async function conectarInstancia(barbeariaId) {
     apiKey = nova.apiKey;
   }
   
-  const effectiveKey = apiKey || EVOLUTION_API_KEY;
-  
-  // Verifica se já está conectado antes de gerar QR
-  try {
-    const client = getClient(effectiveKey);
-    const statusResp = await client.get(`/instance/connectionState/${instanceName}`);
-    const state = statusResp.data?.instance?.state || statusResp.data?.state;
+  // Tenta com a chave armazenada primeiro, depois com EVOLUTION_API_KEY
+  const tentarConectar = async (chave) => {
+    const effectiveKey = chave || EVOLUTION_API_KEY;
     
-    if (state === 'open') {
-      console.log(`✅ Instância ${instanceName} já está conectada`);
+    // Verifica se já está conectado
+    try {
+      const client = getClient(effectiveKey);
+      const statusResp = await client.get(`/instance/connectionState/${instanceName}`);
+      const state = statusResp.data?.instance?.state || statusResp.data?.state;
+      
+      if (state === 'open') {
+        console.log(`✅ Instância ${instanceName} já está conectada`);
+        await query(
+          `UPDATE whatsapp_config 
+              SET session_status = 'connected', evolution_api_key = $1, updated_at = now()
+            WHERE barbearia_id = $2`,
+          [effectiveKey, barbeariaId]
+        );
+        return { qr: null, status: 'connected', instanceName };
+      }
+    } catch (statusErr) {
+      if (statusErr.response?.status === 401) {
+        console.log(`⚠️ Chave Evolution inválida, limpando e tentando com chave global...`);
+        await query(
+          `UPDATE whatsapp_config SET evolution_api_key = NULL WHERE barbearia_id = $1`,
+          [barbeariaId]
+        );
+        return null; // sinal para tentar com EVOLUTION_API_KEY
+      }
+      console.log(`⚠️ Não foi possível verificar status: ${statusErr.message}`);
+    }
+    
+    // Tenta conectar
+    try {
+      const client = getClient(effectiveKey);
+      const response = await client.get(`/instance/connect/${instanceName}`);
+      
+      const qrCode = response.data.base64 || response.data.code || null;
+      
       await query(
         `UPDATE whatsapp_config 
-            SET session_status = 'connected', updated_at = now()
-          WHERE barbearia_id = $1`,
-        [barbeariaId]
+            SET session_status = 'connecting', evolution_api_key = $1, updated_at = now()
+          WHERE barbearia_id = $2`,
+        [effectiveKey, barbeariaId]
       );
-      return { qr: null, status: 'connected', instanceName };
+      
+      return {
+        qr: qrCode,
+        status: 'connecting',
+        instanceName,
+      };
+    } catch (err) {
+      console.error('Erro ao conectar:', err.response?.data || err.message);
+      throw new Error(`Falha ao conectar: ${err.response?.data?.message || err.message}`);
     }
-  } catch (statusErr) {
-    console.log(`⚠️ Não foi possível verificar status: ${statusErr.message}`);
+  };
+  
+  // Tenta com a chave da instância primeiro
+  let resultado = await tentarConectar(apiKey);
+  
+  // Se falhou 401 e limpou a chave, tenta com EVOLUTION_API_KEY
+  if (resultado === null) {
+    console.log(`🔁 Retentando com EVOLUTION_API_KEY...`);
+    resultado = await tentarConectar(EVOLUTION_API_KEY);
   }
   
-  console.log(`🔗 Conectando instância ${instanceName}...`);
-  
-  try {
-    const client = getClient(effectiveKey);
-    const response = await client.get(`/instance/connect/${instanceName}`);
-    
-    const qrCode = response.data.base64 || response.data.code || null;
-    
-    await query(
-      `UPDATE whatsapp_config 
-          SET session_status = 'connecting', updated_at = now()
-        WHERE barbearia_id = $1`,
-      [barbeariaId]
-    );
-    
-    return {
-      qr: qrCode,
-      status: 'connecting',
-      instanceName,
-    };
-  } catch (err) {
-    console.error('Erro ao conectar:', err.response?.data || err.message);
-    throw new Error(`Falha ao conectar: ${err.response?.data?.message || err.message}`);
+  if (resultado === null) {
+    throw new Error('Falha ao conectar: não foi possível autenticar com a Evolution API');
   }
+  
+  return resultado;
 }
 
 /**
