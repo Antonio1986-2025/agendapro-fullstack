@@ -225,9 +225,8 @@ router.put('/config', async (req, res) => {
   try {
     const { rows } = await query(
       `INSERT INTO whatsapp_config (barbearia_id, provider, enabled, ai_enabled, ai_prompt, updated_at)
-       VALUES ($1, 'baileys', $2, $3, $4, now())
+       VALUES ($1, COALESCE((SELECT provider FROM whatsapp_config WHERE barbearia_id = $1), 'baileys'), $2, $3, $4, now())
        ON CONFLICT (barbearia_id) DO UPDATE SET
-          provider = 'baileys',
           enabled = COALESCE(NULLIF(EXCLUDED.enabled, NULL), whatsapp_config.enabled),
           ai_enabled = COALESCE(NULLIF(EXCLUDED.ai_enabled, NULL), whatsapp_config.ai_enabled),
           ai_prompt = COALESCE(NULLIF(EXCLUDED.ai_prompt, NULL), whatsapp_config.ai_prompt),

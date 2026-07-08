@@ -2494,7 +2494,7 @@ export async function processarMensagem(barbeariaId, barbeariaNome, mensagemClie
         model: MODEL_NAME,
         messages,
         tools,
-        tool_choice: 'required',
+        tool_choice: 'auto',
         temperature: 0.4,
         max_tokens: 1200,
       });
