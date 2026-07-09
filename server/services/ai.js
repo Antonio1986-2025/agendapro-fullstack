@@ -385,12 +385,16 @@ async function buscarClientePorTelefone(barbeariaId, telefone) {
   const ultimos11 = tel.slice(-11);
   if (ultimos11.length < 10) return null;
 
+  // Busca por qualquer formato: com 55, sem 55, com 9, sem 9
   const { rows } = await query(
     `SELECT id, nome, telefone FROM clientes
       WHERE barbearia_id = $1
-        AND REPLACE(telefone, '-', '') LIKE $2
+        AND (REPLACE(telefone, '-', '') LIKE $2
+          OR REPLACE(telefone, '-', '') LIKE $3
+          OR REPLACE(telefone, '-', '') LIKE $4)
+      ORDER BY LENGTH(telefone) DESC
       LIMIT 1`,
-    [barbeariaId, `%${ultimos11}`]
+    [barbeariaId, `%${ultimos11}`, `%${ultimos11.slice(-10)}`, `%${ultimos11.slice(-9)}`]
   );
   return rows[0] || null;
 }
@@ -739,10 +743,38 @@ async function executarTool(ctx, toolName, args) {
         if (nome.length < 2) {
           return { resultado: { erro: 'Nome inválido. Peça o nome COMPLETO.' } };
         }
-        
+
         const tel = String(telefone || '').replace(/\D/g, '');
+        const telUltimos11 = tel.slice(-11);
         
-        // UPSERT atômico: tenta insert, se conflito (23505), faz update do nome + incrementa visitas
+        // ANTES de inserir, busca cliente existente pelo telefone normalizado
+        // Evita duplicatas quando o WhatsApp envia com 55 e o banco tem sem
+        const existente = await buscarClientePorTelefone(barbeariaId, tel);
+        if (existente) {
+          const { rows: atualizado } = await query(
+            `UPDATE clientes
+                SET nome = CASE WHEN $2 <> '' AND clientes.nome = $2 THEN clientes.nome ELSE $2 END,
+                    telefone = CASE WHEN LENGTH($3) > LENGTH(clientes.telefone) THEN $3 ELSE clientes.telefone END,
+                    total_visitas = clientes.total_visitas + 1
+              WHERE id = $1 AND barbearia_id = $4
+              RETURNING id, nome, total_visitas`,
+            [existente.id, nome, tel, barbeariaId]
+          );
+
+          if (atualizado[0]) {
+            const upsertado = atualizado[0];
+            const isNovo = upsertado.total_visitas === 1;
+            console.log(`   ${isNovo ? '✅ Cliente cadastrado' : 'ℹ️  Cliente já existia'}: ${upsertado.nome} (visitas: ${upsertado.total_visitas})`);
+            const novoEstado = ws.definirSlot(estado, 'cliente', { id: upsertado.id, nome: upsertado.nome });
+            return {
+              resultado: { sucesso: true, cliente: { id: upsertado.id, nome: upsertado.nome }, mensagem: `Cliente ${upsertado.nome} identificado. Continue para o próximo passo.` },
+              novoEstado,
+            };
+          }
+        }
+        
+        // UPSERT atômico: normaliza telefone (últimos 11 dígitos sem 55)
+        const telNormalizado = telUltimos11.length >= 10 ? telUltimos11 : tel;
         let clienteId, clienteNome;
         const { rows: upsertado } = await query(
           `INSERT INTO clientes (barbearia_id, nome, telefone, total_visitas)
@@ -751,7 +783,7 @@ async function executarTool(ctx, toolName, args) {
               nome = CASE WHEN clientes.nome = $2 THEN clientes.nome ELSE $2 END,
               total_visitas = clientes.total_visitas + 1
            RETURNING id, nome, total_visitas`,
-          [barbeariaId, nome, tel]
+          [barbeariaId, nome, telNormalizado]
         );
         
         if (upsertado[0]) {
