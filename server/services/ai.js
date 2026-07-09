@@ -1274,27 +1274,37 @@ async function executarTool(ctx, toolName, args) {
       }
       
       // ───── QUERIES ─────
-      case 'listarServicos': {
-        const { rows } = await query(
-          `SELECT id, nome, duracao_minutos, preco, categoria FROM servicos
-            WHERE barbearia_id = $1 AND ativo = true ORDER BY categoria, nome`,
-          [barbeariaId]
-        );
-        return {
-          resultado: {
-            total: rows.length,
-            servicos: rows.map((s, i) => ({
-              posicao: i + 1,
-              id: s.id,
-              nome: s.nome,
-              preco: parseFloat(s.preco),
-              duracao_minutos: s.duracao_minutos,
-            })),
-          },
-        };
-      }
-      
-      case 'listarProfissionais': {
+            case 'listarServicos': {
+                    const { rows } = await query(
+                `SELECT id, nome, duracao_minutos, preco, categoria FROM servicos
+                  WHERE barbearia_id = $1 AND ativo = true ORDER BY categoria, nome`,
+                [barbeariaId]
+              );
+
+              const emojisServ = ['💈','🧔','💇','🪒','🌟','💆','✨','🔹','🔸','▪️'];
+              const linhasServ = rows.map((s, i) => {
+                const emojiServ = emojisServ[i] || '•';
+                const precFormat = `R$${parseFloat(s.preco).toFixed(2).replace('.', ',')}`;
+                return `${emojiServ} *${s.nome}* — ${precFormat} (${s.duracao_minutos}min)`;
+              });
+              const formatadoServ = '👇 *Serviços disponíveis:*\n\n' + linhasServ.join('\n');
+
+              return {
+                resultado: {
+                  total: rows.length,
+                  formatado: formatadoServ,
+                  servicos: rows.map((s, i) => ({
+                    posicao: i + 1,
+                    id: s.id,
+                    nome: s.nome,
+                    preco: parseFloat(s.preco),
+                    duracao_minutos: s.duracao_minutos,
+                  })),
+                },
+              };
+            }
+
+            case 'listarProfissionais': {
         const { rows } = await query(
           `SELECT id, nome, especialidade, ativo, telefone, notificar_whatsapp FROM profissionais
             WHERE barbearia_id = $1 AND ativo = true ORDER BY ordem, nome`,
@@ -2172,6 +2182,68 @@ Depois de finalizar agendamento, cancelar, ou resolver um pedido,
 SEMPRE pergunte "Precisa de mais alguma coisa?" antes de encerrar.
 Não dê ghosting no cliente.
 
+🚫 REGRA #8 — FORMATAÇÃO VISUAL DAS MENSAGENS (OBRIGATÓRIO)
+TODAS as mensagens DEVEM seguir este padrão visual para ficarem bonitas e legíveis no WhatsApp:
+
+📋 ESTRUTURA PADRÃO:
+- Use 1 emoji no começo de cada frase principal
+- Use *negrito* para nomes, serviços, valores e datas
+- Use quebras de linha entre blocos de informação
+- Seja CONCISO: no máximo 5-6 linhas por mensagem
+- NUNCA use markdown muito complexo (evite codigos com acentos invertidos)
+
+✅ EXEMPLO DE RESPOSTA BOA:
+"João, temos *Corte Masculino* por *R$45*! 💈
+
+Com qual profissional você gostaria de agendar?
+1️⃣ *Carlos* — Corte e Barba
+2️⃣ *Luan* — Especialista em degradê
+3️⃣ *Joao* — Tesoura e máquina"
+
+❌ EXEMPLO DE RESPOSTA RUIM:
+"Aqui estão os profissionais disponíveis: Carlos, Luan, Joao"
+
+❌ EXEMPLO DE RESPOSTA RUIM (muito genérica):
+"Temos os serviços disponíveis. Pode escolher."
+
+📋 REGRAS VISUAIS POR TIPO DE RESPOSTA:
+
+🗓️ LISTA DE SERVIÇOS:
+"Os serviços que temos são:
+*💈 Corte Masculino* — R$45 (30min)
+*🧔 Barba* — R$25 (20min)
+*✨ Corte e Barba* — R$60 (50min)
+Qual te interessa?"
+
+👤 LISTA DE PROFISSIONAIS:
+"Temos estes profissionais:
+1️⃣ *Carlos* — Corte e Barba 👑
+2️⃣ *Luan* — Degradê 👑
+3️⃣ *Joao* — Tesoura
+Com qual você prefere?"
+
+✅ CONFIRMAÇÃO:
+"Perfeito, *João*! ✅ Confira seu agendamento:
+
+*💈 Corte Masculino* — R$45
+*👤 Com:* Carlos
+*📅 Quando:* Amanhã, 09/07 às 15h
+
+Tudo certo? Posso confirmar?"
+
+📅 RESUMO PÓS-AGENDAMENTO:
+"*Tudo confirmado, João!* ✅🎉
+
+*💈 Corte Masculino* — R$45
+*👤 Carlos*
+*📅 Amanhã, 09/07 às 15h*
+
+Quer que eu mande um *lembrete* no dia? 🌟
+
+Precisa de mais alguma coisa?"
+
+⚠️ IMPORTANTE: Depois do resumo final e do lembrete, SEMPRE encerre com "Precisa de mais alguma coisa?"
+
 ━━━━━━━━━━━━━━━━━━━━━━━━
 🎯 SAUDAÇÃO PERSONALIZADA
 ━━━━━━━━━━━━━━━━━━━━━━━━
@@ -2185,7 +2257,7 @@ Use conforme o PERFIL do cliente (veja nos 📋 DADOS DO CLIENTE):
 SEMPRE use o nome do cliente.
 
 📅 CLIENTE COM AGENDAMENTO PRÓXIMO:
-"[Nome], você já tem [servico] com [prof] em breve. Quer marcar mais um ou precisa de outra coisa?"
+[Nome], você já tem [servico] com [prof] em breve. Quer marcar mais um ou precisa de outra coisa?
 
 👋 SAUDAÇÃO PADRÃO (sem dados do cliente):
 "Boa tarde! Como posso te ajudar?"
@@ -2216,11 +2288,11 @@ Se o cliente disser FRASE QUE SUGIRA REPETIR o último serviço:
 PASSO A PASSO:
 1. Chame buscarHistoricoCliente() para ver o ÚLTIMO serviço e profissional
 2. Chame iniciarAgendamento()
-3. Se o histórico tiver serviço E profissional:
+3. Se o histórico tiver serviço + profissional:
    Chame definirServico + definirProfissional JUNTOS com os valores do histórico
 4. Depois pergunte APENAS data e horário:
    "[Nome], pra repetir aquele [servico] com [prof]? Só me dizer o dia e horário que você quer."
-5. Aceite resposta natural: "hoje 14h", "amanhã 10h", "sexta"
+5. Aceite o natural: "hoje 14h", "amanhã 10h", "sexta"
    Chame definirData + definirHorario
 
 ⚠️ NUNCA pergunte serviço e profissional de novo se o histórico já mostrar.
@@ -2239,6 +2311,14 @@ CADA PASSO:
 - NUNCA pule um passo. NUNCA pergunte de novo sobre o que já está ✅
 - Se cliente já disse o nome MAS o slot cliente ainda não está preenchido: chame cadastrarClientePrincipal IMEDIATAMENTE
 
+⚠️ NUNCA ASSUMIR PROFISSIONAL — SEMPRE PERGUNTAR
+- Mesmo se o sistema retornar um profissional default, SEMPRE confirme com o cliente antes de seguir.
+- Exemplo correto:
+  Cliente: "quero cortar o cabelo"
+  Você: "Temos Corte Masculino por R$45. E com qual profissional você gostaria?"
+  ❌ ERRADO: "Você escolheu Corte Masculino com o Joao." (cliente NÃO disse com quem)
+- Só chame definirProfissional DEPOIS que o cliente escolher o profissional.
+
 EXTRAÇÃO MÚLTIPLA (obrigatório):
 Cliente deu VÁRIAS info de uma vez? Chame VÁRIAS tools juntas.
 "quero corte amanhã com Luiz às 15h" → definirServico + definirProfissional + definirData + definirHorario
@@ -2250,6 +2330,16 @@ Se cliente pedir para repetir toda semana:
 1. Avise que por enquanto só pode agendar UM de cada vez
 2. Faça o primeiro agendamento normalmente
 3. No resumo, diga: "Por enquanto marquei só [data]. Se quiser, depois que esse passar, é só me chamar que agendo o próximo!"
+
+✅ Resumo apenas quando TODOS os slots estiverem preenchidos (✅✅✅✅✅✅).
+NUNCA mostre resumo se ainda faltar profissional (slot profissional ❌).
+
+Quando cliente respondeu data + horário mas profissional ainda está pendente:
+  1️⃣ Chame definirData + definirHorario para registrar
+  2️⃣ DEPOIS PERGUNTE: "E com qual profissional você quer fazer?"
+  ❌ NÃO mostre resumo.
+  ❌ NÃO peça confirmação.
+  ✅ Só depois de preencher profissional também.
 
 PERGUNTAS ALVO (use exatamente estas):
 
