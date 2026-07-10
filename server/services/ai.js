@@ -1896,9 +1896,9 @@ async function executarTool(ctx, toolName, args) {
 
       // ───── RESPOSTA AO CLIENTE ─────
       case 'responderCliente': {
-        // 🛡️ VALIDAÇÃO: Nunca deixar responder sem consultar a base
-        const ehPrimeiraInteracao = !ctx.toolInteractionMessages || ctx.toolInteractionMessages.length === 0;
-        if (!ctx.consultouBase && !ehPrimeiraInteracao) {
+        // 🛡️ ANTI-ALUCINAÇÃO: SEMPRE exige consulta ao banco antes de responder
+        // NUNCA permite responder sem antes consultar dados reais (removeu exceção da primeira interação)
+        if (!ctx.consultouBase) {
           console.warn(`   🛑 BLOQUEADO: LLM tentou responder sem consultar a base`);
           return {
             resultado: {
@@ -2152,9 +2152,11 @@ Amanhã: ${amanhaFmt}
 🔴 REGRAS ABSOLUTAS (NUNCA VIOLAR)
 ━━━━━━━━━━━━━━━━━━━━━━━━
 
-🚫 REGRA #1 — ZERO ALUCINAÇÃO
+🚫 REGRA #1 — ZERO ALUCINAÇÃO (OBRIGATÓRIO)
 Você NUNCA sabe informações sobre a barbearia. TUDO deve ser consultado no banco.
 Sistema BLOQUEIA se você responder sem consultar. Chamar tools NÃO é opcional.
+⚠️ O SISTEMA VAI TE BARRAR se você tentar responder sem antes chamar uma tool de consulta.
+NUNCA invente preços, serviços, profissionais, horários. NADA.
 
 🚫 REGRA #2 — SEMPRE USE O NOME DO CLIENTE
 Quando souber o nome do cliente (👤 acima), use SEMPRE.
@@ -2217,6 +2219,21 @@ Com qual profissional você gostaria de agendar?
 
 ❌ EXEMPLO DE RESPOSTA RUIM (muito genérica):
 "Temos os serviços disponíveis. Pode escolher."
+
+🚫 REGRA #9 — CHAME TOOLS PRIMEIRO, RESPONDA DEPOIS
+NUNCA responda ao cliente sem antes chamar UMA tool de consulta (listarServicos, listarProfissionais, etc.)
+O sistema possui uma PROTEÇÃO que bloqueia respostas sem consulta ao banco.
+Sempre que o cliente perguntar sobre serviços, preços, horários ou profissionais:
+1️⃣ Chame a tool de consulta primeiro
+2️⃣ Veja o resultado REAL
+3️⃣ Só use responderCliente DEPOIS de ter os dados
+
+⚠️ REGRA #10 — PROTEÇÃO ANTI-ALUCINAÇÃO ATIVA
+O sistema está configurado para BARRAR respostas sem consulta ao banco.
+Se você tentar responder sem chamar tools, o sistema vai:
+- Te alertar com uma mensagem de erro
+- Forçar você a chamar uma tool antes de prosseguir
+Isso é automático. Não tente burlar.
 
 📋 REGRAS VISUAIS POR TIPO DE RESPOSTA:
 
@@ -2606,6 +2623,16 @@ export async function processarMensagem(barbeariaId, barbeariaNome, mensagemClie
       
       // Sem tools = resposta final
       if (!msg.tool_calls || msg.tool_calls.length === 0) {
+        // 🛡️ GAP 1: Na primeira tentativa, FORÇA o LLM a consultar o banco
+        if (iteracao === 1) {
+          console.warn(`⚠️ ANTI-ALUCINAÇÃO: LLM tentou responder sem consultar banco. Forçando tool call.`);
+          toolInteractionMessages.push({
+            role: 'system',
+            content: '⚠️ VOCÊ RESPONDEU SEM CONSULTAR O BANCO DE DADOS — PROIBIDO.\n\nVocê NUNCA sabe informações sobre a barbearia. Você DEVE chamar pelo menos UMA ferramenta de consulta (listarServicos, listarProfissionais, buscarHorarios, buscarHistoricoCliente, etc.) para OBTER DADOS REAIS antes de responder ao cliente.\n\n✅ Chame UMA ferramenta AGORA.',
+          });
+          continue;
+        }
+
         await ws.salvarEstado(barbeariaId, telefoneCliente, ctx.estado);
         
         const resposta = msg.content || 'Desculpe, não consegui processar. Pode reformular?';
