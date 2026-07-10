@@ -532,8 +532,15 @@ const tools = [
     type: 'function',
     function: {
       name: 'listarServicos',
-      description: 'Lista todos os serviços disponíveis. Use para mostrar opções ao cliente.',
-      parameters: { type: 'object', properties: {}, required: [], additionalProperties: false },
+      description: 'Busca serviços disponíveis. Se "nome" for informado, filtra serviços que contêm esse termo. Se vazio, lista todos.',
+      parameters: {
+        type: 'object',
+        properties: {
+          nome: { type: 'string', description: 'Termo para buscar serviços (ex: "corte", "barba", "sobrancelha"). Opcional — se omitido, lista todos.' },
+        },
+        required: [],
+        additionalProperties: false,
+      },
     },
   },
   {
@@ -1275,11 +1282,20 @@ async function executarTool(ctx, toolName, args) {
       
       // ───── QUERIES ─────
             case 'listarServicos': {
-                    const { rows } = await query(
-                `SELECT id, nome, duracao_minutos, preco, categoria FROM servicos
-                  WHERE barbearia_id = $1 AND ativo = true ORDER BY categoria, nome`,
-                [barbeariaId]
-              );
+              const nomeBusca = args.nome || args.nome_servico || args.filtro || '';
+              let querySql, queryParams;
+              
+              if (nomeBusca.trim()) {
+                querySql = `SELECT id, nome, duracao_minutos, preco, categoria FROM servicos
+                  WHERE barbearia_id = $1 AND ativo = true AND LOWER(nome) LIKE $2 ORDER BY categoria, nome`;
+                queryParams = [barbeariaId, `%${nomeBusca.toLowerCase().trim()}%`];
+              } else {
+                querySql = `SELECT id, nome, duracao_minutos, preco, categoria FROM servicos
+                  WHERE barbearia_id = $1 AND ativo = true ORDER BY categoria, nome`;
+                queryParams = [barbeariaId];
+              }
+              
+              const { rows } = await query(querySql, queryParams);
 
               const emojisServ = ['💈','🧔','💇','🪒','🌟','💆','✨','🔹','🔸','▪️'];
               const linhasServ = rows.map((s, i) => {
