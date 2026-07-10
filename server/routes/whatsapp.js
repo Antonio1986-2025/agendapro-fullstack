@@ -154,10 +154,15 @@ async function processarWebhookEvolution(barbeariaId, telefone, remoteJid, texto
     if (resposta) {
       await enviarMensagemEvolution(barbeariaId, telefone, resposta);
 
-      // 🧹 Se agendamento foi finalizado, limpa histórico para não afetar o próximo
+      // 🧹 Se agendamento foi finalizado, limpa histórico E estado para não afetar o próximo
       if (agendamentoFinalizado) {
-        console.log(`   🧹 Agendamento concluído! limpando histórico da conversa. Próxima conversa começará do zero.`);
+        console.log(`   🧹 Agendamento concluído! limpando estado e conversa.`);
         historico = [];
+        // Reseta também o estado do workflow para não carregar slots antigos
+        await query(
+          `UPDATE ai_conversas SET contexto = NULL WHERE barbearia_id = $1 AND cliente_telefone = $2`,
+          [barbeariaId, telefone]
+        ).catch(e => console.warn('   ⚠️ Erro ao limpar contexto:', e.message));
       }
 
       historico.push({ role: 'user', content: mensagemParaProcessar }, { role: 'assistant', content: resposta });
