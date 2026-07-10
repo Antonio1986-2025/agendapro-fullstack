@@ -2428,6 +2428,21 @@ PERGUNTAS ALVO (use exatamente estas):
    Se "sim" → finalizarAgendamento()
    Se "não" → pergunte o que mudar e use a tool "definir*" certa
 
+━━━━━━━━━━━━━━━━━━━━━━━━
+⚠️ REGRA FINAL — NUNCA ESQUEÇA:
+
+Depois de TODOS os slots preenchidos (✅✅✅✅✅✅):
+1️⃣ Mostre o RESUMO: "João, confere? Corte R$45 com Carlos amanhã às 14h. Tudo certo?"
+2️⃣ ESPERE o cliente responder "sim" explicitamente
+3️⃣ SÓ ENTÃO chame → finalizarAgendamento()
+
+🚫 NUNCA diga "Perfeito, confirmado!" sem chamar finalizarAgendamento().
+🚫 NUNCA pule a confirmação com o cliente.
+🚫 NUNCA agrupe definir* com finalizarAgendamento na mesma chamada.
+
+SEM finalizarAgendamento() → o agendamento NÃO É SALVO no banco.
+━━━━━━━━━━━━━━━━━━━━━━━━
+
 Exemplo de confirmação:
    "João, confere?
    Corte Masculino - R$45
@@ -2652,7 +2667,10 @@ export async function processarMensagem(barbeariaId, barbeariaNome, mensagemClie
         // Só bloqueia se a resposta contém dados que PRECISARIAM de consulta ao banco
         const temDadosSensiveis = /R\$\s*\d+(?:[,\.]\d{2})?|preço|valor|horário|horarios|dispon[ií]vel|agenda|marcado/i.test(resposta);
         
-        if (iteracao === 1 && temDadosSensiveis) {
+        // Já consultou o banco antes? (se sim, pode usar dados históricos)
+        const jaConsultouBanco = toolInteractionMessages.some(m => m.role === 'tool');
+        
+        if (iteracao === 1 && !jaConsultouBanco && temDadosSensiveis) {
           console.warn(`⚠️ ANTI-ALUCINAÇÃO: LLM tentou informar dados sem consultar banco. Forçando tool call.`);
           toolInteractionMessages.push({
             role: 'system',
@@ -2663,6 +2681,17 @@ export async function processarMensagem(barbeariaId, barbeariaNome, mensagemClie
         
         // Se é saudação ou chitchat sem dados sensíveis, deixa passar direto
         console.log(`✅ Resposta: ${resposta.substring(0, 80)}...`);
+        
+        // 🧹 Auto-reset: se LLM se despediu sem finalizar, limpa fluxo
+        const temFluxoAtivo = ctx.estado?.fluxo_ativo === 'agendamento';
+        const eDespedida = /tchau|at[eé] logo|volta sempre|precisar|ate mais|obrigado|show|flw|falou|😊|fica com deus|então é isso|é isso aí|qualquer coisa|disponha|tmj|brigad/.test(resposta.toLowerCase());
+        const jaFinalizou = toolsExecutados.some(t => t.name === 'finalizarAgendamento' && (t.resultado?.sucesso || t.resultado?.ja_criado));
+        if (temFluxoAtivo && eDespedida && !jaFinalizou) {
+          if (ws.checklistCompleto(ctx.estado)) {
+            console.warn('   🧹 Auto-reset: LLM se despediu com checklist completo');
+            ctx.estado = ws.resetarFluxo(ctx.estado);
+          }
+        }
         
         await ws.salvarEstado(barbeariaId, telefoneCliente, ctx.estado);
         
@@ -2807,6 +2836,27 @@ ${estadoAtual}
         const agendamentoFinalizado = toolsExecutados.some(t => t.name === 'finalizarAgendamento' && t.resultado?.sucesso && !t.resultado?.pendente_confirmacao);
         
         return { resposta, toolsExecutados, toolInteractionMessages, agendamentoFinalizado };
+      }
+
+      // ⛔ FORÇA FINALIZAÇÃO: se checklist completo e finalizarAgendamento não foi chamado
+      const slotsCompletos = ws.checklistCompleto(ctx.estado);
+      const chamouFinalizar = toolResults.some(t => t.name === 'finalizarAgendamento' && t.resultado?.sucesso);
+      const jaFinalizou = toolsExecutados.some(t => t.name === 'finalizarAgendamento' && (t.resultado?.sucesso || t.resultado?.ja_criado));
+      if (slotsCompletos && !chamouFinalizar && !jaFinalizou && iteracao < MAX_ITERACOES - 1) {
+        ctx.checklistForcouReRail = ctx.checklistForcouReRail || 0;
+        ctx.checklistForcouReRail++;
+        if (ctx.checklistForcouReRail === 1) {
+          console.warn('   ⛔ FORÇANDO RE-RAIL: checklist completo sem finalizarAgendamento');
+          toolInteractionMessages.push({
+            role: 'system',
+            content: '⚠️ CHECKLIST COMPLETO! Você NÃO chamou finalizarAgendamento().\n\n'
+              + '1️⃣ Mostre o RESUMO pro cliente perguntando: "Tudo certo? Posso confirmar?"\n'
+              + '2️⃣ Se ele responder "sim" → chame finalizarAgendamento()\n'
+              + '3️⃣ Se "não" → pergunte o que ele quer mudar\n\n'
+              + '❌ NÃO diga "confirmado" sem chamar finalizarAgendamento() - senão o agendamento NÃO é salvo.',
+          });
+          continue;
+        }
       }
     }
     
