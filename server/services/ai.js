@@ -274,7 +274,7 @@ async function resolverServico(barbeariaId, valor) {
 
   if (lista.length === 0) return null;
 
-  // Número de posição
+  // ─── PRIORIDADE 1: Número de posição ───
   if (/^\d+$/.test(valorStr)) {
     const idx = parseInt(valorStr, 10) - 1;
     if (idx >= 0 && idx < lista.length) {
@@ -284,12 +284,22 @@ async function resolverServico(barbeariaId, valor) {
 
   const valorLower = valorStr.toLowerCase();
 
-  // Sinônimos comuns para barbearias
+  // ─── PRIORIDADE 2: Match exato com nome do serviço ───
+  const exato = lista.find(s => s.nome.toLowerCase() === valorLower);
+  if (exato) return exato;
+
+  // ─── PRIORIDADE 3: Sinônimos (ordenados do mais específico para o geral) ───
   const sinonimos = {
+    'corte e barba': ['corte e barba'],
+    'corte na tesoura': ['corte na tesoura', 'tesoura'],
+    'corte na máquina': ['corte na máquina', 'corte na maquina', 'máquina'],
+    'corte infantil': ['infantil', 'corte infantil'],
+    'corte meia barba': ['meia barba', 'corte meia barba'],
+    'corte masculino': ['corte masculino', 'corte'],
     'corte': ['corte masculino', 'corte'],
     'cabelo': ['corte masculino', 'corte'],
+    'barba completa': ['barba completa', 'barba'],
     'barba': ['barba'],
-    'corte e barba': ['corte e barba'],
     'combo': ['corte e barba'],
     'sobrancelha': ['sobrancelha'],
     'luzes': ['luzes'],
@@ -305,8 +315,7 @@ async function resolverServico(barbeariaId, valor) {
     'maquina': ['corte na máquina', 'corte na maquina', 'máquina'],
   };
 
-  // Tenta sinônimo primeiro
-  const chavesSinonimo = Object.keys(sinonimos);
+  const chavesSinonimo = Object.keys(sinonimos).sort((a, b) => b.length - a.length);
   for (const chave of chavesSinonimo) {
     if (valorLower.includes(chave)) {
       const alvos = sinonimos[chave];
@@ -317,11 +326,7 @@ async function resolverServico(barbeariaId, valor) {
     }
   }
 
-  // Match exato
-  const exato = lista.find(s => s.nome.toLowerCase() === valorLower);
-  if (exato) return exato;
-
-  // Match parcial (nome contém valor)
+  // Match parcial (nome contém valor) – após sinônimos
   const parcial = lista.find(s => s.nome.toLowerCase().includes(valorLower));
   if (parcial) return parcial;
 
