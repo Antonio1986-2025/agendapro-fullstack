@@ -2621,22 +2621,27 @@ export async function processarMensagem(barbeariaId, barbeariaNome, mensagemClie
       const choice = resp.choices[0];
       const msg = choice.message;
       
-      // Sem tools = resposta final
+      // Sem tools = resposta final (ou greeting)
       if (!msg.tool_calls || msg.tool_calls.length === 0) {
-        // 🛡️ GAP 1: Na primeira tentativa, FORÇA o LLM a consultar o banco
-        if (iteracao === 1) {
-          console.warn(`⚠️ ANTI-ALUCINAÇÃO: LLM tentou responder sem consultar banco. Forçando tool call.`);
+        const resposta = msg.content || 'Desculpe, não consegui processar. Pode reformular?';
+        
+        // 🛡️ ANTI-ALUCINAÇÃO: verifica se o LLM está inventando informações
+        // Só bloqueia se a resposta contém dados que PRECISARIAM de consulta ao banco
+        const temDadosSensiveis = /R\$\s*\d+[,.]\d{2}|preço|valor|horário|horarios|disponível|agenda|marcado/i.test(resposta);
+        
+        if (iteracao === 1 && temDadosSensiveis) {
+          console.warn(`⚠️ ANTI-ALUCINAÇÃO: LLM tentou informar dados sem consultar banco. Forçando tool call.`);
           toolInteractionMessages.push({
             role: 'system',
-            content: '⚠️ VOCÊ RESPONDEU SEM CONSULTAR O BANCO DE DADOS — PROIBIDO.\n\nVocê NUNCA sabe informações sobre a barbearia. Você DEVE chamar pelo menos UMA ferramenta de consulta (listarServicos, listarProfissionais, buscarHorarios, buscarHistoricoCliente, etc.) para OBTER DADOS REAIS antes de responder ao cliente.\n\n✅ Chame UMA ferramenta AGORA.',
+            content: '⚠️ VOCÊ RESPONDEU COM INFORMAÇÕES SEM CONSULTAR O BANCO DE DADOS — PROIBIDO.\n\nVocê NUNCA sabe preços, serviços, horários ou profissionais da barbearia. Você DEVE chamar a ferramenta adequada (listarServicos, listarProfissionais, buscarHorarios, etc.) para OBTER DADOS REAIS antes de responder ao cliente.\n\n✅ Chame a ferramenta AGORA.',
           });
           continue;
         }
-
-        await ws.salvarEstado(barbeariaId, telefoneCliente, ctx.estado);
         
-        const resposta = msg.content || 'Desculpe, não consegui processar. Pode reformular?';
+        // Se é saudação ou chitchat sem dados sensíveis, deixa passar direto
         console.log(`✅ Resposta: ${resposta.substring(0, 80)}...`);
+        
+        await ws.salvarEstado(barbeariaId, telefoneCliente, ctx.estado);
         
         // 🧹 Detecta se agendamento foi finalizado para limpar histórico
         const agendamentoFinalizado = toolsExecutados.some(t => t.name === 'finalizarAgendamento' && t.resultado?.sucesso && !t.resultado?.pendente_confirmacao);
