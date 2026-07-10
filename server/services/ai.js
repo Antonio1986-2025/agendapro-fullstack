@@ -1299,11 +1299,11 @@ async function executarTool(ctx, toolName, args) {
               
               const { rows } = await query(querySql, queryParams);
 
-              const emojisServ = ['💈','🧔','💇','🪒','🌟','💆','✨','🔹','🔸','▪️'];
+              const emojisNum = ['1️⃣','2️⃣','3️⃣','4️⃣','5️⃣','6️⃣','7️⃣','8️⃣','9️⃣','🔟'];
               const linhasServ = rows.map((s, i) => {
-                const emojiServ = emojisServ[i] || '•';
+                const num = emojisNum[i] || `${i + 1}.`;
                 const precFormat = `R$${parseFloat(s.preco).toFixed(2).replace('.', ',')}`;
-                return `${emojiServ} *${s.nome}* — ${precFormat} (${s.duracao_minutos}min)`;
+                return `${num} *${s.nome}* — ${precFormat} (${s.duracao_minutos}min)`;
               });
               const formatadoServ = '👇 *Serviços disponíveis:*\n\n' + linhasServ.join('\n');
 
