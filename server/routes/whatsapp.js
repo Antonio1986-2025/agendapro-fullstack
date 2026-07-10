@@ -152,6 +152,10 @@ async function processarWebhookEvolution(barbeariaId, telefone, remoteJid, texto
     );
 
     if (resposta) {
+      // ✏️ Simula digitação por 3 segundos antes de enviar a resposta
+      await enviarDigitandoEvolution(barbeariaId, telefone).catch(() => {});
+      await new Promise(r => setTimeout(r, 3000));
+      
       await enviarMensagemEvolution(barbeariaId, telefone, resposta);
 
       // 🧹 Se agendamento foi finalizado, limpa histórico E estado para não afetar o próximo
