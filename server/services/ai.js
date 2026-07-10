@@ -532,11 +532,11 @@ const tools = [
     type: 'function',
     function: {
       name: 'listarServicos',
-      description: 'Busca serviços disponíveis. Se "nome" for informado, filtra serviços que contêm esse termo. Se vazio, lista todos.',
+      description: 'Busca serviços por nome ou categoria. Ex: "corte" acha serviços com "corte" no nome OU na categoria. Se vazio, lista todos.',
       parameters: {
         type: 'object',
         properties: {
-          nome: { type: 'string', description: 'Termo para buscar serviços (ex: "corte", "barba", "sobrancelha"). Opcional — se omitido, lista todos.' },
+          nome: { type: 'string', description: 'Termo para buscar (nome ou categoria). Ex: "corte", "barba", "sobrancelha". Opcional.' },
         },
         required: [],
         additionalProperties: false,
@@ -1287,7 +1287,9 @@ async function executarTool(ctx, toolName, args) {
               
               if (nomeBusca.trim()) {
                 querySql = `SELECT id, nome, duracao_minutos, preco, categoria FROM servicos
-                  WHERE barbearia_id = $1 AND ativo = true AND LOWER(nome) LIKE $2 ORDER BY categoria, nome`;
+                  WHERE barbearia_id = $1 AND ativo = true 
+                  AND (LOWER(nome) LIKE $2 OR LOWER(categoria) LIKE $2) 
+                  ORDER BY categoria, nome`;
                 queryParams = [barbeariaId, `%${nomeBusca.toLowerCase().trim()}%`];
               } else {
                 querySql = `SELECT id, nome, duracao_minutos, preco, categoria FROM servicos
