@@ -2627,7 +2627,7 @@ export async function processarMensagem(barbeariaId, barbeariaNome, mensagemClie
         
         // 🛡️ ANTI-ALUCINAÇÃO: verifica se o LLM está inventando informações
         // Só bloqueia se a resposta contém dados que PRECISARIAM de consulta ao banco
-        const temDadosSensiveis = /R\$\s*\d+[,.]\d{2}|preço|valor|horário|horarios|disponível|agenda|marcado/i.test(resposta);
+        const temDadosSensiveis = /R\$\s*\d+(?:[,\.]\d{2})?|preço|valor|horário|horarios|dispon[ií]vel|agenda|marcado/i.test(resposta);
         
         if (iteracao === 1 && temDadosSensiveis) {
           console.warn(`⚠️ ANTI-ALUCINAÇÃO: LLM tentou informar dados sem consultar banco. Forçando tool call.`);
