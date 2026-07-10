@@ -2637,7 +2637,11 @@ export async function processarMensagem(barbeariaId, barbeariaNome, mensagemClie
         
         const resposta = msg.content || 'Desculpe, não consegui processar. Pode reformular?';
         console.log(`✅ Resposta: ${resposta.substring(0, 80)}...`);
-        return { resposta, toolsExecutados, toolInteractionMessages };
+        
+        // 🧹 Detecta se agendamento foi finalizado para limpar histórico
+        const agendamentoFinalizado = toolsExecutados.some(t => t.name === 'finalizarAgendamento' && t.resultado?.sucesso && !t.resultado?.pendente_confirmacao);
+        
+        return { resposta, toolsExecutados, toolInteractionMessages, agendamentoFinalizado };
       }
       
       // Executa tools
@@ -2770,7 +2774,11 @@ ${estadoAtual}
         await ws.salvarEstado(barbeariaId, telefoneCliente, ctx.estado);
         const resposta = temResponder.args.mensagem || 'Desculpe, não consegui processar. Pode reformular?';
         console.log(`✅ Resposta (responderCliente): ${resposta.substring(0, 80)}...`);
-        return { resposta, toolsExecutados, toolInteractionMessages };
+        
+        // 🧹 Detecta se agendamento foi finalizado para limpar histórico
+        const agendamentoFinalizado = toolsExecutados.some(t => t.name === 'finalizarAgendamento' && t.resultado?.sucesso && !t.resultado?.pendente_confirmacao);
+        
+        return { resposta, toolsExecutados, toolInteractionMessages, agendamentoFinalizado };
       }
     }
     
@@ -2813,6 +2821,7 @@ Se ainda faltarem dados, PEÇA educadamente. Se estiver tudo ok, CONFIRME.
       resposta: respostaTexto,
       toolsExecutados,
       toolInteractionMessages,
+      agendamentoFinalizado: toolsExecutados.some(t => t.name === 'finalizarAgendamento' && t.resultado?.sucesso && !t.resultado?.pendente_confirmacao),
     };
     
   } catch (err) {

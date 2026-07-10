@@ -146,13 +146,19 @@ async function processarWebhookEvolution(barbeariaId, telefone, remoteJid, texto
     enviarDigitandoEvolution(barbeariaId, telefone).catch(() => {});
 
     const { processarMensagem } = await import('../services/ai.js');
-    const { resposta } = await processarMensagem(
+    const { resposta, agendamentoFinalizado } = await processarMensagem(
       barbeariaId, barbeariaNome, mensagemParaProcessar, historico,
       wc[0]?.ai_prompt || null, remoteJid, null, 'image/jpeg', pushName
     );
 
     if (resposta) {
       await enviarMensagemEvolution(barbeariaId, telefone, resposta);
+
+      // 🧹 Se agendamento foi finalizado, limpa histórico para não afetar o próximo
+      if (agendamentoFinalizado) {
+        console.log(`   🧹 Agendamento concluído! limpando histórico da conversa. Próxima conversa começará do zero.`);
+        historico = [];
+      }
 
       historico.push({ role: 'user', content: mensagemParaProcessar }, { role: 'assistant', content: resposta });
       const limitado = historico.slice(-30);
