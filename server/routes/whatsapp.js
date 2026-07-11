@@ -152,9 +152,9 @@ async function processarWebhookEvolution(barbeariaId, telefone, remoteJid, texto
     );
 
     if (resposta) {
-      // ✏️ Simula digitação por 3 segundos antes de enviar a resposta
+      // Mostra "digitando..." de novo antes de enviar (a primeira já pode ter expirado)
       await enviarDigitandoEvolution(barbeariaId, telefone).catch(() => {});
-      await new Promise(r => setTimeout(r, 3000));
+      await new Promise(r => setTimeout(r, 1500));
       
       await enviarMensagemEvolution(barbeariaId, telefone, resposta);
 

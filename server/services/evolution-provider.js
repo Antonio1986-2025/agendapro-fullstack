@@ -612,25 +612,24 @@ export async function enviarDigitandoEvolution(barbeariaId, telefone) {
        FROM whatsapp_config WHERE barbearia_id = $1`,
     [barbeariaId]
   );
-  
   if (!rows[0]?.evolution_instance_name) {
-    console.log(`⌨️ [Digitando] Instância não configurada para ${barbeariaId}`);
+    console.warn(`⌨️ [Digitando] Instância não configurada para barbearia ${barbeariaId}`);
     return;
   }
-  
   const { evolution_instance_name: instanceName, evolution_api_key: instanceApiKey } = rows[0];
   const apiKey = instanceApiKey || EVOLUTION_API_KEY;
   const numero = telefone.replace(/\D/g, '').replace(/^@.*/, '');
-  
   try {
     const client = getClient(apiKey);
-    console.log(`⌨️ [Digitando] Enviando presence para ${numero} na instância ${instanceName}...`);
-    await client.post(`/chat/sendPresence/${instanceName}`, {
+    console.log(`⌨️ [Digitando] Enviando presence para ${numero} (instância ${instanceName})...`);
+    await client.post(`/message/sendPresence/${instanceName}`, {
       number: numero,
-      presence: 'composing',
+      type: 'composing',
     });
+    console.log(`⌨️ [Digitando] ✅ Presence enviado com sucesso`);
   } catch (err) {
-    console.error(`⌨️ [Digitando] Falha ao enviar presence:`, err.response?.data || err.message);
+    const erroDetalhado = err.response?.data || err.message;
+    console.error(`⌨️ [Digitando] ❌ Falha ao enviar presence:`, JSON.stringify(erroDetalhado, null, 2));
   }
 }
 
