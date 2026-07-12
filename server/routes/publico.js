@@ -7,7 +7,7 @@ const router = Router();
 // GET /api/publico/:slug -> dados publicos da barbearia (profissionais + servicos)
 router.get('/:slug', async (req, res) => {
   const b = await query(
-    `SELECT id, nome, slug, telefone, endereco, horario_config
+    `SELECT id, nome, slug, telefone, endereco, horario_config, instagram
        FROM barbearias WHERE slug = $1 AND ativo = true`,
     [req.params.slug]
   );
@@ -120,6 +120,55 @@ router.post('/:slug/agendar', async (req, res) => {
     .catch((e) => console.error('Notificacao barbeiro falhou:', e.message));
 
   res.status(201).json({ ok: true, agendamento: ag.rows[0] });
+});
+
+// GET /api/publico/:slug/agendamentos?telefone=<numero>
+// Cliente busca seus agendamentos (ativos e historico) pelo telefone
+router.get('/:slug/agendamentos', async (req, res) => {
+  const { telefone } = req.query;
+  if (!telefone) return res.status(400).json({ erro: 'telefone é obrigatório' });
+
+  const b = await query(`SELECT id FROM barbearias WHERE slug = $1`, [req.params.slug]);
+  if (!b.rows[0]) return res.status(404).json({ erro: 'Barbearia nao encontrada' });
+
+  // busca cliente pelo telefone
+  const cli = await query(
+    `SELECT id, nome FROM clientes WHERE barbearia_id = $1 AND telefone = $2`,
+    [b.rows[0].id, telefone]
+  );
+  if (!cli.rows[0]) return res.json({ agendamentos: [] });
+
+  const { rows } = await query(
+    `SELECT a.id, a.data_hora, a.status, a.preco, a.is_especial,
+            s.nome AS servico_nome,
+            p.nome AS profissional_nome
+       FROM agendamentos a
+       LEFT JOIN servicos s ON s.id = a.servico_id
+       LEFT JOIN profissionais p ON p.id = a.profissional_id
+      WHERE a.cliente_id = $1 AND a.barbearia_id = $2
+      ORDER BY a.data_hora DESC
+      LIMIT 20`,
+    [cli.rows[0].id, b.rows[0].id]
+  );
+
+  res.json({ cliente: cli.rows[0], agendamentos: rows });
+});
+
+// PATCH /api/publico/:slug/agendamentos/:id/cancelar
+// Cliente cancela um agendamento
+router.patch('/:slug/agendamentos/:id/cancelar', async (req, res) => {
+  const b = await query(`SELECT id FROM barbearias WHERE slug = $1`, [req.params.slug]);
+  if (!b.rows[0]) return res.status(404).json({ erro: 'Barbearia nao encontrada' });
+
+  const ag = await query(
+    `UPDATE agendamentos SET status = 'cancelado'
+      WHERE id = $1 AND barbearia_id = $2 AND status = 'agendado' AND data_hora > NOW()
+      RETURNING *`,
+    [req.params.id, b.rows[0].id]
+  );
+
+  if (!ag.rows[0]) return res.status(404).json({ erro: 'Agendamento nao encontrado ou ja cancelado' });
+  res.json({ ok: true, agendamento: ag.rows[0] });
 });
 
 export default router;

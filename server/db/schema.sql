@@ -26,7 +26,7 @@ CREATE TABLE IF NOT EXISTS barbearias (
 );
 
 -- Garante colunas novas em bancos já existentes (idempotente)
--- horario_especial_ativo removido — slots 19h+ sempre aparecem, pendente_barbeiro cuida da confirmação
+ALTER TABLE barbearias ADD COLUMN IF NOT EXISTS instagram VARCHAR(255);
 
 -- ---------- usuarios (contas de login: dono / staff) ----------
 CREATE TABLE IF NOT EXISTS usuarios (
