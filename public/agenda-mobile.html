@@ -207,8 +207,14 @@
         <label>Serviço</label>
         <select class="input" id="f-serv"></select>
       </div>
-      <div class="field"><label>Nome do cliente *</label><input class="input" id="f-cliente" placeholder="Ex: Maria Souza"></div>
-      <div class="field"><label>Telefone (WhatsApp)</label><input class="input" id="f-telefone" placeholder="Ex: 67999990000"></div>
+      <div class="field">
+        <label>Telefone (WhatsApp) *</label>
+        <div style="display:flex;gap:4px;align-items:center">
+          <input class="input" id="f-telefone" placeholder="Digite o telefone primeiro" style="flex:1" oninput="buscarClientePorTel()">
+          <span id="tel-status" style="font-size:12px;white-space:nowrap"></span>
+        </div>
+      </div>
+      <div class="field"><label>Nome do cliente *</label><input class="input" id="f-cliente" placeholder="Preencha se for cliente novo" readonly style="background:var(--surface2)"></div>
       <div class="row2">
         <div class="field"><label>Data *</label><input class="input" id="f-data" type="date"></div>
         <div class="field"><label>Hora *</label><input class="input" id="f-hora" type="time" value="09:00"></div>
@@ -401,8 +407,13 @@
 
     function abrirModal() {
       if (!profissionais.length) { alert('Cadastre ao menos um profissional antes.'); return; }
+      clienteEncontrado = null;
       document.getElementById('modal-alerta').className = 'alert';
-      document.getElementById('f-cliente').value = '';
+      document.getElementById('tel-status').textContent = '';
+      const nomeEl = document.getElementById('f-cliente');
+      nomeEl.value = '';
+      nomeEl.readOnly = true;
+      nomeEl.style.background = 'var(--surface2)';
       document.getElementById('f-telefone').value = '';
       document.getElementById('f-data').value = ymd(dataAtual);
       const agoraM = new Date();
@@ -427,24 +438,109 @@
     }
     function fecharModal() { document.getElementById('modal').classList.remove('open'); }
 
+    // Busca cliente pelo telefone e preenche o nome automaticamente
+    let clienteEncontrado = null;
+    let timeoutBusca = null;
+    async function buscarClientePorTel() {
+      const el = document.getElementById('f-telefone');
+      const status = document.getElementById('tel-status');
+      const nomeEl = document.getElementById('f-cliente');
+      const tel = el.value.replace(/\D/g, '');
+
+      if (timeoutBusca) clearTimeout(timeoutBusca);
+
+      if (tel.length < 10) {
+        status.textContent = '';
+        status.style.color = '';
+        nomeEl.value = '';
+        nomeEl.readOnly = true;
+        nomeEl.style.background = 'var(--surface2)';
+        clienteEncontrado = null;
+        return;
+      }
+
+      timeoutBusca = setTimeout(async () => {
+        status.textContent = 'buscando...';
+        status.style.color = 'var(--text-muted)';
+        try {
+          const achados = await API.get('/clientes?busca=' + encodeURIComponent(tel));
+          const match = achados.find(c => {
+            const telDb = (c.telefone||'').replace(/\D/g,'');
+            return telDb.slice(-10) === tel.slice(-10) || telDb.slice(-11) === tel.slice(-11);
+          });
+
+          if (match) {
+            clienteEncontrado = match;
+            nomeEl.value = match.nome;
+            nomeEl.readOnly = true;
+            nomeEl.style.background = 'var(--surface2)';
+            status.innerHTML = '✓ encontrado';
+            status.style.color = 'var(--success)';
+          } else {
+            clienteEncontrado = null;
+            nomeEl.value = '';
+            nomeEl.readOnly = false;
+            nomeEl.style.background = '';
+            status.innerHTML = '🆕 novo';
+            status.style.color = 'var(--warning)';
+          }
+        } catch (e) {
+          status.textContent = 'erro';
+          status.style.color = 'var(--danger)';
+        }
+      }, 400);
+    }
+
     // Cria/recupera cliente pelo telefone e retorna o id
     async function obterClienteId(nome, telefone) {
       if (!telefone) return null;
+      const telLimpo = telefone.replace(/\D/g, '');
+      
+      // Se ja encontrou pelo telefone, usa o ID existente
+      if (clienteEncontrado) return clienteEncontrado.id;
+
+      // Tenta criar novo
       try {
-        const novo = await API.post('/clientes', { nome, telefone });
+        const novo = await API.post('/clientes', { nome, telefone: telLimpo });
         return novo.id;
       } catch (e) {
-        // ja existe -> busca pelo telefone
-        const achados = await API.get('/clientes?busca=' + encodeURIComponent(telefone));
-        const match = achados.find(c => (c.telefone||'').replace(/\D/g,'') === telefone.replace(/\D/g,''));
+        // ja existe -> busca pelo telefone normalizado
+        const achados = await API.get('/clientes?busca=' + encodeURIComponent(telLimpo));
+        const match = achados.find(c => {
+          const telDb = (c.telefone||'').replace(/\D/g,'');
+          return telDb.slice(-10) === telLimpo.slice(-10) || telDb.slice(-11) === telLimpo.slice(-11);
+        });
         return match ? match.id : (achados[0] ? achados[0].id : null);
       }
     }
 
     async function salvar() {
       const a = document.getElementById('modal-alerta');
-      const nome = document.getElementById('f-cliente').value.trim();
-      const telefone = document.getElementById('f-telefone').value.trim();
+      const telEl = document.getElementById('f-telefone');
+      const nomeEl = document.getElementById('f-cliente');
+      const telefone = telEl.value.trim();
+      let nome = nomeEl.value.trim();
+
+      if (!telefone || telefone.replace(/\D/g,'').length < 10) {
+        a.textContent = 'Informe o telefone do cliente (pelo menos 10 dígitos)';
+        a.className = 'alert error'; return;
+      }
+
+      // Se encontrou via busca, usa o nome do cliente encontrado
+      if (clienteEncontrado && !nome) {
+        nome = clienteEncontrado.nome;
+        nomeEl.value = nome;
+      }
+
+      // Se não encontrou e nome está vazio, libera pra digitar
+      if (!clienteEncontrado && !nome) {
+        nomeEl.readOnly = false;
+        nomeEl.style.background = '';
+        nomeEl.focus();
+        a.textContent = 'Cliente não encontrado. Digite o nome para cadastrar novo.';
+        a.className = 'alert info'; return;
+      }
+
       const data = document.getElementById('f-data').value;
       const hora = document.getElementById('f-hora').value;
       const profId = document.getElementById('f-prof').value;
