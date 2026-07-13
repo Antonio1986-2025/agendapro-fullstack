@@ -33,6 +33,7 @@ import comissoesRoutes from './routes/comissoes.js';
 import aiRoutes from './routes/ai.js';
 import adminRoutes from './routes/admin.js';
 import bloqueiosRoutes from './routes/bloqueios.js';
+import siteBarbeariaRoutes from './routes/site-barbearia.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const PUBLIC_DIR = path.join(__dirname, '..', 'public');
@@ -110,12 +111,11 @@ app.use(express.static(PUBLIC_DIR, {
   },
 }));
 
-// PATCH para /barbearia-demo -> serve o site publico da barbearia
-app.get('/barbearia-demo', (req, res) => {
-  res.sendFile(path.join(PUBLIC_DIR, 'barbearia-index.html'));
-});
-// Catch-all SPA (exclui arquivos estaticos e a rota da barbearia)
-app.get(/^\/(?!api\/)(?!barbearia-demo)(?!.*\.(css|js|png|jpg|jpeg|gif|ico|svg|woff2?|ttf|eot)$).*/, (req, res) => {
+// Rota do site publico da barbearia (tudo inline, sem estaticos)
+app.use('/barbearia-demo', siteBarbeariaRoutes);
+
+// Catch-all SPA (exclui arquivos estaticos)
+app.get(/^\/(?!api\/)(?!.*\.(css|js|png|jpg|jpeg|gif|ico|svg|woff2?|ttf|eot)$).*/, (req, res) => {
   res.sendFile(path.join(PUBLIC_DIR, 'index.html'));
 });
 
