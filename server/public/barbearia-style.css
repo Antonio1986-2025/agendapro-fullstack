@@ -1,0 +1,343 @@
+/* ============================================================
+   AgendaPro - Site da Barbearia (Dark Theme)
+   ============================================================ */
+
+:root {
+  --bg-primary: #0d0d0d;
+  --bg-secondary: #1a1a1a;
+  --bg-card: #222;
+  --bg-hover: #2a2a2a;
+  --text-primary: #f0f0f0;
+  --text-secondary: #aaa;
+  --text-muted: #666;
+  --accent: #c8a95c;
+  --accent-light: #e8d08a;
+  --accent-dark: #a88a3c;
+  --border: #333;
+  --success: #22c55e;
+  --error: #ef4444;
+  --warning: #f59e0b;
+  --radius: 12px;
+  --radius-sm: 8px;
+  --shadow: 0 4px 20px rgba(0,0,0,.4);
+  --font: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+}
+
+/* ─── Temas ─── */
+[data-theme="classic"] {
+  --accent: #c8a95c;
+  --accent-light: #e8d08a;
+  --accent-dark: #a88a3c;
+}
+[data-theme="modern"] {
+  --accent: #6366f1;
+  --accent-light: #a5b4fc;
+  --accent-dark: #4f46e5;
+}
+[data-theme="sport"] {
+  --accent: #f97316;
+  --accent-light: #fdba74;
+  --accent-dark: #ea580c;
+}
+[data-theme="premium"] {
+  --accent: #d4af37;
+  --accent-light: #f0d68a;
+  --accent-dark: #b8962e;
+}
+
+* { margin: 0; padding: 0; box-sizing: border-box; }
+html { scroll-behavior: smooth; }
+body {
+  font-family: var(--font);
+  background: var(--bg-primary);
+  color: var(--text-primary);
+  line-height: 1.6;
+  -webkit-font-smoothing: antialiased;
+}
+
+/* ─── Utilitários ─── */
+.container { max-width: 520px; margin: 0 auto; padding: 0 20px; }
+.hidden { display: none !important; }
+.fade-in { animation: fadeIn .3s ease; }
+@keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+@keyframes spin { to { transform: rotate(360deg); } }
+.text-center { text-align: center; }
+.mt-sm { margin-top: 12px; }
+.mt-md { margin-top: 24px; }
+.mb-md { margin-bottom: 24px; }
+
+/* ─── Botões ─── */
+.btn {
+  display: inline-flex; align-items: center; justify-content: center; gap: 8px;
+  padding: 14px 28px; border-radius: var(--radius); font-size: 16px;
+  font-weight: 600; border: none; cursor: pointer;
+  transition: all .2s; text-decoration: none; width: 100%;
+}
+.btn-primary { background: var(--accent); color: #000; }
+.btn-primary:hover { background: var(--accent-light); transform: translateY(-1px); }
+.btn-secondary { background: var(--bg-card); color: var(--text-primary); border: 1px solid var(--border); }
+.btn-secondary:hover { background: var(--bg-hover); }
+.btn-outline { background: transparent; color: var(--accent); border: 2px solid var(--accent); }
+.btn-outline:hover { background: var(--accent); color: #000; }
+.btn-sm { padding: 10px 18px; font-size: 14px; width: auto; }
+.btn-danger { background: var(--error); color: #fff; }
+.btn-disabled { opacity: .5; cursor: not-allowed; pointer-events: none; }
+
+/* ─── Header ─── */
+.site-header {
+  position: sticky; top: 0; z-index: 100;
+  background: rgba(13,13,13,.95); backdrop-filter: blur(12px);
+  border-bottom: 1px solid var(--border);
+}
+.header-inner {
+  max-width: 520px; margin: 0 auto;
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 14px 20px;
+}
+.header-logo { 
+  font-size: 20px; font-weight: 800; 
+  background: linear-gradient(135deg, var(--accent), var(--accent-light));
+  -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+.header-logo .emoji { -webkit-text-fill-color: initial; }
+.nav-toggle {
+  background: none; border: none; color: var(--text-primary); font-size: 24px;
+  cursor: pointer; padding: 4px;
+}
+.nav-menu {
+  display: none; flex-direction: column;
+  position: absolute; top: 100%; left: 0; right: 0;
+  background: var(--bg-secondary); border-bottom: 1px solid var(--border);
+  padding: 8px 0;
+}
+.nav-menu.open { display: flex; }
+.nav-link {
+  padding: 12px 20px; color: var(--text-secondary); text-decoration: none;
+  font-size: 15px; transition: all .2s; display: flex; align-items: center; gap: 10px;
+}
+.nav-link:hover, .nav-link.active { color: var(--accent); background: var(--bg-hover); }
+
+/* ─── Loading ─── */
+.loading {
+  display: flex; flex-direction: column; align-items: center;
+  justify-content: center; padding: 80px 20px; gap: 16px;
+}
+.spinner {
+  width: 40px; height: 40px; border: 3px solid var(--border);
+  border-top: 3px solid var(--accent); border-radius: 50%; animation: spin .8s linear infinite;
+}
+.loading p { color: var(--text-muted); font-size: 14px; }
+
+/* ─── Hero ─── */
+.hero {
+  position: relative; overflow: hidden;
+  padding: 60px 20px 80px; text-align: center;
+}
+.hero::before {
+  content: ''; position: absolute; inset: 0;
+  background: linear-gradient(180deg, rgba(13,13,13,0) 0%, var(--bg-primary) 100%);
+}
+.hero-bg {
+  position: absolute; inset: 0; z-index: -1;
+  background-size: cover; background-position: center;
+  filter: brightness(.3) saturate(.8);
+}
+.hero-icon { font-size: 48px; margin-bottom: 16px; position: relative; }
+.hero h1 { font-size: 32px; font-weight: 800; margin-bottom: 8px; position: relative; }
+.hero h1 span { color: var(--accent); }
+.hero p { color: var(--text-secondary); font-size: 16px; max-width: 360px; margin: 0 auto 24px; position: relative; }
+.hero .btn { max-width: 260px; margin: 0 auto; position: relative; }
+
+/* ─── Seções ─── */
+.section { padding: 40px 0; }
+.section-title {
+  font-size: 18px; font-weight: 700; margin-bottom: 20px;
+  display: flex; align-items: center; gap: 8px;
+}
+.section-title .badge {
+  font-size: 12px; background: var(--accent); color: #000;
+  padding: 2px 10px; border-radius: 20px; font-weight: 600;
+}
+
+/* ─── Instagram Grid ─── */
+.insta-grid {
+  display: grid; grid-template-columns: repeat(3, 1fr); gap: 4px;
+  border-radius: var(--radius); overflow: hidden;
+}
+.insta-item {
+  aspect-ratio: 1; background-size: cover; background-position: center;
+  position: relative; cursor: pointer; transition: transform .3s;
+}
+.insta-item:hover { transform: scale(1.05); z-index: 2; }
+.insta-item .overlay {
+  position: absolute; inset: 0; background: rgba(0,0,0,.4);
+  display: flex; align-items: center; justify-content: center;
+  opacity: 0; transition: opacity .3s; color: #fff; font-size: 20px;
+}
+.insta-item:hover .overlay { opacity: 1; }
+.insta-placeholder {
+  aspect-ratio: 1; background: var(--bg-card); display: flex;
+  align-items: center; justify-content: center;
+  color: var(--text-muted); font-size: 13px; text-align: center; padding: 8px;
+}
+
+/* ─── Serviços ─── */
+.servico-card {
+  background: var(--bg-card); border-radius: var(--radius);
+  padding: 16px; margin-bottom: 12px; display: flex;
+  justify-content: space-between; align-items: center;
+  cursor: pointer; transition: all .2s; border: 1px solid transparent;
+}
+.servico-card:hover, .servico-card.selected {
+  border-color: var(--accent); background: var(--bg-hover);
+}
+.servico-card.selected { background: rgba(200,169,92,.1); }
+.servico-info { flex: 1; }
+.servico-nome { font-size: 16px; font-weight: 600; }
+.servico-categ { font-size: 12px; color: var(--text-muted); margin-top: 2px; }
+.servico-preco { font-size: 20px; font-weight: 700; color: var(--accent); }
+.servico-duracao { font-size: 12px; color: var(--text-muted); text-align: right; }
+
+/* ─── Profissionais ─── */
+.prof-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(90px, 1fr)); gap: 12px; }
+.prof-item {
+  background: var(--bg-card); border-radius: var(--radius);
+  padding: 16px 8px; text-align: center; cursor: pointer;
+  transition: all .2s; border: 2px solid transparent;
+}
+.prof-item:hover, .prof-item.selected { border-color: var(--accent); }
+.prof-item.selected { background: rgba(200,169,92,.1); }
+.prof-avatar {
+  width: 56px; height: 56px; border-radius: 50%; background: var(--bg-hover);
+  display: flex; align-items: center; justify-content: center;
+  margin: 0 auto 8px; font-size: 24px;
+}
+.prof-nome { font-size: 13px; font-weight: 500; }
+.prof-espec { font-size: 11px; color: var(--text-muted); }
+
+/* ─── Calendário / Horários ─── */
+.date-nav {
+  display: flex; gap: 8px; overflow-x: auto; padding-bottom: 8px;
+  -webkit-overflow-scrolling: touch; scrollbar-width: none;
+}
+.date-nav::-webkit-scrollbar { display: none; }
+.date-btn {
+  flex-shrink: 0; padding: 10px 16px; border-radius: var(--radius-sm);
+  background: var(--bg-card); border: 1px solid var(--border);
+  color: var(--text-secondary); font-size: 13px; cursor: pointer;
+  text-align: center; min-width: 60px; transition: all .2s;
+}
+.date-btn:hover { border-color: var(--accent); }
+.date-btn.sel { background: var(--accent); color: #000; border-color: var(--accent); font-weight: 600; }
+.date-btn .dia-semana { font-size: 10px; opacity: .7; display: block; }
+.date-btn .dia-num { font-size: 18px; font-weight: 700; display: block; }
+
+.grid-horarios { 
+  display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px;
+  margin-top: 16px;
+}
+@media (max-width: 400px) { .grid-horarios { grid-template-columns: repeat(3, 1fr); } }
+.slot-horario {
+  padding: 12px 4px; border-radius: var(--radius-sm);
+  background: var(--bg-card); border: 1px solid var(--border);
+  color: var(--text-primary); font-size: 14px; cursor: pointer;
+  text-align: center; transition: all .2s;
+}
+.slot-horario:hover { border-color: var(--accent); }
+.slot-horario.sel { background: var(--accent); color: #000; border-color: var(--accent); font-weight: 600; }
+.slot-horario.ocupado { opacity: .3; cursor: not-allowed; text-decoration: line-through; }
+.slot-horario.carregando { opacity: .5; pointer-events: none; }
+
+/* ─── Formulário ─── */
+.form-group { margin-bottom: 16px; }
+.form-group label { display: block; font-size: 14px; font-weight: 500; margin-bottom: 6px; color: var(--text-secondary); }
+.form-input {
+  width: 100%; padding: 14px 16px; border-radius: var(--radius-sm);
+  background: var(--bg-card); border: 1px solid var(--border);
+  color: var(--text-primary); font-size: 16px; outline: none;
+  transition: border .2s;
+}
+.form-input:focus { border-color: var(--accent); }
+.form-input::placeholder { color: var(--text-muted); }
+
+/* ─── Resumo ─── */
+.resumo-card {
+  background: var(--bg-card); border-radius: var(--radius);
+  padding: 20px; margin-bottom: 20px;
+}
+.resumo-row {
+  display: flex; justify-content: space-between; padding: 8px 0;
+  border-bottom: 1px solid var(--border); font-size: 14px;
+}
+.resumo-row:last-child { border: none; }
+.resumo-label { color: var(--text-secondary); }
+.resumo-valor { font-weight: 600; }
+.resumo-total { font-size: 18px; color: var(--accent); font-weight: 700; }
+
+/* ─── Status / Alertas ─── */
+.alert {
+  padding: 14px 16px; border-radius: var(--radius-sm); font-size: 14px;
+  margin-bottom: 16px; display: flex; align-items: center; gap: 10px;
+}
+.alert-success { background: rgba(34,197,94,.15); color: var(--success); border: 1px solid rgba(34,197,94,.3); }
+.alert-error { background: rgba(239,68,68,.15); color: var(--error); border: 1px solid rgba(239,68,68,.3); }
+.alert-info { background: rgba(99,102,241,.15); color: #818cf8; border: 1px solid rgba(99,102,241,.3); }
+
+/* ─── Página de Sucesso ─── */
+.sucesso-page {
+  text-align: center; padding: 60px 20px;
+}
+.sucesso-icon {
+  width: 80px; height: 80px; border-radius: 50%;
+  background: rgba(34,197,94,.15); color: var(--success);
+  display: flex; align-items: center; justify-content: center;
+  font-size: 36px; margin: 0 auto 24px;
+}
+.sucesso-page h2 { font-size: 24px; margin-bottom: 8px; }
+.sucesso-page p { color: var(--text-secondary); margin-bottom: 32px; }
+
+/* ─── Meus Agendamentos ─── */
+.agendamento-card {
+  background: var(--bg-card); border-radius: var(--radius);
+  padding: 16px; margin-bottom: 12px; border-left: 3px solid var(--accent);
+}
+.agendamento-card.cancelado { border-left-color: var(--error); opacity: .7; }
+.agendamento-card.concluido { border-left-color: var(--success); opacity: .7; }
+.ag-header { display: flex; justify-content: space-between; align-items: start; margin-bottom: 8px; }
+.ag-servico { font-size: 16px; font-weight: 600; }
+.ag-status {
+  font-size: 11px; padding: 2px 10px; border-radius: 20px; font-weight: 600;
+}
+.ag-status.agendado { background: rgba(200,169,92,.15); color: var(--accent); }
+.ag-status.cancelado { background: rgba(239,68,68,.15); color: var(--error); }
+.ag-status.concluido { background: rgba(34,197,75,.15); color: var(--success); }
+.ag-detalhes { font-size: 13px; color: var(--text-secondary); }
+.ag-detalhes div { margin-top: 4px; }
+.ag-actions { margin-top: 12px; display: flex; gap: 8px; }
+
+/* ─── Busca por telefone ─── */
+.phone-search {
+  background: var(--bg-card); border-radius: var(--radius); padding: 24px; margin-bottom: 24px;
+}
+.phone-search h3 { font-size: 16px; margin-bottom: 12px; }
+.phone-search p { font-size: 13px; color: var(--text-muted); margin-bottom: 16px; }
+
+/* ─── Instagram Setup Banner ─── */
+.insta-banner {
+  background: var(--bg-card); border-radius: var(--radius);
+  padding: 20px; text-align: center; margin-bottom: 24px;
+  border: 1px dashed var(--border);
+}
+.insta-banner .icon { font-size: 32px; margin-bottom: 8px; }
+.insta-banner h4 { font-size: 15px; margin-bottom: 4px; }
+.insta-banner p { font-size: 13px; color: var(--text-muted); }
+.insta-banner .insta-handle { color: var(--accent); font-weight: 600; }
+
+/* ─── Footer ─── */
+.site-footer {
+  text-align: center; padding: 40px 20px;
+  color: var(--text-muted); font-size: 13px; border-top: 1px solid var(--border);
+}
+.site-footer .powered { margin-top: 8px; }
+.site-footer strong { color: var(--text-secondary); }

@@ -110,7 +110,10 @@ app.use(express.static(PUBLIC_DIR, {
   },
 }));
 
-// Fallback: qualquer rota nao-API serve o index (navegacao do front)
+// PATCH para /barbearia-demo -> serve o site publico da barbearia
+app.get('/barbearia-demo', (req, res) => {
+  res.sendFile(path.join(PUBLIC_DIR, 'barbearia-index.html'));
+});
 app.get(/^\/(?!api\/).*/, (req, res) => {
   res.sendFile(path.join(PUBLIC_DIR, 'index.html'));
 });
