@@ -114,7 +114,8 @@ app.use(express.static(PUBLIC_DIR, {
 app.get('/barbearia-demo', (req, res) => {
   res.sendFile(path.join(PUBLIC_DIR, 'barbearia-index.html'));
 });
-app.get(/^\/(?!api\/).*/, (req, res) => {
+// Catch-all SPA (exclui arquivos estaticos e a rota da barbearia)
+app.get(/^\/(?!api\/)(?!barbearia-demo)(?!.*\.(css|js|png|jpg|jpeg|gif|ico|svg|woff2?|ttf|eot)$).*/, (req, res) => {
   res.sendFile(path.join(PUBLIC_DIR, 'index.html'));
 });
 
