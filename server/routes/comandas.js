@@ -113,7 +113,7 @@ router.post('/:id/itens', async (req, res) => {
     [req.params.id]
   );
   await query(`UPDATE comandas SET valor = $1 WHERE id = $2`,
-    [tot.rows[0].total.toFixed(2), req.params.id]);
+    [Number(tot.rows[0].total).toFixed(2), req.params.id]);
 
   res.status(201).json({ ok: true });
 });
@@ -128,7 +128,7 @@ router.delete('/:id/itens/:itemId', async (req, res) => {
     [req.params.id]
   );
   await query(`UPDATE comandas SET valor = $1 WHERE id = $2`,
-    [tot.rows[0].total.toFixed(2), req.params.id]);
+    [Number(tot.rows[0].total).toFixed(2), req.params.id]);
 
   res.json({ ok: true });
 });
