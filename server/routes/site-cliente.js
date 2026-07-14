@@ -21,12 +21,23 @@ let siteTemplate = null;
 
 function getTemplate() {
   if (!siteTemplate) {
-    // __dirname é server/routes/ → sobe 2 níveis para a raiz do projeto
-    const templatePath = join(__dirname, '..', '..', 'public', 'site-barbearia-template.html');
-    try {
-      siteTemplate = readFileSync(templatePath, 'utf-8');
-    } catch (e) {
-      console.error('Template não encontrado:', templatePath, e.message);
+    // Tentar multiplos paths (local dev vs Railway deploy)
+    const paths = [
+      join(__dirname, '..', '..', 'public', 'site-barbearia-template.html'),  // local: server/routes → raiz
+      join(__dirname, '..', 'public', 'site-barbearia-template.html'),        // alt: server/routes → server → public
+      join(process.cwd(), 'public', 'site-barbearia-template.html'),          // cwd
+    ];
+    for (const p of paths) {
+      try {
+        siteTemplate = readFileSync(p, 'utf-8');
+        console.log('✅ Template carregado:', p);
+        break;
+      } catch (e) {
+        // tenta próximo path
+      }
+    }
+    if (!siteTemplate) {
+      console.error('❌ Template não encontrado em:', paths);
       return null;
     }
   }
