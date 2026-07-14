@@ -11,6 +11,60 @@ let apiHorarioConfig = null;
 
 // ===== CARREGAR DADOS REAIS DO AGENDAPRO =====
 async function carregarDadosBarbearia() {
+  // Dados injetados pelo servidor (disponíveis imediatamente)
+  const bb = window.__BARBEARIA__ || {};
+
+  // Atualizar conteúdo visível com dados reais
+  if (bb.nome) {
+    // Hero
+    const heroTitle = document.querySelector('.hero h1');
+    const heroBadge = document.querySelector('.hero-badge');
+    const heroSub = document.querySelector('.hero-badge-sub');
+    if (heroBadge && bb.endereco) {
+      const cidade = bb.endereco.split(',').pop()?.trim() || bb.endereco;
+      heroBadge.textContent = cidade.includes('Campo Grande') ? 'Desde 2012 — Campo Grande, MS' : cidade;
+    }
+
+    // About section
+    const aboutName = document.querySelector('#sobre .about-text strong');
+    if (aboutName) aboutName.textContent = bb.nome;
+
+    // Footer
+    const footerName = document.querySelector('.footer-brand p');
+    if (footerName) footerName.textContent = bb.nome + ' — estilo que fala por você. Tradição, qualidade e o melhor atendimento da região.';
+
+    const footerCopy = document.querySelector('.footer-bottom span');
+    if (footerCopy) footerCopy.textContent = '© 2026 ' + bb.nome + '. Todos os direitos reservados.';
+
+    // WhatsApp float e links
+    if (bb.whatsapp) {
+      document.querySelectorAll('[href*="wa.me/55"]').forEach(el => {
+        el.href = el.href.replace(/556730459452/g, '55' + bb.whatsapp);
+      });
+    }
+
+    // Instagram
+    if (bb.instagram) {
+      const igLink = document.querySelector('a[href*="instagram.com"]');
+      if (igLink) igLink.href = 'https://www.instagram.com/' + bb.instagram.replace('@', '');
+    }
+
+    // Endereço
+    if (bb.endereco) {
+      const endEl = document.querySelector('#localizacao .location-item:nth-child(1) p');
+      if (endEl) endEl.innerHTML = bb.endereco.replace(/,/g, ',<br>');
+    }
+
+    // Telefone
+    if (bb.telefone) {
+      const telEls = document.querySelectorAll('a[href^="tel:"]');
+      telEls.forEach(el => {
+        el.href = 'tel:+' + bb.telefone;
+        el.textContent = bb.telefone.replace(/^55/, '(67) ').replace(/(\d{4})(\d{4})$/, '$1-$2');
+      });
+    }
+  }
+
   try {
     const res = await fetch(`${AGENDAPRO_API}/${AGENDAPRO_SLUG}`);
     if (!res.ok) throw new Error('API indisponivel');
