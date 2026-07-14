@@ -11,60 +11,6 @@ let apiHorarioConfig = null;
 
 // ===== CARREGAR DADOS REAIS DO AGENDAPRO =====
 async function carregarDadosBarbearia() {
-  // Dados injetados pelo servidor (disponíveis imediatamente)
-  const bb = window.__BARBEARIA__ || {};
-
-  // Atualizar conteúdo visível com dados reais
-  if (bb.nome) {
-    // Hero
-    const heroTitle = document.querySelector('.hero h1');
-    const heroBadge = document.querySelector('.hero-badge');
-    const heroSub = document.querySelector('.hero-badge-sub');
-    if (heroBadge && bb.endereco) {
-      const cidade = bb.endereco.split(',').pop()?.trim() || bb.endereco;
-      heroBadge.textContent = cidade.includes('Campo Grande') ? 'Desde 2012 — Campo Grande, MS' : cidade;
-    }
-
-    // About section
-    const aboutName = document.querySelector('#sobre .about-text strong');
-    if (aboutName) aboutName.textContent = bb.nome;
-
-    // Footer
-    const footerName = document.querySelector('.footer-brand p');
-    if (footerName) footerName.textContent = bb.nome + ' — estilo que fala por você. Tradição, qualidade e o melhor atendimento da região.';
-
-    const footerCopy = document.querySelector('.footer-bottom span');
-    if (footerCopy) footerCopy.textContent = '© 2026 ' + bb.nome + '. Todos os direitos reservados.';
-
-    // WhatsApp float e links
-    if (bb.whatsapp) {
-      document.querySelectorAll('[href*="wa.me/55"]').forEach(el => {
-        el.href = el.href.replace(/556730459452/g, '55' + bb.whatsapp);
-      });
-    }
-
-    // Instagram
-    if (bb.instagram) {
-      const igLink = document.querySelector('a[href*="instagram.com"]');
-      if (igLink) igLink.href = 'https://www.instagram.com/' + bb.instagram.replace('@', '');
-    }
-
-    // Endereço
-    if (bb.endereco) {
-      const endEl = document.querySelector('#localizacao .location-item:nth-child(1) p');
-      if (endEl) endEl.innerHTML = bb.endereco.replace(/,/g, ',<br>');
-    }
-
-    // Telefone
-    if (bb.telefone) {
-      const telEls = document.querySelectorAll('a[href^="tel:"]');
-      telEls.forEach(el => {
-        el.href = 'tel:+' + bb.telefone;
-        el.textContent = bb.telefone.replace(/^55/, '(67) ').replace(/(\d{4})(\d{4})$/, '$1-$2');
-      });
-    }
-  }
-
   try {
     const res = await fetch(`${AGENDAPRO_API}/${AGENDAPRO_SLUG}`);
     if (!res.ok) throw new Error('API indisponivel');
@@ -75,6 +21,56 @@ async function carregarDadosBarbearia() {
     apiHorarioConfig = (dados.barbearia && dados.barbearia.horario_config)
       ? dados.barbearia.horario_config
       : { manha: { inicio: '09:00', fim: '12:00' }, tarde: { inicio: '13:00', fim: '19:00' }, intervalo_minutos: 30 };
+
+    // ===== POPULAR PÁGINA COM DADOS REAIS =====
+    const bb = dados.barbearia;
+    if (bb) {
+      // Título da página
+      document.title = bb.nome + ' — Agendamento Online';
+
+      // Nome no hero e seções
+      document.querySelectorAll('.nav-logo, .footer-brand .nav-logo').forEach(el => {
+        if (el) el.innerHTML = bb.nome.charAt(0) + '<span>' + bb.nome.slice(1, 2) + '</span>';
+      });
+
+      // Telefone — atualizar todos os links
+      const telefone = (bb.telefone || '').replace(/\D/g, '');
+      if (telefone) {
+        document.querySelectorAll('[href*="556730459452"]').forEach(el => {
+          el.href = el.href.replace(/556730459452/g, telefone);
+        });
+        document.querySelectorAll('[href^="tel:"]').forEach(el => {
+          el.href = 'tel:+' + telefone;
+          el.textContent = telefone.replace(/^55(\d{2})/, '($1) ').replace(/(\d{4})(\d{4})$/, '$1-$2');
+        });
+      }
+
+      // Endereço
+      if (bb.endereco) {
+        const endEls = document.querySelectorAll('#localizacao .location-item p');
+        endEls.forEach(el => {
+          if (el.textContent && el.textContent.includes('José Antônio')) {
+            el.innerHTML = bb.endereco.replace(/,/g, ',<br>');
+          }
+        });
+      }
+
+      // Instagram
+      if (bb.instagram) {
+        const igLink = document.querySelector('a[href*="instagram.com"]');
+        if (igLink) igLink.href = 'https://www.instagram.com/' + bb.instagram.replace('@', '');
+      }
+
+      // Footer
+      const footerBrand = document.querySelector('.footer-brand p');
+      if (footerBrand) {
+        footerBrand.textContent = bb.nome + ' — estilo que fala por você. Tradição, qualidade e o melhor atendimento da região.';
+      }
+      const footerCopy = document.querySelector('.footer-bottom span');
+      if (footerCopy) {
+        footerCopy.textContent = '© 2026 ' + bb.nome + '. Todos os direitos reservados.';
+      }
+    }
 
     // Atualizar modal com dados reais
     renderizarServicosModal();
