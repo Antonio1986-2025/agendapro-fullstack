@@ -31,9 +31,9 @@
     .ag-card.st-confirmado { border-left-color: var(--success); }
     .ag-card.st-concluido { border-left-color: var(--primary); opacity: 0.75; }
     .ag-card.st-cancelado { border-left-color: var(--error); opacity: 0.5; }
-    .ag-card.st-bloqueado { border-left-color: #6b7280; background: var(--bg-secondary); }
+    .ag-card.st-bloqueado { border-left-color: var(--gray-500); background: var(--bg-secondary); }
     .ag-hora { background: var(--primary-light); color: var(--primary-dark); padding: var(--space-sm); border-radius: var(--radius-md); font-weight: var(--font-bold); min-width: 52px; text-align: center; font-size: var(--text-sm); }
-    .ag-card.st-bloqueado .ag-hora { background: #e5e7eb; color: #6b7280; }
+    .ag-card.st-bloqueado .ag-hora { background: var(--bg-tertiary); color: var(--text-tertiary); }
     .ag-info { flex: 1; min-width: 0; }
     .ag-cliente { font-weight: var(--font-semibold); color: var(--text-primary); }
     .ag-serv { font-size: var(--text-sm); color: var(--text-secondary); }
@@ -59,7 +59,7 @@
     .field label { display: block; font-size: var(--text-sm); font-weight: var(--font-medium); margin-bottom: var(--space-xs); color: var(--text-secondary); }
     .alert { padding: var(--space-sm) var(--space-md); border-radius: var(--radius-md); font-size: var(--text-sm); margin-bottom: var(--space-md); display: none; }
     .alert.error { background: var(--error-light); color: var(--error); display: block; }
-    .bloqueio-tag { display: inline-block; font-size: var(--text-xs); color: #6b7280; background: #f3f4f6; padding: 2px 8px; border-radius: var(--radius-full); margin-top: 4px; }
+    .bloqueio-tag { display: inline-block; font-size: var(--text-xs); color: var(--text-tertiary); background: var(--bg-tertiary); padding: 2px 8px; border-radius: var(--radius-full); margin-top: 4px; }
 
     /* 🔔 Notifications */
     .notif-badge { position: absolute; top: -2px; right: -2px; background: var(--error); color: #fff; font-size: 10px; min-width: 18px; height: 18px; border-radius: 9px; display: none; align-items: center; justify-content: center; font-weight: var(--font-bold); pointer-events: none; }
@@ -111,7 +111,7 @@
     .tl-event .tl-event-nome { font-weight: var(--font-semibold); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
     .tl-event .tl-event-serv { font-size: 10px; opacity: 0.8; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
     .tl-event.cliente { background: var(--primary-light); color: var(--primary-dark); }
-    .tl-event.bloqueado { background: #e5e7eb; color: #6b7280; border-left-color: #6b7280; }
+    .tl-event.bloqueado { background: var(--bg-tertiary); color: var(--text-tertiary); border-left-color: var(--gray-500); }
     .tl-empty-slot { position: absolute; left: 4px; right: 4px; height: 56px; z-index: 1; cursor: pointer; border-radius: var(--radius-sm); border: 1px dashed transparent; transition: all var(--transition-fast); }
     .tl-empty-slot:hover { background: rgba(59,130,246,0.05); border-color: var(--primary); }
     .tl-empty-slot i { position: absolute; top: 50%; left: 50%; transform: translate(-50%,-50%); opacity: 0; font-size: 14px; color: var(--primary); transition: opacity var(--transition-fast); }
@@ -562,8 +562,8 @@
     }
 
     function getNotifColor(tipo) {
-      const mapa = { agendamento: 'var(--primary)', cancelamento: 'var(--error)', lembrete: 'var(--warning)', pagamento: 'var(--success)', avaliacao: '#f59e0b', sistema: '#6b7280', promocao: '#ec4899' };
-      return mapa[tipo] || '#6b7280';
+      const mapa = { agendamento: 'var(--primary)', cancelamento: 'var(--error)', lembrete: 'var(--warning)', pagamento: 'var(--success)', avaliacao: 'var(--warning)', sistema: 'var(--text-tertiary)', promocao: '#ec4899' };
+      return mapa[tipo] || 'var(--text-tertiary)';
     }
 
     function timeAgo(dt) {
@@ -813,7 +813,7 @@
           <div class="ag-card st-bloqueado">
             <div class="ag-hora">${hora}</div>
             <div class="ag-info">
-              <div class="ag-cliente" style="color:#6b7280;">BLOQUEADO</div>
+              <div class="ag-cliente" style="color:var(--text-tertiary);">BLOQUEADO</div>
               <div class="ag-serv">${b.motivo || 'Sem motivo'} ${b.duracao_minutos ? '• ' + b.duracao_minutos + 'min' : ''}</div>
             </div>
             <div class="ag-acoes">

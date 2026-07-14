@@ -228,6 +228,16 @@
   --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.4);
   --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.5);
   --shadow-xl: 0 20px 25px -5px rgba(0, 0, 0, 0.6);
+
+  /* Semânticas — fundos claros viram opacidade em dark */
+  --success-light: rgba(22, 163, 74, 0.15);
+  --error-light: rgba(220, 38, 38, 0.15);
+  --warning-light: rgba(245, 158, 11, 0.15);
+  --info-light: rgba(14, 165, 233, 0.15);
+
+  /* Variáveis de apoio para dark mode */
+  --surface2: var(--gray-800);
+  --danger: var(--error);
 }
 
 /* ════════════════════════════════════════════════════════════════

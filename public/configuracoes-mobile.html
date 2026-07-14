@@ -157,9 +157,9 @@
       font-size: var(--text-2xl);
     }
 
-    .wa-status-icon.connected { background: #d1fae5; color: #059669; }
-    .wa-status-icon.disconnected { background: #fee2e2; color: #dc2626; }
-    .wa-status-icon.connecting { background: #fef3c7; color: #d97706; }
+    .wa-status-icon.connected { background: var(--success-light); color: var(--success); }
+    .wa-status-icon.disconnected { background: var(--error-light); color: var(--error); }
+    .wa-status-icon.connecting { background: var(--warning-light); color: var(--warning); }
 
     .wa-status-label {
       font-size: var(--text-sm);
@@ -172,9 +172,9 @@
       font-weight: var(--font-bold);
     }
 
-    .wa-status-value.connected { color: #059669; }
-    .wa-status-value.disconnected { color: #dc2626; }
-    .wa-status-value.connecting { color: #d97706; }
+    .wa-status-value.connected { color: var(--success); }
+    .wa-status-value.disconnected { color: var(--error); }
+    .wa-status-value.connecting { color: var(--warning); }
 
     .wa-number {
       font-size: var(--text-xs);
@@ -318,9 +318,9 @@
       margin-bottom: var(--space-md);
     }
 
-    .ai-status.active { background: #d1fae5; color: #059669; }
-    .ai-status.inactive { background: #fee2e2; color: #dc2626; }
-    .ai-status.no-key { background: #fef3c7; color: #d97706; }
+    .ai-status.active { background: var(--success-light); color: var(--success); }
+    .ai-status.inactive { background: var(--error-light); color: var(--error); }
+    .ai-status.no-key { background: var(--warning-light); color: var(--warning); }
     
     /* TOGGLES */
     .config-toggle {
