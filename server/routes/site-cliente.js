@@ -9,43 +9,53 @@
 
 import { Router } from 'express';
 import { query } from '../config/database.js';
+import { readFileSync, existsSync } from 'fs';
 import { join, dirname } from 'path';
 import { fileURLToPath } from 'url';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const router = Router();
 
-// Caminho absoluto para o diretório public/
+// Carregar template em memória no startup
 const PUBLIC_DIR = join(__dirname, '..', '..', 'public');
 const TEMPLATE_PATH = join(PUBLIC_DIR, 'site-barbearia-template.html');
+
+let htmlTemplate = '';
+try {
+  htmlTemplate = existsSync(TEMPLATE_PATH) ? readFileSync(TEMPLATE_PATH, 'utf-8') : '';
+  console.log('✅ Site template carregado (' + (htmlTemplate.length / 1024).toFixed(1) + 'KB) de ' + TEMPLATE_PATH);
+} catch (e) {
+  console.error('❌ Erro ao carregar template:', e.message);
+}
 
 // GET /b/:slug — Site público da barbearia
 router.get('/:slug', async (req, res) => {
   const { slug } = req.params;
 
+  // Validar se barbearia existe
   try {
-    // Buscar dados da barbearia
     const { rows } = await query(
-      `SELECT id, nome, slug, telefone, email, endereco, horario_config, instagram
-       FROM barbearias WHERE slug = $1 AND ativo = true`,
+      `SELECT id FROM barbearias WHERE slug = $1 AND ativo = true`,
       [slug]
     );
-
     if (!rows[0]) {
       return res.redirect(`/agendar.html?b=${slug}`);
     }
+  } catch (err) {
+    console.error('Erro ao validar barbearia:', err.message);
+    // Mesmo com erro, tentamos servir o template
+  }
 
-    // Enviar o template como arquivo estático — o JS do cliente
-    // detecta o slug da URL e carrega os dados via API pública.
-    // Isso funciona porque o CSS e JS estão em /site-template/
-    // e acessam a API em /api/publico/:slug
-    res.sendFile(TEMPLATE_PATH, (err) => {
-      if (err) {
-        console.error('Erro ao enviar template:', err.message);
-        // Fallback: redirecionar para agendar.html
-        res.redirect(`/agendar.html?b=${slug}`);
-      }
-    });
+  // Servir template em memória
+  if (htmlTemplate) {
+    res.set('Content-Type', 'text/html; charset=utf-8');
+    return res.send(htmlTemplate);
+  }
+
+  // Fallback: tentar sendFile
+  res.sendFile(TEMPLATE_PATH, { maxAge: 0 }, (err) => {
+    if (err) res.redirect(`/agendar.html?b=${slug}`);
+  });
 
   } catch (err) {
     console.error('Erro site cliente:', err.message);
