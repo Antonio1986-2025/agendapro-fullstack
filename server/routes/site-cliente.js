@@ -9,40 +9,15 @@
 
 import { Router } from 'express';
 import { query } from '../config/database.js';
-import { readFileSync } from 'fs';
 import { join, dirname } from 'path';
 import { fileURLToPath } from 'url';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const router = Router();
 
-// Template do site (carregado uma vez na memória)
-let siteTemplate = null;
-
-function getTemplate() {
-  if (!siteTemplate) {
-    // Tentar multiplos paths (local dev vs Railway deploy)
-    const paths = [
-      join(__dirname, '..', '..', 'public', 'site-barbearia-template.html'),  // local: server/routes → raiz
-      join(__dirname, '..', 'public', 'site-barbearia-template.html'),        // alt: server/routes → server → public
-      join(process.cwd(), 'public', 'site-barbearia-template.html'),          // cwd
-    ];
-    for (const p of paths) {
-      try {
-        siteTemplate = readFileSync(p, 'utf-8');
-        console.log('✅ Template carregado:', p);
-        break;
-      } catch (e) {
-        // tenta próximo path
-      }
-    }
-    if (!siteTemplate) {
-      console.error('❌ Template não encontrado em:', paths);
-      return null;
-    }
-  }
-  return siteTemplate;
-}
+// Caminho absoluto para o diretório public/
+const PUBLIC_DIR = join(__dirname, '..', '..', 'public');
+const TEMPLATE_PATH = join(PUBLIC_DIR, 'site-barbearia-template.html');
 
 // GET /b/:slug — Site público da barbearia
 router.get('/:slug', async (req, res) => {
@@ -57,66 +32,23 @@ router.get('/:slug', async (req, res) => {
     );
 
     if (!rows[0]) {
-      // Fallback: redirecionar para página de agendamento público
       return res.redirect(`/agendar.html?b=${slug}`);
     }
 
-    const barbearia = rows[0];
-
-    // Buscar serviços e profissionais para meta tags
-    const [servicos, profissionais] = await Promise.all([
-      query('SELECT nome, duracao_minutos, preco FROM servicos WHERE barbearia_id = $1 AND ativo = true ORDER BY nome', [barbearia.id]),
-      query('SELECT nome, especialidade FROM profissionais WHERE barbearia_id = $1 AND ativo = true ORDER BY nome', [barbearia.id]),
-    ]);
-
-    // Tentar carregar o template avançado
-    let html = getTemplate();
-
-    if (html) {
-      // Substituir placeholders no template
-      const nome = barbearia.nome || 'Barbearia';
-      const telefone = (barbearia.telefone || '').replace(/\D/g, '');
-      const endereco = barbearia.endereco || '';
-      const instagram = barbearia.instagram || '';
-
-      html = html
-        .replace(/__SLUG__/g, slug)
-        .replace(/__NOME__/g, nome)
-        .replace(/__TELEFONE__/g, telefone)
-        .replace(/__WHATSAPP__/g, telefone)
-        .replace(/__ENDERECO__/g, endereco)
-        .replace(/__INSTAGRAM__/g, instagram);
-
-      // Gerar meta tags dinâmicas
-      const metaTitle = `${nome} — Agendamento Online`;
-      const metaDesc = `${nome} — Agende seu horário online. ${servicos.rows.slice(0, 3).map(s => s.nome).join(', ')} e mais.`;
-      html = html.replace(/__META_TITLE__/g, metaTitle);
-      html = html.replace(/__META_DESC__/g, metaDesc);
-
-      // JSON-LD dinâmico
-      const jsonLd = JSON.stringify({
-        '@context': 'https://schema.org',
-        '@type': 'LocalBusiness',
-        name: nome,
-        description: metaDesc,
-        address: { '@type': 'PostalAddress', streetAddress: endereco, addressLocality: 'Campo Grande', addressRegion: 'MS', addressCountry: 'BR' },
-        telephone: telefone,
-        url: `https://agendapro-app-production.up.railway.app/b/${slug}`,
-        priceRange: servicos.rows.length > 0
-          ? 'R$ ' + Math.min(...servicos.rows.map(s => parseFloat(s.preco) || 0)) + ' - R$ ' + Math.max(...servicos.rows.map(s => parseFloat(s.preco) || 0))
-          : '',
-      });
-      html = html.replace('__JSON_LD__', jsonLd);
-
-      res.send(html);
-    } else {
-      // Fallback: template inline simplificado se o arquivo não existir
-      res.send(renderFallbackSite(barbearia, servicos.rows, profissionais.rows));
-    }
+    // Enviar o template como arquivo estático — o JS do cliente
+    // detecta o slug da URL e carrega os dados via API pública.
+    // Isso funciona porque o CSS e JS estão em /site-template/
+    // e acessam a API em /api/publico/:slug
+    res.sendFile(TEMPLATE_PATH, (err) => {
+      if (err) {
+        console.error('Erro ao enviar template:', err.message);
+        // Fallback: redirecionar para agendar.html
+        res.redirect(`/agendar.html?b=${slug}`);
+      }
+    });
 
   } catch (err) {
     console.error('Erro site cliente:', err.message);
-    // Último fallback: redirecionar para agendar.html
     res.redirect(`/agendar.html?b=${slug}`);
   }
 });
