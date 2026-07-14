@@ -1,0 +1,493 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Barbearia Campo Grande Barbershop</title>
+  <meta name="description" content="Barbearia profissional em Campo Grande - MS. Cortes modernos, barba tradicional e estilo único.">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,700;1,400&family=Inter:wght@300;400;500;600;700&family=DM+Sans:wght@400;500&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+
+  <meta property="og:title" content="Barbearia Campo Grande Barbershop">
+  <meta property="og:description" content="Barbearia profissional em Campo Grande - MS. Cortes modernos, barba tradicional e estilo único.">
+  <meta property="og:type" content="website">
+  <meta property="og:url" content="https://antonio1986-2025.github.io/barbearia-cg-barbershop/">
+  <meta property="og:image" content="https://d39p7gjvbgwtet.cloudfront.net/Estabelecimentos/67215/790x550/p_foto_000503692.jpg">
+  <meta property="og:locale" content="pt_BR">
+  <link rel="canonical" href="https://antonio1986-2025.github.io/barbearia-cg-barbershop/">
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "LocalBusiness",
+    "name": "Barbearia Campo Grande Barbershop",
+    "image": "https://d39p7gjvbgwtet.cloudfront.net/Estabelecimentos/67215/790x550/p_foto_000503692.jpg",
+    "description": "Barbearia tradicional desde 2012 em Campo Grande - MS. Cortes modernos, barba feita na navalha.",
+    "address": {
+      "@type": "PostalAddress",
+      "streetAddress": "R. José Antônio, 1072",
+      "addressLocality": "Campo Grande",
+      "addressRegion": "MS",
+      "postalCode": "79002-401",
+      "addressCountry": "BR"
+    },
+    "geo": {
+      "@type": "GeoCoordinates",
+      "latitude": -20.468129,
+      "longitude": -54.600437
+    },
+    "telephone": "+556730459452",
+    "openingHoursSpecification": [
+      {"@type": "OpeningHoursSpecification", "dayOfWeek": ["Tuesday","Wednesday","Thursday","Friday"], "opens": "09:00", "closes": "19:30"},
+      {"@type": "OpeningHoursSpecification", "dayOfWeek": "Saturday", "opens": "09:00", "closes": "16:00"}
+    ],
+    "url": "https://antonio1986-2025.github.io/barbearia-cg-barbershop/",
+    "priceRange": "R$ 30 - R$ 125"
+  }
+  </script>
+  <link rel="stylesheet" href="/site-template/style.css">
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>💈</text></svg>">
+</head>
+<body>
+  <div class="mouse-follower" id="mouseFollower"></div>
+
+  <!-- ===== NAV ===== -->
+  <nav id="navbar">
+    <a href="#" class="nav-logo">C<span>G</span></a>
+    <button class="hamburger" id="hamburger" aria-label="Menu">
+      <span></span><span></span><span></span>
+    </button>
+    <ul class="nav-links" id="navLinks">
+      <li><a href="#sobre">Sobre</a></li>
+      <li><a href="#servicos">Serviços</a></li>
+      <li><a href="#galeria">Galeria</a></li>
+      <li><a href="#depoimentos">Depoimentos</a></li>
+      <li><a href="#localizacao">Localização</a></li>
+      <li><a href="#contato" class="nav-cta">Agendar</a></li>
+      <li><button class="theme-toggle-btn" onclick="toggleTheme()" aria-label="Alternar tema" title="Alternar tema claro/escuro"><i class="fas fa-moon"></i></button></li>
+    </ul>
+  </nav>
+
+  <!-- ===== HERO ===== -->
+  <section class="hero" id="hero">
+    <div class="hero-overlay-pattern"></div>
+    <div class="hero-particles">
+      <div class="particle" style="--left:10%;--duration:12s;--delay:0s;"></div>
+      <div class="particle" style="--left:25%;--duration:15s;--delay:2s;"></div>
+      <div class="particle" style="--left:40%;--duration:11s;--delay:4s;"></div>
+      <div class="particle" style="--left:55%;--duration:14s;--delay:1s;"></div>
+      <div class="particle" style="--left:70%;--duration:13s;--delay:3s;"></div>
+      <div class="particle" style="--left:85%;--duration:16s;--delay:5s;"></div>
+      <div class="particle" style="--left:15%;--duration:18s;--delay:7s;"></div>
+      <div class="particle" style="--left:50%;--duration:10s;--delay:6s;"></div>
+      <div class="particle" style="--left:75%;--duration:17s;--delay:8s;"></div>
+      <div class="particle" style="--left:90%;--duration:12s;--delay:9s;"></div>
+    </div>
+    <div class="hero-content">
+      <div class="hero-badge">Desde 2012 — Campo Grande, MS</div>
+      <span class="hero-badge-sub">"Trabalho honesto e sem glamour"</span>
+      <h1>Estilo que <em>fala</em> por você</h1>
+      <p>Barbearia tradicional desde 2012. Trabalho honesto e sem glamour — cortes modernos, barba feita na navalha e aquele atendimento que faz você voltar sempre.</p>
+      <div class="hero-actions">
+        <a href="#" onclick="openBookingModal();return false;" class="btn btn-primary"><i class="fas fa-calendar-check"></i> Agendar Agora</a>
+        <a href="#servicos" class="btn btn-outline"><i class="fas fa-list-ul"></i> Ver Serviços</a>
+      </div>
+    </div>
+    <div class="hero-scroll">
+      <span>Role</span>
+      <div class="line"></div>
+    </div>
+  </section>
+
+  <!-- ===== ABOUT ===== -->
+  <section id="sobre">
+    <div class="container">
+      <div class="reveal">
+        <span class="section-tag">Quem somos</span>
+        <h2 class="section-title">Tradição desde 2012<br>no coração de Campo Grande</h2>
+        <p class="section-desc">Somos a Campo Grande Barbershop — barbearia tradicional, trabalho honesto e sem glamour. Desde 2012 transformando o visual dos homens da região.</p>
+      </div>
+      <div class="about-grid">
+        <div class="about-image reveal">
+          <img src="https://d39p7gjvbgwtet.cloudfront.net/Estabelecimentos/67215/790x550/p_foto_000503692.jpg" alt="Barbearia Campo Grande Barbershop — fachada e ambiente" loading="lazy">
+        </div>
+        <div class="about-text reveal">
+          <p>Somos a <strong>Campo Grande Barbershop</strong>, uma barbearia tradicional. Trabalho honesto e sem glamour. Desde 2012.</p>
+          <p>Nosso time é formado por barbeiros experientes — <strong>Roger, Eduardo e Victor</strong> — apaixonados pelo que fazem. Cada corte é feito com atenção aos detalhes, do degradê perfeito ao acabamento da barba com navalha. Ambiente climatizado, cadeiras confortáveis e aquele atendimento que faz você voltar sempre.</p>
+          <h3>💈 Nossa Equipe</h3>
+          <p>Conheça nossos barbeiros:</p>
+          <div class="team-grid">
+            <div class="team-card">
+              <img src="https://d39p7gjvbgwtet.cloudfront.net/Pessoas/120x120/p_foto_000403667.jpg" alt="Roger - Barbeiro" loading="lazy" class="team-photo">
+              <strong>Roger</strong>
+            </div>
+            <div class="team-card">
+              <img src="https://d39p7gjvbgwtet.cloudfront.net/Pessoas/120x120/p_foto_000622898.jpg" alt="Eduardo - Barbeiro" loading="lazy" class="team-photo">
+              <strong>Eduardo</strong>
+            </div>
+            <div class="team-card">
+              <img src="https://d39p7gjvbgwtet.cloudfront.net/Pessoas/120x120/p_foto_000673312.jpg" alt="Victor - Barbeiro" loading="lazy" class="team-photo">
+              <strong>Victor</strong>
+            </div>
+          </div>
+          <div class="about-stats">
+            <div class="stat-item">
+              <div class="stat-number">5.0</div>
+              <div class="stat-label">⭐ Avaliação</div>
+            </div>
+            <div class="stat-item">
+              <div class="stat-number">12</div>
+              <div class="stat-label">Avaliações</div>
+            </div>
+            <div class="stat-item">
+              <div class="stat-number">2012</div>
+              <div class="stat-label">Desde</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ===== SERVICES ===== -->
+  <section id="servicos">
+    <div class="container">
+      <div class="services-header reveal">
+        <span class="section-tag">Nossos serviços</span>
+        <h2 class="section-title">Cada detalhe, um<br>novo visual</h2>
+        <p class="section-desc" style="margin:0 auto;">Do clássico ao moderno — o cuidado que seu visual merece.</p>
+      </div>
+      <div class="services-grid">
+        <div class="service-card reveal">
+          <div class="service-icon"><i class="fas fa-cut"></i></div>
+          <h3>Corte de Cabelo</h3>
+          <p>Corte personalizado com tesoura e máquina. Inclui lavagem e finalização.</p>
+        </div>
+        <div class="service-card reveal">
+          <div class="service-icon"><i class="fas fa-user"></i></div>
+          <h3>Barba (Aparar/Alinhar)</h3>
+          <p>Aparar e alinhar a barba com navalha, toalha quente e balm hidratante.</p>
+        </div>
+        <div class="service-card reveal">
+          <div class="service-icon"><i class="fas fa-fire"></i></div>
+          <h3>Cabelo + Barba</h3>
+          <p>Nosso combo mais popular. Corte completo + barba. Economia e praticidade.</p>
+        </div>
+        <div class="service-card reveal">
+          <div class="service-icon"><i class="fas fa-bolt"></i></div>
+          <h3>Raspar (Mesmo Tamanho)</h3>
+          <p>Raspagem completa com o mesmo tamanho em todo o cabelo. Rápido e prático.</p>
+        </div>
+        <div class="service-card reveal">
+          <div class="service-icon">👂</div>
+          <h3>Depilação Orelha</h3>
+          <p>Depilação de orelha com pinça e navalha. Detalhe que faz a diferença.</p>
+        </div>
+        <div class="service-card reveal">
+          <div class="service-icon"><i class="fas fa-crown"></i></div>
+          <h3>Pacote VIP</h3>
+          <p>Corte + Barba + Depilação. Saia completo e impecável da barbearia.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ===== GALLERY ===== -->
+  <section id="galeria">
+    <div class="container">
+      <div class="reveal">
+        <span class="section-tag">Galeria</span>
+        <h2 class="section-title">Nosso trabalho<br>em imagens</h2>
+        <p class="section-desc">Antes e depois dos nossos clientes. Resultados que falam por si.</p>
+      </div>
+      <div class="gallery-grid">
+        <div class="gallery-item reveal">
+          <img src="https://d39p7gjvbgwtet.cloudfront.net/Estabelecimentos/67215/790x550/p_foto_000503692.jpg" alt="Foto da barbearia" loading="lazy">
+        </div>
+        <div class="gallery-item reveal">
+          <img src="https://d39p7gjvbgwtet.cloudfront.net/Estabelecimentos/67215/790x550/p_foto_000503691.jpg" alt="Foto da barbearia" loading="lazy">
+        </div>
+        <div class="gallery-item reveal">
+          <img src="https://d39p7gjvbgwtet.cloudfront.net/Estabelecimentos/67215/790x550/p_foto_000328406.jpg" alt="Foto da barbearia" loading="lazy">
+        </div>
+        <div class="gallery-item reveal">
+          <img src="https://d39p7gjvbgwtet.cloudfront.net/Estabelecimentos/67215/790x550/p_foto_000328404.jpg" alt="Foto da barbearia" loading="lazy">
+        </div>
+        <div class="gallery-item reveal">
+          <img src="https://d39p7gjvbgwtet.cloudfront.net/Estabelecimentos/67215/790x550/p_foto_000503690.jpg" alt="Foto da barbearia" loading="lazy">
+        </div>
+        <div class="gallery-item reveal">
+          <img src="https://d39p7gjvbgwtet.cloudfront.net/Estabelecimentos/67215/790x550/p_foto_000503689.jpg" alt="Foto da barbearia" loading="lazy">
+        </div>
+        <div class="gallery-item reveal">
+          <img src="https://d39p7gjvbgwtet.cloudfront.net/Estabelecimentos/67215/790x550/p_foto_000328411.jpg" alt="Foto da barbearia" loading="lazy">
+        </div>
+        <div class="gallery-item reveal">
+          <img src="https://d39p7gjvbgwtet.cloudfront.net/Estabelecimentos/67215/790x550/p_foto_000328408.jpg" alt="Foto da barbearia" loading="lazy">
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ===== TESTIMONIALS ===== -->
+  <section id="depoimentos">
+    <div class="container">
+      <div class="services-header reveal">
+        <span class="section-tag">Depoimentos</span>
+        <h2 class="section-title">O que nossos<br>clientes dizem</h2>
+        <p class="section-desc" style="margin:0 auto;">Avaliação 5.0 ★ no Trinks — veja por que nossos clientes voltam sempre.</p>
+      </div>
+      <div class="testimonials-grid">
+        <div class="testimonial-card reveal">
+          <div class="testimonial-stars">★★★★★</div>
+          <p class="testimonial-text">"Excelente atendimento! Ambiente acolhedor e corte impecável. O Roger é um artista com a tesoura. Super recomendo!"</p>
+          <div class="testimonial-author">
+            <div class="testimonial-avatar">F</div>
+            <div>
+              <div class="testimonial-name">Franciele</div>
+              <div class="testimonial-source">Trinks ★★★★★ — 21/04/2026</div>
+            </div>
+          </div>
+        </div>
+        <div class="testimonial-card reveal">
+          <div class="testimonial-stars">★★★★★</div>
+          <p class="testimonial-text">"Equipe top demais! O Victor fez o melhor degradê que já tive. Preço justo e atendimento nota 10. Virei cliente fiel."</p>
+          <div class="testimonial-author">
+            <div class="testimonial-avatar">F</div>
+            <div>
+              <div class="testimonial-name">Fernando</div>
+              <div class="testimonial-source">Trinks ★★★★★ — 09/04/2026</div>
+            </div>
+          </div>
+        </div>
+        <div class="testimonial-card reveal">
+          <div class="testimonial-stars">★★★★★</div>
+          <p class="testimonial-text">"O Eduardo é o melhor! Barba feita na navalha com toalha quente — experiência de outro nível. Desde 2012 e só melhora!"</p>
+          <div class="testimonial-author">
+            <div class="testimonial-avatar">T</div>
+            <div>
+              <div class="testimonial-name">Thiago</div>
+              <div class="testimonial-source">Trinks ★★★★★ — 29/08/2025</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ===== LOCATION ===== -->
+  <section id="localizacao">
+    <div class="container">
+      <div class="reveal">
+        <span class="section-tag">Localização</span>
+        <h2 class="section-title">Venha nos<br>conhecer pessoalmente</h2>
+        <p class="section-desc">Estamos na Vila Rosa Pires, pertinho de você.</p>
+      </div>
+      <div class="location-grid">
+        <div class="location-info reveal">
+          <div class="location-item">
+            <div class="location-icon"><i class="fas fa-location-dot"></i></div>
+            <div>
+              <h4>Endereço</h4>
+              <p>R. José Antônio, 1072<br>Vila Rosa Pires, Campo Grande - MS<br>CEP: 79002-401</p>
+            </div>
+          </div>
+          <div class="location-item">
+            <div class="location-icon"><i class="fas fa-phone"></i></div>
+            <div>
+              <h4>Telefone</h4>
+              <p><a href="tel:556730459452">(67) 3045-9452</a></p>
+            </div>
+          </div>
+          <div class="location-item">
+            <div class="location-icon"><i class="fas fa-clock"></i></div>
+            <div>
+              <h4>Horários</h4>
+              <p>
+                Seg a Sex: 09:00 - 19:30<br>
+                Sábado: 09:00 - 16:00<br>
+                <span style="color:var(--gold);font-size:0.85rem;">Dom e Seg: Fechado</span>
+              </p>
+            </div>
+          </div>
+          <div class="location-item">
+            <div class="location-icon">📱</div>
+            <div>
+              <h4>Agende Online</h4>
+              <p><a href="#" onclick="openBookingModal();return false;" style="color:var(--gold);text-decoration:underline;">Clique aqui para agendar</a></p>
+            </div>
+          </div>
+          <div class="location-item">
+            <div class="location-icon">📱</div>
+            <div>
+              <h4>WhatsApp</h4>
+              <p><a href="https://wa.me/556730459452" target="_blank">(67) 3045-9452</a></p>
+            </div>
+          </div>
+          <a href="https://wa.me/556730459452" target="_blank" class="btn btn-whatsapp" style="align-self:flex-start;margin-top:0.5rem;">📱 Agende pelo WhatsApp</a>
+        </div>
+        <div class="location-map reveal">
+          <iframe src="https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d3691.313226401273!2d-54.600437!3d-20.468129!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x0%3A0x0!2zMjDCsDI4JzA1LjMiUyA1NMKwMzYnMDEuNiJX!5e0!3m2!1spt-BR!2sbr!4v1" allowfullscreen="" loading="lazy" referrerpolicy="no-referrer-when-downgrade"></iframe>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ===== BOOKING MODAL ===== -->
+  <div class="modal-overlay" id="bookingModal">
+    <div class="modal">
+      <button class="modal-close" onclick="closeBookingModal()">✕</button>
+      
+      <!-- Step 1 -->
+      <div class="modal-step" id="step1">
+        <h2>📋 Escolha o serviço</h2>
+        <p class="sub">Selecione o que você precisa</p>
+        <div class="service-select" id="serviceList">
+          <div class="service-option" data-service="Corte de Cabelo" onclick="selectService(this)">
+            <span class="name">✂️ Corte de Cabelo — 45min</span>
+          </div>
+          <div class="service-option" data-service="Barba (Aparar/Alinhar)" onclick="selectService(this)">
+            <span class="name">🧔 Barba (Aparar/Alinhar) — 45min</span>
+          </div>
+          <div class="service-option" data-service="Cabelo + Barba" onclick="selectService(this)">
+            <span class="name">🔥 Cabelo + Barba — 1h15min</span>
+          </div>
+          <div class="service-option" data-service="Raspar (Mesmo Tamanho)" onclick="selectService(this)">
+            <span class="name">⚡ Raspar (Mesmo Tamanho) — 15min</span>
+          </div>
+          <div class="service-option" data-service="Depilação Orelha" onclick="selectService(this)">
+            <span class="name">👂 Depilação Orelha — 15min</span>
+          </div>
+          <div class="service-option" data-service="Pacote VIP (Corte + Barba + Depilação)" onclick="selectService(this)">
+            <span class="name">👑 Pacote VIP — 1h30min</span>
+          </div>
+        </div>
+        <button class="modal-btn primary" id="step1Btn" onclick="goToStep2()" disabled>Continuar →</button>
+      </div>
+      
+      <!-- Step 2 -->
+      <div class="modal-step hidden" id="step2">
+        <h2>💈 Escolha o barbeiro</h2>
+        <p class="sub">Quem vai te atender?</p>
+        <div class="barber-select">
+          <div class="barber-option" data-barber="Roger" onclick="selectBarber(this)">
+            <span class="name">Roger</span>
+            <span class="count">30 agendamentos</span>
+          </div>
+          <div class="barber-option" data-barber="Eduardo" onclick="selectBarber(this)">
+            <span class="name">Eduardo</span>
+            <span class="count">22 agendamentos</span>
+          </div>
+          <div class="barber-option" data-barber="Victor" onclick="selectBarber(this)">
+            <span class="name">Victor</span>
+            <span class="count">3 agendamentos</span>
+          </div>
+        </div>
+        <button class="modal-btn primary" id="step2Btn" onclick="goToStep3()" disabled>Continuar →</button>
+        <button class="modal-btn secondary" onclick="goToStep1()">← Voltar</button>
+      </div>
+      
+      <!-- Step 3 -->
+      <div class="modal-step hidden" id="step3">
+        <h2><i class="fas fa-calendar-alt"></i> Escolha o dia</h2>
+        <p class="sub">Selecione a data e horário</p>
+        <div class="date-select">
+          <label>Data</label>
+          <input type="date" id="bookingDate" min="" onchange="generateTimeSlots()">
+        </div>
+        <div style="margin-top:1.2rem;">
+          <label>Horário</label>
+          <div class="time-slots" id="timeSlots"></div>
+        </div>
+        <div style="margin-top:1.2rem;">
+          <label>Seu nome</label>
+          <input type="text" id="bookingName" placeholder="Seu nome completo" style="width:100%;padding:0.7rem;background:var(--black-2);border:1px solid var(--gold-dark);color:var(--cream);border-radius:4px;font-family:var(--font-body);">
+        </div>
+        <div style="margin-top:0.8rem;">
+          <label>Seu telefone (WhatsApp)</label>
+          <input type="tel" id="bookingPhone" placeholder="(67) 99999-9999" style="width:100%;padding:0.7rem;background:var(--black-2);border:1px solid var(--gold-dark);color:var(--cream);border-radius:4px;font-family:var(--font-body);">
+        </div>
+        <button class="modal-btn primary" id="step3Btn" onclick="goToStep4()" disabled>Continuar →</button>
+        <button class="modal-btn secondary" onclick="goToStep2()">← Voltar</button>
+      </div>
+
+      <!-- Step 4 -->
+      <div class="modal-step hidden" id="step4">
+        <h2><i class="fas fa-circle-check"></i> Revisar agendamento</h2>
+        <p class="sub">Confira os dados antes de enviar</p>
+        <div class="modal-review" id="reviewContent"></div>
+        <button class="modal-btn whatsapp"><i class="fas fa-paper-plane"></i> Confirmar Agendamento</button>
+        <button class="modal-btn secondary" onclick="goToStep3()">← Voltar</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ===== CTA ===== -->
+  <section id="contato">
+    <div class="container cta-content">
+      <div class="reveal">
+        <span class="section-tag">Vem ser cliente</span>
+        <h2 class="section-title">Pronto para um<br>visual novo?</h2>
+        <p>Agende seu horário online agora mesmo! Escolha o serviço, barbeiro e horário — tudo enviado direto pro WhatsApp da barbearia.</p>
+        <p style="color:var(--gray); font-size:0.85rem; font-weight:300;">⏰ Cancelamento com 2h de antecedência.</p>
+        <div class="cta-actions">
+          <a href="#" onclick="openBookingModal();return false;" class="btn btn-primary"><i class="fas fa-calendar-check"></i> Agendar Agora</a>
+          <a href="https://wa.me/556730459452" target="_blank" class="btn btn-whatsapp">💬 Fale Conosco</a>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ===== FOOTER ===== -->
+  <footer>
+    <div class="container">
+      <div class="footer-grid">
+        <div class="footer-brand">
+          <a href="#" class="nav-logo">C<span>G</span></a>
+          <p>Barbearia Campo Grande Barbershop — estilo que fala por você. Tradição, qualidade e o melhor atendimento da região.</p>
+          <div class="footer-social">
+            <a href="https://www.instagram.com/campograndebarbershop" target="_blank" aria-label="Instagram">📷</a>
+            <a href="#" target="_blank" aria-label="Facebook">👍</a>
+            <a href="#" target="_blank" aria-label="Website">🌐</a>
+            <a href="https://wa.me/556730459452" target="_blank" aria-label="WhatsApp">💬</a>
+          </div>
+        </div>
+        <div class="footer-col">
+          <h4>Navegação</h4>
+          <a href="#sobre">Sobre</a>
+          <a href="#servicos">Serviços</a>
+          <a href="#galeria">Galeria</a>
+          <a href="#depoimentos">Depoimentos</a>
+          <a href="#localizacao">Localização</a>
+        </div>
+        <div class="footer-col">
+          <h4>Serviços</h4>
+          <a href="#servicos">Corte de Cabelo</a>
+          <a href="#servicos">Barba</a>
+          <a href="#servicos">Cabelo + Barba</a>
+          <a href="#servicos">Raspar</a>
+          <a href="#servicos">Depilação Orelha</a>
+          <a href="#servicos">Pacote VIP</a>
+        </div>
+        <div class="footer-col">
+          <h4>Contato</h4>
+          <a href="tel:556730459452">(67) 3045-9452</a>
+          <a href="https://wa.me/556730459452">WhatsApp</a>
+          <a href="https://www.google.com/maps/search/R.+Jos%C3%A9+Ant%C3%B4nio%2C+1072+-+Vila+Rosa+Pires%2C+Campo+Grande+-+MS" target="_blank">Ver no Mapa</a>
+        </div>
+      </div>
+      <div class="footer-bottom">
+        <span>&copy; 2026 Barbearia Campo Grande Barbershop. Todos os direitos reservados.</span>
+        <span>Feito com 💈 por <a href="#">Nosso Time</a></span>
+      </div>
+    </div>
+  </footer>
+
+  <!-- ===== WHATSAPP FLOAT ===== -->
+  <a href="https://wa.me/556730459452?text=Ol%C3%A1!%20Gostaria%20de%20agendar%20um%20hor%C3%A1rio" target="_blank" class="whatsapp-float" aria-label="WhatsApp">
+    <i class="fab fa-whatsapp"></i>
+  </a>
+
+  <script src="/site-template/script.js" defer></script>
+</body>
+</html>

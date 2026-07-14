@@ -2,6 +2,7 @@ import 'express-async-errors';
 import express from 'express';
 import cors from 'cors';
 import helmet from 'helmet';
+import compression from 'compression';
 import rateLimit from 'express-rate-limit';
 import path from 'path';
 import { fileURLToPath } from 'url';
@@ -15,6 +16,9 @@ process.env.TZ = process.env.TZ || 'America/Sao_Paulo';
 
 import pool from './config/database.js';
 import { runMigrations } from './db/migrate.js';
+import { limparSessoesStale, reconectarTodasBaileys } from './services/baileys-provider.js';
+import { reconectarTodasOffline } from './services/evolution-provider.js';
+import { iniciarScheduler } from './services/scheduler.js';
 
 import authRoutes from './routes/auth.js';
 import profissionaisRoutes from './routes/profissionais.js';
@@ -33,7 +37,9 @@ import comissoesRoutes from './routes/comissoes.js';
 import aiRoutes from './routes/ai.js';
 import adminRoutes from './routes/admin.js';
 import bloqueiosRoutes from './routes/bloqueios.js';
+import notificacoesRoutes from './routes/notificacoes.js';
 import siteBarbeariaRoutes from './routes/site-barbearia.js';
+import siteClienteRoutes from './routes/site-cliente.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const PUBLIC_DIR = path.join(__dirname, '..', 'public');
@@ -48,6 +54,7 @@ app.use(
   })
 );
 app.use(cors());
+app.use(compression({ level: 6, threshold: 256 }));
 app.use(express.json({ limit: '1mb' }));
 
 // ─── RATE LIMITING ───
@@ -100,19 +107,28 @@ app.use('/api/comissoes', comissoesRoutes);
 app.use('/api/ai', aiRoutes);
 app.use('/api/admin', adminRoutes);
 app.use('/api/bloqueios', bloqueiosRoutes);
+app.use('/api/notificacoes', notificacoesRoutes);
 
 // ---------- FRONTEND ESTATICO ----------
-// no-cache durante desenvolvimento: garante que o navegador sempre pegue a versao nova
 app.use(express.static(PUBLIC_DIR, {
   etag: true,
   lastModified: true,
+  maxAge: '1h',
   setHeaders: (res, filePath) => {
-    res.setHeader('Cache-Control', 'no-cache, must-revalidate');
+    if (filePath.endsWith('.html')) {
+      res.setHeader('Cache-Control', 'no-cache, must-revalidate');
+    } else {
+      res.setHeader('Cache-Control', 'public, max-age=86400');
+    }
   },
 }));
 
 // Rota do site publico da barbearia (tudo inline, sem estaticos)
 app.use('/barbearia-demo', siteBarbeariaRoutes);
+
+// Rota SaaS — site profissional para cada barbearia (template dinâmico)
+// GET /b/:slug → site completo com dados da barbearia
+app.use('/b', siteClienteRoutes);
 
 // Catch-all SPA (exclui arquivos estaticos)
 app.get(/^\/(?!api\/)(?!.*\.(css|js|png|jpg|jpeg|gif|ico|svg|woff2?|ttf|eot)$).*/, (req, res) => {
@@ -144,45 +160,10 @@ async function start() {
     console.log(`Frontend: http://localhost:${PORT}`);
     console.log(`API health: http://localhost:${PORT}/api/health`);
     
-    // Limpa sessões stale (auth state perdido em deploys Railway)
-    setTimeout(async () => {
-      try {
-        const { limparSessoesStale } = await import('./services/baileys-provider.js');
-        await limparSessoesStale();
-      } catch (err) {
-        console.error(`⚠️  Limpeza stale:`, err.message);
-      }
-    }, 2000);
-    
-    // Inicializa Baileys (WhatsApp nativo)
-    setTimeout(async () => {
-      try {
-        const { reconectarTodasBaileys } = await import('./services/baileys-provider.js');
-        await reconectarTodasBaileys();
-        console.log(`✅ Baileys: reconexão automática iniciada`);
-      } catch (err) {
-        console.error(`⚠️  Baileys:`, err.message);
-      }
-    }, 5000);
-    
-    // Reconecta instâncias Evolution API
-    setTimeout(async () => {
-      try {
-        const { reconectarTodasOffline } = await import('./services/evolution-provider.js');
-        const result = await reconectarTodasOffline();
-        console.log(`✅ Evolution: ${JSON.stringify(result)}`);
-      } catch (err) {
-        console.error(`⚠️  Evolution:`, err.message);
-      }
-    }, 6000);
-    
-    // Inicia scheduler de notificações automáticas
-    try {
-      const { iniciarScheduler } = await import('./services/scheduler.js');
-      iniciarScheduler();
-    } catch (err) {
-      console.error(`⚠️  Falha ao iniciar scheduler:`, err.message);
-    }
+    setTimeout(() => { limparSessoesStale().catch(e => console.error('⚠️  Limpeza stale:', e.message)); }, 2000);
+    setTimeout(() => { reconectarTodasBaileys().then(() => console.log('✅ Baileys: reconexão automática iniciada')).catch(e => console.error('⚠️  Baileys:', e.message)); }, 5000);
+    setTimeout(() => { reconectarTodasOffline().then(r => console.log('✅ Evolution:', JSON.stringify(r))).catch(e => console.error('⚠️  Evolution:', e.message)); }, 6000);
+    iniciarScheduler();
     
     console.log('============================================\n');
   });
