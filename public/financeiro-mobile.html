@@ -462,7 +462,7 @@
         <a href="profissionais-mobile.html" class="sidebar-item"><i class="fas fa-user-tie"></i> Profissionais</a>
         <a href="estoque-mobile.html" class="sidebar-item"><i class="fas fa-boxes"></i> Estoque</a>
         <a href="financeiro-mobile.html" class="sidebar-item active"><i class="fas fa-chart-line"></i> Financeiro</a>
-        <a href="financeiro-mobile.html#secao-acertos" class="sidebar-item"><i class="fas fa-history"></i> Acertos</a>
+        <a href="comissoes-mobile.html" class="sidebar-item"><i class="fas fa-percentage"></i> Comissões</a>
         <div class="nav-section">Outros</div>
         <a href="relatorios-mobile.html" class="sidebar-item"><i class="fas fa-chart-bar"></i> Relatórios</a>
         <a href="equipe.html" class="sidebar-item"><i class="fas fa-users-cog"></i> Equipe</a>
@@ -605,54 +605,11 @@
         </div>
       </section>
 
-      <!-- COMISSÕES PENDENTES -->
-      <section class="section" id="secao-comissoes">
-        <div class="section-header">
-          <h2 class="section-title"><i class="fas fa-coins"></i> Comissões Pendentes</h2>
-          <button class="btn btn-success btn-sm" id="btn-pagar-todas" onclick="pagarTodasComissoes()" style="display:none;">Pagar Todas</button>
-        </div>
-        <div id="comissoes-pendentes" style="text-align:center;padding:var(--space-lg);color:var(--text-muted);"><i class="fas fa-spinner fa-spin"></i> Carregando...</div>
-      </section>
-
-      <!-- HISTÓRICO DE ACERTOS -->
-      <section class="section" id="secao-acertos">
-        <div class="section-header">
-          <h2 class="section-title"><i class="fas fa-history"></i> Histórico de Acertos</h2>
-          <button class="btn btn-outline btn-sm" onclick="carregarAcertos()" title="Atualizar"><i class="fas fa-sync-alt"></i></button>
-        </div>
-        <div id="acertos-lista" style="text-align:center;padding:var(--space-lg);color:var(--text-muted);"><i class="fas fa-spinner fa-spin"></i> Carregando...</div>
-      </section>
     </main>
 
-    <!-- BOTTOM NAV -->
+    <!-- BOTTOM NAV (padronizado via api.js) -->
     <nav class="bottom-nav">
-      <div class="nav-items">
-        <a href="dashboard-mobile.html" class="nav-item">
-          <i class="nav-icon fas fa-home"></i>
-          <span class="nav-label">Dashboard</span>
-        </a>
-        
-        <a href="agenda-mobile.html" class="nav-item">
-          <i class="nav-icon fas fa-calendar"></i>
-          <span class="nav-label">Agenda</span>
-        </a>
-        
-        <a href="clientes-mobile.html" class="nav-item">
-          <i class="nav-icon fas fa-users"></i>
-          <span class="nav-label">Clientes</span>
-        </a>
-        
-        <a href="configuracoes-mobile.html" class="nav-item">
-          <i class="nav-icon fas fa-cog"></i>
-          <span class="nav-label">Config</span>
-        </a>
-        <a href="equipe.html" class="nav-item"><i class="nav-icon fas fa-users-cog"></i><span class="nav-label">Equipe</span></a>
-        
-        <a href="#" class="nav-item active">
-          <i class="nav-icon fas fa-comments"></i>
-          <span class="nav-label">Financeiro</span>
-        </a>
-      </div>
+      <div class="nav-items"></div>
     </nav>
       </div>
     </div>
@@ -853,108 +810,6 @@
       `).join('');
     }
 
-    async function carregarComissoes() {
-      try {
-        const saldos = await API.get('/comissoes/saldo');
-        const el = document.getElementById('comissoes-pendentes');
-        const pendentes = saldos.filter(s => parseFloat(s.pendente) > 0);
-        if (!pendentes.length) {
-          el.innerHTML = '<div style="text-align:center;padding:var(--space-lg);color:var(--text-muted);"><i class="fas fa-check-circle"></i><br>Nenhuma comissão pendente</div>';
-          document.getElementById('btn-pagar-todas').style.display = 'none';
-          return;
-        }
-        document.getElementById('btn-pagar-todas').style.display = 'block';
-        el.innerHTML = pendentes.map(s => `
-          <div class="command-card">
-            <div class="command-header">
-              <div class="command-info">
-                <div class="command-number">${s.profissional_nome}</div>
-                <div class="command-client">Comissões pendentes</div>
-              </div>
-              <div class="command-value" style="color:var(--warning);">R$ ${parseFloat(s.pendente).toFixed(2)}</div>
-            </div>
-            <div class="command-details">
-              <div style="font-size:var(--text-xs);color:var(--text-muted);margin-bottom:var(--space-sm);">
-                ${parseFloat(s.pago) > 0 ? 'Já pago: R$ ' + parseFloat(s.pago).toFixed(2) : ''}
-              </div>
-              <button class="btn btn-success btn-sm" onclick="pagarComissaoProfissional('${s.profissional_id}')">
-                <i class="fas fa-check"></i> Pagar
-              </button>
-            </div>
-          </div>
-        `).join('');
-      } catch (e) {
-        document.getElementById('comissoes-pendentes').innerHTML = '<div style="text-align:center;padding:var(--space-lg);color:var(--error);">Erro: ' + e.message + '</div>';
-      }
-    }
-
-    async function pagarComissaoProfissional(profissionalId) {
-      if (!confirm('Pagar todas as comissões pendentes deste profissional?')) return;
-      try {
-        const lista = await API.get('/comissoes?status=pendente&profissional_id=' + profissionalId);
-        const ids = lista.map(c => c.id);
-        if (!ids.length) return alert('Nenhuma comissão pendente para este profissional');
-        await API.post('/comissoes/pagar', { ids });
-        alert('Comissões pagas com sucesso!');
-        await carregarComissoes();
-        await carregarAcertos();
-      } catch (e) {
-        alert('Erro: ' + e.message);
-      }
-    }
-
-    async function pagarTodasComissoes() {
-      if (!confirm('Pagar todas as comissões pendentes?')) return;
-      try {
-        const lista = await API.get('/comissoes?status=pendente');
-        const ids = lista.map(c => c.id);
-        if (!ids.length) return alert('Nenhuma comissão pendente');
-        await API.post('/comissoes/pagar', { ids });
-        alert('Comissões pagas com sucesso!');
-        await carregarComissoes();
-        await carregarAcertos();
-      } catch (e) {
-        alert('Erro: ' + e.message);
-      }
-    }
-
-    async function carregarAcertos() {
-      try {
-        const acertos = await API.get('/comissoes/acertos');
-        const el = document.getElementById('acertos-lista');
-        if (!acertos.length) {
-          el.innerHTML = '<div style="text-align:center;padding:var(--space-lg);color:var(--text-muted);"><i class="fas fa-inbox"></i><br>Nenhum acerto realizado ainda</div>';
-          return;
-        }
-        el.innerHTML = acertos.map(a => `
-          <div class="command-card" onclick="verAcertoDetalhe('${a.id}')" style="cursor:pointer;">
-            <div class="command-header">
-              <div class="command-info">
-                <div class="command-number">${a.profissional_nome}</div>
-                <div class="command-client">${a.total_comissoes} comissão(ões) • ${new Date(a.created_at).toLocaleString('pt-BR')}</div>
-              </div>
-              <div class="command-value" style="color:var(--success);">R$ ${parseFloat(a.valor_total).toFixed(2)}</div>
-            </div>
-          </div>
-        `).join('');
-      } catch (e) {
-        document.getElementById('acertos-lista').innerHTML = '<div style="text-align:center;padding:var(--space-lg);color:var(--error);">Erro: ' + e.message + '</div>';
-      }
-    }
-
-    async function verAcertoDetalhe(acertoId) {
-      try {
-        const comissoes = await API.get('/comissoes?acerto_id=' + acertoId);
-        if (!comissoes.length) return alert('Nenhuma comissão encontrada para este acerto');
-        const html = comissoes.map(c => `
-          ${c.descricao} — R$ ${parseFloat(c.valor_comissao).toFixed(2)} (${c.tipo})
-        `).join('\n');
-        alert('Comissões deste acerto:\n\n' + html);
-      } catch (e) {
-        alert('Erro: ' + e.message);
-      }
-    }
-
     document.addEventListener('DOMContentLoaded', async function() {
       const savedTheme = localStorage.getItem('theme');
       if (savedTheme === 'dark') {
@@ -972,10 +827,6 @@
       }
 
       await carregarDados();
-      if (!user || user.role !== 'staff') {
-        await carregarComissoes();
-        await carregarAcertos();
-      }
       await carregarCaixa();
     });
     initMobilePage();

@@ -366,6 +366,7 @@
         <a href="financeiro-mobile.html" class="sidebar-item">
           <i class="fas fa-chart-line"></i> Financeiro
         </a>
+        <a href="comissoes-mobile.html" class="sidebar-item"><i class="fas fa-percentage"></i> Comissões</a>
         <div class="nav-section">Outros</div>
         <a href="relatorios-mobile.html" class="sidebar-item">
           <i class="fas fa-chart-bar"></i> Relatórios
@@ -431,7 +432,7 @@
               Olá! 👋
             </h1>
             <p style="color: var(--text-secondary); font-size: var(--text-base);" id="subtitulo">
-              Carregando agendamentos...
+              <span class="skeleton skeleton-text" style="width:220px; display:inline-block; vertical-align:middle;"></span>
             </p>
           </div>
 
@@ -470,6 +471,31 @@
             </div>
           </div>
 
+          <!-- RESUMO FINANCEIRO -->
+          <div class="metrics-grid" id="resumo-financeiro" style="display:none;">
+            <div class="metric-card" style="border-color:var(--primary);">
+              <div class="metric-icon" style="background:rgba(59,130,246,0.1);color:var(--primary);">
+                <i class="fas fa-money-bill-wave"></i>
+              </div>
+              <div class="metric-value" id="d-fat-bruto">R$ 0</div>
+              <div class="metric-label">Faturamento Bruto (30 dias)</div>
+            </div>
+            <div class="metric-card" style="border-color:var(--warning);">
+              <div class="metric-icon" style="background:rgba(245,158,11,0.1);color:var(--warning);">
+                <i class="fas fa-percentage"></i>
+              </div>
+              <div class="metric-value" id="d-comissoes">R$ 0</div>
+              <div class="metric-label">Comissões Pagas (30 dias)</div>
+            </div>
+            <div class="metric-card" style="border-color:var(--success);">
+              <div class="metric-icon" style="background:rgba(16,185,129,0.1);color:var(--success);">
+                <i class="fas fa-store"></i>
+              </div>
+              <div class="metric-value" id="d-liquido">R$ 0</div>
+              <div class="metric-label">Líquido da Barbearia</div>
+            </div>
+          </div>
+
           <!-- AGENDA HOJE -->
           <section class="agenda-section">
             <div class="section-header">
@@ -478,7 +504,9 @@
             </div>
 
             <div id="lista-proximos">
-              <p style="color: var(--text-muted); font-size: var(--text-sm); text-align: center; padding: var(--space-lg);">Carregando...</p>
+              <div class="skeleton-card"><div class="skeleton skeleton-avatar"></div><div class="skeleton-card-body"><div class="skeleton skeleton-text"></div><div class="skeleton skeleton-text"></div></div></div>
+              <div class="skeleton-card"><div class="skeleton skeleton-avatar"></div><div class="skeleton-card-body"><div class="skeleton skeleton-text"></div><div class="skeleton skeleton-text"></div></div></div>
+              <div class="skeleton-card"><div class="skeleton skeleton-avatar"></div><div class="skeleton-card-body"><div class="skeleton skeleton-text"></div><div class="skeleton skeleton-text"></div></div></div>
             </div>
           </section>
 
@@ -518,35 +546,9 @@
           </section>
         </main>
 
-        <!-- BOTTOM NAVIGATION -->
+        <!-- BOTTOM NAVIGATION (padronizado via api.js) -->
         <nav class="bottom-nav">
-          <div class="nav-items">
-            <a href="#" class="nav-item active">
-              <i class="nav-icon fas fa-home"></i>
-              <span class="nav-label">Dashboard</span>
-            </a>
-            
-            <a href="agenda-mobile.html" class="nav-item">
-              <i class="nav-icon fas fa-calendar"></i>
-              <span class="nav-label">Agenda</span>
-            </a>
-            
-            <a href="clientes-mobile.html" class="nav-item">
-              <i class="nav-icon fas fa-users"></i>
-              <span class="nav-label">Clientes</span>
-            </a>
-            
-            <a href="relatorios-mobile.html" class="nav-item">
-              <i class="nav-icon fas fa-chart-bar"></i>
-              <span class="nav-label">Relatórios</span>
-            </a>
-            
-            <a href="configuracoes-mobile.html" class="nav-item">
-              <i class="nav-icon fas fa-cog"></i>
-              <span class="nav-label">Config</span>
-            </a>
-            <a href="equipe.html" class="nav-item"><i class="nav-icon fas fa-users-cog"></i><span class="nav-label">Equipe</span></a>
-          </div>
+          <div class="nav-items"></div>
         </nav>
       </div>
     </div>
@@ -635,6 +637,17 @@
           'R$ ' + d.hoje.faturamento.toFixed(2).replace('.', ',');
         document.getElementById('m-mes').textContent = d.mes.agendamentos;
         document.getElementById('m-clientes').textContent = d.clientes_ativos;
+
+        // Carrega resumo financeiro
+        try {
+          const r = await API.get('/comissoes/resumo?dias=30');
+          if (parseFloat(r.faturamento_bruto) > 0 || parseFloat(r.comissoes_pagas) > 0) {
+            document.getElementById('resumo-financeiro').style.display = '';
+            document.getElementById('d-fat-bruto').textContent = 'R$ ' + parseFloat(r.faturamento_bruto).toFixed(2).replace('.', ',');
+            document.getElementById('d-comissoes').textContent = 'R$ ' + parseFloat(r.comissoes_pagas).toFixed(2).replace('.', ',');
+            document.getElementById('d-liquido').textContent = 'R$ ' + parseFloat(r.liquido_barbearia).toFixed(2).replace('.', ',');
+          }
+        } catch (e) { console.warn('Erro resumo financeiro:', e.message); }
 
         document.getElementById('subtitulo').innerHTML =
           `Você tem <strong>${d.hoje.agendamentos} agendamento(s)</strong> hoje`;
